@@ -977,8 +977,7 @@ function LoginScreen({onLogin,users}) {
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 function HomeScreen({user,onAction}) {
-  const isAdmin=user?.role==="admin";
-  const isMSS=user?.role==="mss"||isAdmin;
+  const isMSS=user?.role==="mss"||user?.role==="admin";
   const isTransfer=user?.role==="transfer";
   const isFD=user?.role==="fd";
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
