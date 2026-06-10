@@ -1612,7 +1612,6 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const c=selCase,prep=c.prep||{},billable=c.billable||{},otherUsed=c.otherUsed||{},statusItems=c.statusItems||{};
   const updPrep=(k,v)=>upd(c.id,{prep:{...prep,[k]:v}});
   const updPrepMulti=(updates)=>upd(c.id,{prep:{...prep,...updates}});
-  const [showPacemakerCert,setShowPacemakerCert]=useState(false);
   const updBill=(k,v)=>upd(c.id,{billable:{...billable,[k]:v}});
   const updOther=(k,v)=>upd(c.id,{otherUsed:{...otherUsed,[k]:v}});
   const updStatus=(k,v)=>upd(c.id,{statusItems:{...statusItems,[k]:v}});
