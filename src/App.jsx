@@ -1341,11 +1341,14 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
 // ─── PACEMAKER REMOVAL CERTIFICATE ───────────────────────────────────────────
 function PacemakerCertificate({caseData, onClose, onSaved}){
-  const[embName,setEmbName]=useState("");
+  const[embName,setEmbName]=useState("Steve Lambert");
+  const[embOther,setEmbOther]=useState("");
+  const[showOther,setShowOther]=useState(false);
   const[embSignature,setEmbSignature]=useState(null);
   const[certDate,setCertDate]=useState(today());
   const[saving,setSaving]=useState(false);
   const certRef=useRef(null);
+  const displayName=showOther?embOther:embName;
 
   const fhContacts=caseData.funeralHomeId==="OTHER"?[]:getFHContacts(caseData.funeralHomeId);
 
@@ -1429,7 +1432,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
 
         <div class="field">
           <div class="field-label">Embalmer / Technician Name</div>
-          <div class="field-value">${embName}</div>
+          <div class="field-value">${displayName}</div>
         </div>
 
         <div class="sig-area">
@@ -1456,7 +1459,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
   }
 
   async function handleSaveAndEmail(){
-    if(!embName.trim()){alert("Please enter the Embalmer name.");return;}
+    if(!displayName.trim()){alert("Please enter the Embalmer name.");return;}
     if(!embSignature){alert("Please provide a signature.");return;}
     setSaving(true);
 
@@ -1475,7 +1478,7 @@ Case Reference: ${caseData.caseRef}
 Date of Birth: ${fmt(caseData.dob)}
 Date of Death: ${fmt(caseData.dod)}
 Date of Removal: ${fmt(certDate)}
-Removed By: ${embName}
+Removed By: ${displayName}
 
 The pacemaker has been safely removed and disposed of in accordance with relevant regulations.
 
@@ -1498,8 +1501,8 @@ Email: info@mortuarysupport.com.au`}`);
   }
 
   return(
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto pt-4 px-4 pb-8">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gray-900 text-white rounded-t-2xl p-5 flex items-center justify-between">
           <div>
@@ -1530,7 +1533,11 @@ Email: info@mortuarysupport.com.au`}`);
 
           {/* Embalmer name */}
           <Field label="EMBALMER / TECHNICIAN NAME" required>
-            <input className={`${s.inp} font-bold`} placeholder="Full name…" value={embName} onChange={e=>setEmbName(e.target.value)}/>
+            <select className={`${s.inp} font-bold`} value={showOther?"other":embName} onChange={e=>{if(e.target.value==="other"){setShowOther(true);}else{setShowOther(false);setEmbName(e.target.value);}}}>
+              <option value="Steve Lambert">Steve Lambert</option>
+              <option value="other">Other…</option>
+            </select>
+            {showOther&&<input className={`${s.inp} font-bold mt-2`} placeholder="Enter full name…" value={embOther} onChange={e=>setEmbOther(e.target.value)}/>}
           </Field>
 
           {/* Declaration */}
