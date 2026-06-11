@@ -1563,6 +1563,7 @@ Email: info@mortuarysupport.com.au`}`);
 function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const [selFH,setSelFH]=useState(null);
   const [selCase,setSelCase]=useState(null);
+  const [showPacemakerCert,setShowPacemakerCert]=useState(false);
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[selFH?.id,selCase?.id]);
 
   const byFH={};
