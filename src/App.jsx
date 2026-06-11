@@ -1728,6 +1728,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           <button key={val} onClick={()=>handleStatus(val)} className={`py-4 rounded-2xl text-white font-black text-base transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-80 hover:opacity-100"}`}>{label}</button>
         ))}
       </div>
+      {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>setShowPacemakerCert(false)}/>}
     </div>
   );
 }
