@@ -2570,6 +2570,31 @@ function ReportsView({cases}) {
   );
 }
 
+// ─── CALENDAR PRINT ──────────────────────────────────────────────────────────
+function printWeek(weekDates,slotMap,slots){
+  const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmtDay(d){const x=new Date(d+"T12:00:00");return `${dayNames[x.getDay()]} ${x.getDate()} ${months[x.getMonth()]}`;}
+  const pw=window.open("","_blank");
+  const cols=weekDates.map(d=>`<th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;min-width:90px">${fmtDay(d)}</th>`).join("");
+  const rows=slots.map(slot=>{
+    const timeLabel=slot.label;
+    const cells=weekDates.map(d=>{
+      const key=`${d}_${slot.hour}_${slot.half?"half":"full"}`;
+      const b=slotMap[key];
+      if(!b) return `<td style="padding:4px;border:1px solid #eee;height:28px"></td>`;
+      const bg=b.color==="green"?"#d1fae5":b.color==="blue"?"#dbeafe":"#f5f5f5";
+      const border=b.color==="green"?"#059669":b.color==="blue"?"#2563eb":"#999";
+      return `<td style="padding:4px 6px;border:1px solid #eee;background:${bg};border-left:3px solid ${border};font-size:10px;font-weight:600">${b.label}</td>`;
+    }).join("");
+    return `<tr><td style="padding:4px 6px;border:1px solid #eee;font-size:10px;color:#666;white-space:nowrap;background:#fafafa">${timeLabel}</td>${cells}</tr>`;
+  }).join("");
+  pw.document.write(`<!DOCTYPE html><html><head><title>MSS Calendar</title><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}@media print{body{padding:10px}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #111;padding-bottom:10px"><div style="font-size:20px;font-weight:900">MSS Mortuary Support Services</div><div style="font-size:12px;color:#666">Week of ${fmtDay(weekDates[0])} — ${fmtDay(weekDates[6])}</div></div><table><thead><tr><th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;width:55px">Time</th>${cols}</tr></thead><tbody>${rows}</tbody></table><div style="margin-top:16px;font-size:10px;color:#999;display:flex;gap:20px"><span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:#d1fae5;border-left:3px solid #059669"></span>Viewing Room</span><span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:#dbeafe;border-left:3px solid #2563eb"></span>Family Meeting Room</span></div></body></html>`);
+  pw.document.close();
+  pw.focus();
+  setTimeout(()=>pw.print(),400);
+}
+
 // ─── CALENDAR ─────────────────────────────────────────────────────────────────
 const CALENDAR_SLOTS=[];
 for(let h=8;h<=20;h++){
@@ -2729,7 +2754,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
       <div className="flex gap-3 mb-5">
         {canEdit&&<button onClick={()=>{resetModal();setShowBookModal(true);}} className={`${s.btnDark} py-3`}>+ BOOK A ROOM</button>}
-        <button onClick={()=>window.print()} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
+        <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
       </div>
 
       <div className="overflow-x-auto -mx-4 px-4">
