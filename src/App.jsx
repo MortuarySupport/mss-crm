@@ -1501,7 +1501,7 @@ Email: info@mortuarysupport.com.au`}`);
   }
 
   return(
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-4">
+    <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-gray-900 text-white rounded-t-2xl p-5 flex items-center justify-between">
