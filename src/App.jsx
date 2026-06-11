@@ -2440,6 +2440,7 @@ function ReportsView({cases}) {
     URL.revokeObjectURL(url);
   }
 
+  const STATUS_ORDER={"not-started":0,"in-progress":1,"completed":2};
   function getSortValue(c, key) {
     switch(key) {
       case "collectionDate": return c.prep?.collectionDate || "9999";
