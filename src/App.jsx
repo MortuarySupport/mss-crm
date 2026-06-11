@@ -2187,6 +2187,7 @@ function RecordsView({user,cases,onUpdateCase}) {
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("all");
   const isAdmin=user?.role==="admin";
+  const isMSS=user?.role==="mss"||isAdmin;
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[filter]);
 
   async function lockCase(id){
