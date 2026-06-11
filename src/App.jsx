@@ -2062,7 +2062,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 // ─── MY CASES ─────────────────────────────────────────────────────────────────
 function MyCases({user,cases,onUpdateCase}) {
   const [filter,setFilter]=useState("current");
-  const isAdmin=user?.role==="admin",isFD=user?.role==="fd";
+  const isAdmin=user?.role==="admin",isFD=user?.role==="fd";const isMSS=user?.role==="mss"||isAdmin;
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[filter]);
   let myCases=isFD?cases.filter(c=>c.funeralHomeId===user.funeralHomeId):cases;
   const current=myCases.filter(c=>c.status==="active"&&!c.checkedOut);
