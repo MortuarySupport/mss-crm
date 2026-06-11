@@ -177,7 +177,7 @@ function calcAge(dob,dod) {
   if(d.getMonth()-b.getMonth()<0||(d.getMonth()===b.getMonth()&&d.getDate()<b.getDate())) a--;
   return a>=0?a:null;
 }
-function genCaseRef(cases) { return `MSS_${(cases.length+1).toString().padStart(5,"0")}`; }
+function genCaseRef(cases) { return `MSL_${(cases.length+1).toString().padStart(5,"0")}`; }
 function getFHContacts(fhId) { return FUNERAL_HOMES.find(f=>f.id===fhId)?.contacts||[]; }
 function sexShort(s) { return s==="Male"?"M":s==="Female"?"F":"O"; }
 function sortAlpha(arr,key="name") { return [...arr].sort((a,b)=>a[key].localeCompare(b[key])); }
@@ -282,17 +282,33 @@ const s = {
 
 // ─── LOGO ─────────────────────────────────────────────────────────────────────
 function MSSLogo({ size="md" }) {
-  const dim=size==="lg"?120:size==="sm"?44:80;
+  const iconW=size==="lg"?72:size==="sm"?36:56;
+  const iconH=size==="lg"?90:size==="sm"?45:70;
+  const mainSize=size==="lg"?22:size==="sm"?13:18;
+  const subSize=size==="lg"?14:size==="sm"?9:12;
+  const tagSize=size==="lg"?9:size==="sm"?0:8;
   return (
-    <div className="flex items-center gap-4">
-      <div style={{width:dim,height:dim*0.72,border:"2px solid #222",position:"relative",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-        <div style={{position:"absolute",top:6,left:6,right:6,height:1,background:"#aaa"}}/>
-        <div style={{position:"absolute",bottom:6,left:6,right:6,height:1,background:"#aaa"}}/>
-        <span style={{fontFamily:"'Georgia',serif",fontWeight:900,fontSize:dim*0.32,color:"#222",letterSpacing:2}}>MSS</span>
-      </div>
-      <div style={{borderLeft:"1.5px solid #ccc",paddingLeft:14}}>
-        <div style={{fontFamily:"'Georgia',serif",fontWeight:700,fontSize:dim*0.22,color:"#222",letterSpacing:4,textTransform:"uppercase"}}>MORTUARY</div>
-        <div style={{fontFamily:"'Arial',sans-serif",fontWeight:300,fontSize:dim*0.12,color:"#999",letterSpacing:6,textTransform:"uppercase",marginTop:2}}>SUPPORT SERVICES</div>
+    <div className="flex items-center gap-3">
+      <svg width={iconW} height={iconH} viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 75 Q30 60 32 45" stroke="#111" strokeWidth="1.4" fill="none" strokeLinecap="round"/>
+        <path d="M32 62 Q20 55 16 46 Q25 52 32 58" stroke="#111" strokeWidth="1" fill="none"/>
+        <path d="M32 57 Q44 51 48 42 Q39 49 32 55" stroke="#111" strokeWidth="1" fill="none"/>
+        <path d="M32 44 Q16 34 12 16 Q20 30 28 40 Q30 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/>
+        <path d="M32 44 Q48 34 52 16 Q44 30 36 40 Q34 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/>
+        <path d="M32 44 Q18 30 20 10 Q26 28 30 41 Q31 43 32 44" stroke="#111" strokeWidth="1" fill="none"/>
+        <path d="M32 44 Q46 30 44 10 Q38 28 34 41 Q33 43 32 44" stroke="#111" strokeWidth="1" fill="none"/>
+        <path d="M32 44 Q25 26 32 6 Q39 26 32 44" stroke="#111" strokeWidth="1" fill="none"/>
+        <line x1="32" y1="44" x2="25" y2="31" stroke="#111" strokeWidth="0.8"/>
+        <line x1="32" y1="44" x2="32" y2="29" stroke="#111" strokeWidth="0.8"/>
+        <line x1="32" y1="44" x2="39" y2="31" stroke="#111" strokeWidth="0.8"/>
+        <circle cx="25" cy="30" r="1.8" fill="#111"/>
+        <circle cx="32" cy="28" r="1.8" fill="#111"/>
+        <circle cx="39" cy="30" r="1.8" fill="#111"/>
+      </svg>
+      <div style={{borderLeft:"1px solid #222",paddingLeft:12}}>
+        <div style={{fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif",fontWeight:400,fontSize:mainSize,color:"#111",letterSpacing:3,textTransform:"uppercase",lineHeight:1}}>Mortuary Support</div>
+        <div style={{fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif",fontWeight:300,fontSize:subSize,color:"#333",letterSpacing:7,textTransform:"uppercase",marginTop:6}}>Lumēn</div>
+        {tagSize>0&&<div style={{fontFamily:"Arial,sans-serif",fontSize:tagSize,color:"#999",letterSpacing:2,marginTop:4,fontStyle:"italic"}}>the light that guides</div>}
       </div>
     </div>
   );
@@ -1008,7 +1024,7 @@ const MSS_FOOTER = `
 
 Any questions please don't hesitate to contact us.
 
-The Team at MSS Mortuary Support Services
+The Team at Mortuary Support | Lumēn
 Phone: 02 8814 5500
 Email: info@mortuarysupport.com.au`;
 
@@ -1390,7 +1406,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
           <div style="text-align:right">
             <div class="company">MORTUARY</div>
             <div class="subcompany">SUPPORT SERVICES</div>
-            <div style="font-size:11px;color:#666;margin-top:6px;">Baulkham Hills, Sydney NSW</div>
+            <div style="font-size:11px;color:#666;margin-top:6px;">Mortuary Support | Lumēn NSW</div>
             <div style="font-size:11px;color:#666;">Ph: 02 8814 5500 | info@mortuarysupport.com.au</div>
           </div>
         </div>
@@ -1427,7 +1443,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         <div class="statement">
           <strong>DECLARATION:</strong><br/><br/>
           I hereby certify that I have examined the above-named deceased and have successfully removed the pacemaker/implantable cardiac device prior to cremation/preparation. The device has been safely disposed of in accordance with relevant regulations and guidelines.<br/><br/>
-          This removal was carried out at MSS Mortuary Support Services, Baulkham Hills, Sydney NSW.
+          This removal was carried out at MSS Mortuary Support Services, Mortuary Support | Lumēn NSW.
         </div>
 
         <div class="field">
@@ -1447,7 +1463,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         </div>
 
         <div class="footer">
-          MSS Mortuary Support Services · Baulkham Hills, Sydney NSW · Ph: 02 8814 5500 · info@mortuarysupport.com.au<br/>
+          MSS Mortuary Support Services · Mortuary Support | Lumēn NSW · Ph: 02 8814 5500 · info@mortuarysupport.com.au<br/>
           This certificate is issued for the purposes of cremation/preparation documentation.
         </div>
       </body>
@@ -1486,7 +1502,7 @@ A signed certificate is attached for your records.
 ${`
 Any questions please don't hesitate to contact us.
 
-The Team at MSS Mortuary Support Services
+The Team at Mortuary Support | Lumēn
 Phone: 02 8814 5500
 Email: info@mortuarysupport.com.au`}`);
 
