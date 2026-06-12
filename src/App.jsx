@@ -1884,8 +1884,20 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}>
         <p className={s.section}>Dates</p>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Collection Date"><input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrep("collectionDate",e.target.value)}/>{prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}</div>}</Field>
-          <Field label="Funeral Date"><input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)}/>{prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.funeralDate)}</div>}</Field>
+          <Field label="Collection Date">
+            <div className="flex gap-2">
+              <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrep("collectionDate",e.target.value)} style={{flex:2}}/>
+              <input type="time" className={s.inp} value={prep.collectionTime||""} onChange={e=>updPrep("collectionTime",e.target.value)} style={{flex:1}}/>
+            </div>
+            {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
+          </Field>
+          <Field label="Funeral Date">
+            <div className="flex gap-2">
+              <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)} style={{flex:2}}/>
+              <input type="time" className={s.inp} value={prep.funeralTime||""} onChange={e=>updPrep("funeralTime",e.target.value)} style={{flex:1}}/>
+            </div>
+            {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
+          </Field>
         </div>
       </div>
       <div className={s.card}><p className={s.section}>Disposition</p><div className="flex gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
