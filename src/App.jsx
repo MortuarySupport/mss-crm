@@ -2959,7 +2959,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   }
 
   return(
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-black text-gray-900 uppercase">Calendar</h2>
         <div className="flex items-center gap-2">
@@ -2980,7 +2980,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
         <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
       </div>
 
-      <div className="overflow-x-auto -mx-4 px-4">
+      <div className="overflow-x-auto">
         <div style={{minWidth:"520px"}}>
           <div className="grid gap-1 mb-1" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
             <div className="text-xs font-black uppercase text-gray-400 p-1">TIME</div>
