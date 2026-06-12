@@ -2903,9 +2903,9 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const[date,time]=slot.split("_");
     const isHalf=time.includes(":30");
     const hour=parseInt(time.split(":")[0]);
-    const key=`${date}_${hour}_${isHalf?"half":"full"}`;
+    const key=`${date}_${hour}_${isHalf?"half":"full"}_ViewingRoom`;
     const fhName1=FUNERAL_HOMES.find(f=>f.id===c.funeralHomeId)?.name||c.funeralHomeName||"";
-    slotMap[key]={type:"Viewing",label:`${fhName1} — ${(c.lastName||"").toUpperCase()}`,fhId:c.funeralHomeId,color:"green",fromCase:true};
+    slotMap[key]={type:"Viewing Room",label:`${fhName1} — ${(c.lastName||"").toUpperCase()}`,fhId:c.funeralHomeId,color:"green",fromCase:true};
   });
   (calendarBookings||[]).forEach(b=>{
     const[date,time]=b.slot.split("_");
@@ -2915,9 +2915,10 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const slots=dur==="2 HOURS"?4:dur==="1 HOUR"?2:1;
     const label=(b.deceased_label||b.type)+" ("+dur+")";
     const color=b.type==="Viewing Room"?"green":"blue";
+    const roomKey=b.type==="Viewing Room"?"ViewingRoom":"FamilyRoom";
     let h=hour,half=isHalf;
     for(let i=0;i<slots;i++){
-      const key=`${date}_${h}_${half?"half":"full"}`;
+      const key=`${date}_${h}_${half?"half":"full"}_${roomKey}`;
       slotMap[key]={type:b.type,label:i===0?label:"",fhId:b.funeral_home_id||null,color,bookingId:b.id,booking:b,isFirst:i===0,spanOf:slots};
       if(half){half=false;h++;}else{half=true;}
     }
@@ -2974,9 +2975,14 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     return false;
   }
 
-  function handleSlotClick(slot,slotId){
+  function handleSlotClick(slot,slotId,room){
     if(!slot){
-      if(canEdit){setBookSlot(slotId);setShowBookModal(true);}
+      if(canEdit){
+        setBookSlot(slotId);
+        if(room==="FamilyRoom")setBookType("Family Meeting Room");
+        else setBookType("Viewing Room");
+        setShowBookModal(true);
+      }
       return;
     }
     if(slot.fromCase){
@@ -3020,10 +3026,12 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
           </div>
 
           {CALENDAR_SLOTS.map(({hour,half,label})=>(
-            <div key={label} className="grid gap-1 mb-0.5" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
-              <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-500"}`} style={{fontSize:"10px"}}>{label}</div>
+            <div key={label} className="mb-0.5">
+              {["ViewingRoom","FamilyRoom"].map(roomKey=>(
+              <div key={roomKey} className="grid gap-1 mb-0.5" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
+              <div className={`text-xs p-1 flex items-center ${half?(roomKey==="ViewingRoom"?"text-green-300":"text-blue-300"):(roomKey==="ViewingRoom"?"text-green-600":"text-blue-600")}`} style={{fontSize:"9px",fontWeight:900}}>{half?"":roomKey==="ViewingRoom"?label+" VR":label+" FM"}</div>
               {weekDates.map(date=>{
-                const key=`${date}_${hour}_${half?"half":"full"}`;
+                const key=`${date}_${hour}_${half?"half":"full"}_${roomKey}`;
                 const slot=slotMap[key];
                 const slotId=`${date}_${label}`;
                 const editable=canEditSlot(slot)||(isFD&&slot?.fhId===user.funeralHomeId);
@@ -3051,9 +3059,11 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 );
 
                 return canEdit
-                  ?<button key={date} onClick={()=>handleSlotClick(null,slotId)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
+                  ?<button key={date} onClick={()=>handleSlotClick(null,slotId,roomKey)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
                   :<div key={date} className={`rounded p-1 min-h-[26px] border border-gray-100 ${half?"bg-gray-50":"bg-white"}`}/>;
               })}
+              </div>
+              ))}
             </div>
           ))}
         </div>
