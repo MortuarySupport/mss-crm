@@ -3021,8 +3021,8 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                   if(mine)return(
                     <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
                       className="rounded p-1 min-h-[26px] text-xs font-bold uppercase bg-green-100 border border-green-400 text-green-800 text-left hover:bg-green-200 transition">
-                      <span className="truncate block">{slot.label}</span>
-                      {!slot.fromCase&&<span className="text-green-600 text-xs">TAP TO EDIT</span>}
+                      {slot.isFirst!==false&&<span className="truncate block">{slot.label}</span>}
+                      {slot.isFirst!==false&&!slot.fromCase&&<span className="text-green-600 text-xs">TAP TO EDIT</span>}
                     </button>
                   );
                   if(blocked)return<div key={date} className="rounded p-1 min-h-[26px] text-xs font-bold uppercase bg-gray-200 text-gray-400 flex items-center justify-center">BUSY</div>;
@@ -3032,8 +3032,8 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 if(slot)return(
                   <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
                     className={`rounded p-1 min-h-[26px] text-xs font-bold uppercase text-left transition hover:opacity-80 ${slot.color==="green"?"bg-green-100 border border-green-400 text-green-800":"bg-blue-100 border border-blue-400 text-blue-800"}`}>
-                    <span className="truncate block">{slot.label}</span>
-                    {!slot.fromCase&&<span className="opacity-60 text-xs">TAP TO EDIT</span>}
+                    {slot.isFirst!==false&&<span className="truncate block">{slot.label}</span>}
+                    {slot.isFirst!==false&&!slot.fromCase&&<span className="opacity-60 text-xs">TAP TO EDIT</span>}
                   </button>
                 );
 
