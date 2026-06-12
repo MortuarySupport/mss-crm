@@ -1784,7 +1784,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
             <div className={s.label}>Pacemaker Removed</div>
             <div className="flex gap-2 mb-2">{["Yes","No","NA","TBA"].map(v=><button key={v} type="button" onClick={()=>updPrep("pacemakerRemoved",v)} className={s.tb(prep.pacemakerRemoved===v)}>{v}</button>)}</div>
             {prep.pacemakerRemoved==="Yes"&&(
-              <button type="button" onClick={()=>openPacemakerCertTab(c)}
+              <button type="button" onClick={()=>setShowPacemakerCert(true)}
                 className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm uppercase tracking-wide transition">
                 📋 GENERATE PACEMAKER REMOVAL CERTIFICATE
               </button>
