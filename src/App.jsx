@@ -1898,17 +1898,13 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <p className={s.section}>Dates</p>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Collection Date">
-            <div className="flex gap-2">
-              <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrep("collectionDate",e.target.value)} style={{flex:2}}/>
-              <input type="time" className={s.inp} value={prep.collectionTime||""} onChange={e=>updPrep("collectionTime",e.target.value)} style={{flex:1}}/>
-            </div>
+            <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrep("collectionDate",e.target.value)}/>
+            {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
           </Field>
           <Field label="Funeral Date">
-            <div className="flex gap-2">
-              <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)} style={{flex:2}}/>
-              <input type="time" className={s.inp} value={prep.funeralTime||""} onChange={e=>updPrep("funeralTime",e.target.value)} style={{flex:1}}/>
-            </div>
+            <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)}/>
+            {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
           </Field>
         </div>
