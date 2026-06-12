@@ -2879,7 +2879,8 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const isHalf=time.includes(":30");
     const hour=parseInt(time.split(":")[0]);
     const key=`${date}_${hour}_${isHalf?"half":"full"}`;
-    slotMap[key]={type:"Viewing",label:`${(c.lastName||"").toUpperCase()}, ${c.firstName}`,fhId:c.funeralHomeId,color:"green",fromCase:true};
+    const fhName1=FUNERAL_HOMES.find(f=>f.id===c.funeralHomeId)?.name||c.funeralHomeName||"";
+    slotMap[key]={type:"Viewing",label:`${fhName1} — ${(c.lastName||"").toUpperCase()}`,fhId:c.funeralHomeId,color:"green",fromCase:true};
   });
   (calendarBookings||[]).forEach(b=>{
     const[date,time]=b.slot.split("_");
@@ -2897,7 +2898,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   const fhCasesForSel=selFHId?(casesByFH[selFHId]||[]).sort((a,b)=>a.lastName.localeCompare(b.lastName)):[];
 
   function getBookingLabel(){
-    if(careType==="in-care"&&selCaseId){const c=cases.find(x=>x.id===selCaseId);return c?`${(c.lastName||"").toUpperCase()}, ${c.firstName}`:""; }
+    if(careType==="in-care"&&selCaseId){const cx=cases.find(x=>x.id===selCaseId);if(cx){const fhN=FUNERAL_HOMES.find(f=>f.id===cx.funeralHomeId)?.name||cx.funeralHomeName||"";return`${fhN} — ${(cx.lastName||"").toUpperCase()}`;}return "";}
     if(careType==="not-in-care"&&selFHId&&notInCareRef){const fh=FUNERAL_HOMES.find(f=>f.id===selFHId);return`${fh?.name||""} - ${notInCareRef}`;}
     return bookType;
   }
