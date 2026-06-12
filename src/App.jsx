@@ -2886,9 +2886,16 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const[date,time]=b.slot.split("_");
     const isHalf=time.includes(":30");
     const hour=parseInt(time.split(":")[0]);
-    const key=`${date}_${hour}_${isHalf?"half":"full"}`;
-    const dur=b.duration?` (${b.duration})`:"";
-    slotMap[key]={type:b.type,label:(b.deceased_label||b.type)+dur,fhId:b.funeral_home_id||null,color:b.type==="Viewing Room"?"green":"blue",bookingId:b.id,booking:b};
+    const dur=b.duration||"1 HOUR";
+    const slots=dur==="2 HOURS"?4:dur==="1 HOUR"?2:1;
+    const label=(b.deceased_label||b.type)+" ("+dur+")";
+    const color=b.type==="Viewing Room"?"green":"blue";
+    let h=hour,half=isHalf;
+    for(let i=0;i<slots;i++){
+      const key=`${date}_${h}_${half?"half":"full"}`;
+      slotMap[key]={type:b.type,label:i===0?label:"",fhId:b.funeral_home_id||null,color,bookingId:b.id,booking:b,isFirst:i===0,spanOf:slots};
+      if(half){half=false;h++;}else{half=true;}
+    }
   });
 
   const activeCases=cases.filter(c=>c.status==="active"&&!c.checkedOut);
