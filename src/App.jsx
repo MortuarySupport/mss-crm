@@ -1638,7 +1638,7 @@ async function saveAndEmail(){
       const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
       const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
       const filePath="cases/"+caseData.id+"/"+fileName;
-      const upRes=await fetch(SU+"/storage/v1/object/case-documents/"+filePath,{method:"POST",headers:{"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
+      const upRes=await fetch(SU+"/storage/v1/object/Case-documents/"+filePath,{method:"POST",headers:{"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
       if(upRes.ok){await fetch(SU+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()})});}
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
     const to="info@mortuarysupport.com.au";
@@ -1724,7 +1724,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
         const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
         const filePath="cases/"+caseData.id+"/"+fileName;
-        const upRes=await fetch(SUPABASE_URL+"/storage/v1/object/case-documents/"+filePath,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
+        const upRes=await fetch(SUPABASE_URL+"/storage/v1/object/Case-documents/"+filePath,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
         if(upRes.ok){await fetch(SUPABASE_URL+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()})});}
       }catch(pdfErr){console.error("PDF error:",pdfErr);}
       const to="info@mortuarysupport.com.au";
