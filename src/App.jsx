@@ -621,8 +621,9 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
     try{
       const list=await listDocuments(caseId);
       setDocs(list.filter(f=>f.name&&!f.name.endsWith("/")));
-      const{data:certs}=await supabase.from("pacemaker_certificates").select("*").eq("case_id",caseId).order("created_at",{ascending:false});
-      setPaceCerts(certs||[]);
+      const certsRes=await fetch(SUPABASE_URL+"/rest/v1/pacemaker_certificates?case_id=eq."+caseId+"&order=created_at.desc",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
+      const certs=certsRes.ok?await certsRes.json():[];
+      setPaceCerts(Array.isArray(certs)?certs:[]);
     }catch(e){console.error(e);}
     setLoading(false);
   }
