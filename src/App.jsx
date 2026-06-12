@@ -1669,11 +1669,122 @@ async function saveAndEmail(){
 
 
 function PacemakerCertificate({caseData, onClose, onSaved}){
+  const [embName,setEmbName]=useState("Steve Lambert");
+  const [showOther,setShowOther]=useState(false);
+  const [embOther,setEmbOther]=useState("");
+  const [certDate,setCertDate]=useState(new Date().toISOString().split("T")[0]);
+  const [saving,setSaving]=useState(false);
+  const canvasRef=useRef(null);
+  const drawingRef=useRef(false);
+  const emptyRef=useRef(true);
+  const displayName=showOther?embOther:embName;
+  function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
   useEffect(()=>{
-    openPacemakerCertTab(caseData);
-    onClose&&onClose();
+    const cv=canvasRef.current;
+    if(!cv)return;
+    cv.width=cv.parentElement.offsetWidth||500;
+    cv.height=150;
+    const cx=cv.getContext("2d");
+    cx.strokeStyle="#111";cx.lineWidth=2;cx.lineCap="round";cx.lineJoin="round";
+    function gp(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+    function onDown(e){e.preventDefault();e.stopPropagation();drawingRef.current=true;const p=gp(e);cx.beginPath();cx.moveTo(p.x,p.y);}
+    function onMove(e){e.preventDefault();e.stopPropagation();if(!drawingRef.current)return;const p=gp(e);cx.lineTo(p.x,p.y);cx.stroke();emptyRef.current=false;}
+    function onUp(){drawingRef.current=false;}
+    cv.addEventListener("mousedown",onDown);
+    cv.addEventListener("mousemove",onMove);
+    cv.addEventListener("mouseup",onUp);
+    cv.addEventListener("touchstart",onDown,{passive:false});
+    cv.addEventListener("touchmove",onMove,{passive:false});
+    cv.addEventListener("touchend",onUp);
+    return()=>{cv.removeEventListener("mousedown",onDown);cv.removeEventListener("mousemove",onMove);cv.removeEventListener("mouseup",onUp);cv.removeEventListener("touchstart",onDown);cv.removeEventListener("touchmove",onMove);cv.removeEventListener("touchend",onUp);};
   },[]);
-  return null;
+  function clearSig(){const cv=canvasRef.current;if(!cv)return;cv.getContext("2d").clearRect(0,0,cv.width,cv.height);emptyRef.current=true;}
+  async function handleSave(){
+    if(!certDate){alert("Please enter the date of removal.");return;}
+    if(!displayName.trim()){alert("Please enter the embalmer name.");return;}
+    if(emptyRef.current){alert("Please draw a signature.");return;}
+    setSaving(true);
+    const sig=canvasRef.current.toDataURL("image/png");
+    try{
+      await supabase.from("pacemaker_certificates").insert({case_id:caseData.id,case_ref:caseData.caseRef,first_name:caseData.firstName,last_name:caseData.lastName,dob:caseData.dob,dod:caseData.dod,funeral_home_name:caseData.funeralHomeName||"",removal_date:certDate,embalmer_name:displayName,signature_data:sig});
+      try{
+        const {PDFDocument,rgb,StandardFonts}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
+        const pdfBytes=Uint8Array.from(atob(PACEMAKER_PDF_B64),ch=>ch.charCodeAt(0));
+        const pdfDoc=await PDFDocument.load(pdfBytes);
+        const font=await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const page=pdfDoc.getPages()[0];
+        const{height}=page.getSize();
+        page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
+        page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
+        page.drawText(fmt(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
+        const sigBytes=Uint8Array.from(atob(sig.split(",")[1]||sig),ch=>ch.charCodeAt(0));
+        const sigImg=await pdfDoc.embedPng(sigBytes);
+        page.drawImage(sigImg,{x:100,y:height-310,width:200,height:36});
+        const filledBytes=await pdfDoc.save();
+        const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
+        const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
+        const filePath="cases/"+caseData.id+"/"+fileName;
+        const {error:upErr}=await supabase.storage.from("case-documents").upload(filePath,filledBytes,{contentType:"application/pdf",upsert:true});
+        if(!upErr){await supabase.from("case_documents").insert({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()});}
+      }catch(pdfErr){console.error("PDF error:",pdfErr);}
+      const to="info@mortuarysupport.com.au";
+      const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
+      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumēn\nPh: 02 8814 5500");
+      window.open("mailto:"+to+"?subject="+subj+"&body="+body);
+      alert("Certificate saved to case documents.");
+      onSaved&&onSaved();onClose&&onClose();
+    }catch(e){alert("Error: "+e.message);}
+    setSaving(false);
+  }
+  return createPortal(
+    <div style={{position:"fixed",top:0,left:0,width:"100vw",height:"100vh",zIndex:2147483647,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+      <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:580,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 4px 24px rgba(0,0,0,0.2)"}}>
+        <div style={{background:"#111",color:"white",padding:"18px 22px",borderRadius:"16px 16px 0 0"}}>
+          <div style={{fontSize:11,letterSpacing:3,textTransform:"uppercase",opacity:0.6,marginBottom:4}}>Mortuary Support | Lumēn</div>
+          <div style={{fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase"}}>Pacemaker Removal Certificate</div>
+        </div>
+        <div style={{padding:22}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+            {[["Full Name",caseData.firstName+" "+caseData.lastName],["Case Reference",caseData.caseRef],["Date of Birth",fmt(caseData.dob)],["Date of Death",fmt(caseData.dod)]].map(([l,v])=>(
+              <div key={l} style={{background:"#f9f9f9",border:"1px solid #eee",borderRadius:8,padding:"9px 11px"}}>
+                <div style={{fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#999",marginBottom:2}}>{l}</div>
+                <div style={{fontSize:13,fontWeight:700}}>{v}</div>
+              </div>
+            ))}
+            <div style={{background:"#f9f9f9",border:"1px solid #eee",borderRadius:8,padding:"9px 11px",gridColumn:"span 2"}}>
+              <div style={{fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#999",marginBottom:2}}>Funeral Director</div>
+              <div style={{fontSize:13,fontWeight:700}}>{caseData.funeralHomeName||"—"}</div>
+            </div>
+          </div>
+          <div style={{marginBottom:12}}>
+            <label style={{display:"block",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#666",marginBottom:5}}>Date of Removal *</label>
+            <input type="date" value={certDate} onChange={e=>setCertDate(e.target.value)} style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111"}}/>
+          </div>
+          <div style={{marginBottom:12}}>
+            <label style={{display:"block",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#666",marginBottom:5}}>Embalmer / Technician *</label>
+            <select value={showOther?"other":embName} onChange={e=>{if(e.target.value==="other"){setShowOther(true);}else{setShowOther(false);setEmbName(e.target.value);}}} style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111",background:"white"}}>
+              <option value="Steve Lambert">Steve Lambert</option>
+              <option value="other">Other…</option>
+            </select>
+            {showOther&&<input type="text" value={embOther} onChange={e=>setEmbOther(e.target.value)} placeholder="Full name…" style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,marginTop:8}}/>}
+          </div>
+          <div style={{background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,padding:12,fontSize:11,lineHeight:1.6,color:"#444",marginBottom:14}}>
+            <strong>DECLARATION:</strong> I hereby certify that I have examined the above-named deceased and have successfully removed the pacemaker/implantable cardiac device. The device has been safely disposed of per regulations. MSS Mortuary Support Services, Baulkham Hills NSW.
+          </div>
+          <div style={{marginBottom:8}}>
+            <label style={{display:"block",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#666",marginBottom:5}}>Signature *</label>
+            <canvas ref={canvasRef} style={{border:"1.5px solid #ddd",borderRadius:8,display:"block",width:"100%",height:150,touchAction:"none",background:"white",cursor:"crosshair"}}/>
+            <button onClick={clearSig} style={{marginTop:7,padding:"7px 14px",border:"1.5px solid #ddd",borderRadius:8,fontSize:11,fontWeight:700,textTransform:"uppercase",cursor:"pointer",background:"white",color:"#666"}}>CLEAR SIGNATURE</button>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,padding:"18px 22px",borderTop:"2px solid #f0f0f0"}}>
+          <button onClick={onClose} style={{padding:13,borderRadius:9,fontSize:12,fontWeight:900,textTransform:"uppercase",cursor:"pointer",border:"none",background:"#f0f0f0",color:"#666"}}>CANCEL</button>
+          <button onClick={handleSave} disabled={saving} style={{padding:13,borderRadius:9,fontSize:12,fontWeight:900,textTransform:"uppercase",cursor:"pointer",border:"none",background:"#111",color:"white",opacity:saving?0.5:1}}>{saving?"SAVING…":"SAVE & EMAIL"}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 
