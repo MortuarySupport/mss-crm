@@ -952,9 +952,22 @@ function ViewingSection({prep,updPrepMulti,bookedSlots}) {
                   {vDate&&(
                     <div>
                       <div className={s.label}>Time Slot — {fmt(vDate)}</div>
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
                         {VIEWING_SLOTS.map(sl=>{const key=`${vDate}_${sl}`;const booked=bookedSlots.has(key);const selected=vSlot===key;return <button key={sl} type="button" disabled={booked&&!selected} onClick={()=>updPrepMulti({viewingSlot:selected?"":key})} className={`py-2 rounded-xl border-2 text-sm font-bold transition ${selected?"bg-green-600 text-white border-green-600":booked?"bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed":"bg-white text-gray-700 border-gray-200 hover:border-green-500"}`}>{sl}</button>;})}
                       </div>
+                      {vSlot&&(
+                        <div>
+                          <div className={s.label}>Duration</div>
+                          <div className="flex gap-2">
+                            {["1 HR","2 HR"].map(d=>(
+                              <button key={d} type="button" onClick={()=>updPrepMulti({viewingDuration:d})}
+                                className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${(prep.viewingDuration||"1 HR")===d?"bg-green-600 text-white border-green-600":"bg-white text-gray-600 border-gray-200 hover:border-green-500"}`}>
+                                {d}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
