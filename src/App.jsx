@@ -1642,7 +1642,9 @@ async function saveAndEmail(){
       const upRes=await fetch(SU+"/storage/v1/object/Case-documents/"+filePath,{method:"POST",headers:{"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
       console.log("Upload status (SU):", upRes.status);
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
+    console.log("caseData.funeralHomeId:", caseData.funeralHomeId, "caseData keys:", Object.keys(caseData));
     const fdContacts=caseData.funeralHomeId?getFHContacts(caseData.funeralHomeId):[];
+    console.log("fdContacts:", fdContacts);
     const to=["info@mortuarysupport.com.au",...fdContacts].join(",");
     const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
     const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumēn\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
