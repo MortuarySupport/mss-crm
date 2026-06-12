@@ -110,7 +110,7 @@ const FUNERAL_HOMES = [
   { id:"FH02", name:"Blessed Funerals",                 contacts:["carmel.pisto@blessedfunerals.com.au","tony.sprem@blessedfunerals.com.au"] },
   { id:"FH03", name:"Darrin Burns Funerals",            contacts:["info@dbff.com.au"] },
   { id:"FH04", name:"Divine Family Funerals",           contacts:["desi@divinefamilyfunerals.com.au"] },
-  { id:"FH05", name:"Farwell Funerals",                 contacts:["info@farewells.com.au"] },
+  { id:"FH05", name:"Farewell Funerals",                 contacts:["info@farewells.com.au"] },
   { id:"FH06", name:"Funerals By Design (SFCo)",        contacts:["Karin@funeralsbydesign.com.au"] },
   { id:"FH07", name:"Global Funerals",                  contacts:["info@globalfunerals.com.au"] },
   { id:"FH08", name:"Hansol Funerals",                  contacts:["hansolfuneralservices@gmail.com"] },
