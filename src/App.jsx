@@ -409,7 +409,7 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
   }
 
   return(
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <BackBtn onClick={onBack} label="BACK TO HOME"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1 uppercase">Approvals</h2>
       <p className="text-gray-500 text-sm font-bold uppercase mb-5">{pendingCases.length} case{pendingCases.length!==1?"s":""} awaiting approval</p>
@@ -469,7 +469,7 @@ function LockView({cases,onUpdateCase,onBack}){
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
 
   return(
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <BackBtn onClick={onBack} label="BACK TO HOME"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1 uppercase">Lock Cases</h2>
       <p className="text-gray-500 text-sm font-bold uppercase mb-5">{approvedCases.length} approved · {lockedCases.length} locked</p>
@@ -1233,7 +1233,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     const subj=encodeURIComponent(`T/L ${submitted.firstName} ${submitted.lastName} has been checked into MSS`);
     const body=encodeURIComponent(buildCheckInEmail(submitted));
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
         <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1254,7 +1254,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const effectiveStep=isFD?3:isTransfer?3:step;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Check In</h2>
 
@@ -1824,7 +1824,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   if(!selFH) return (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Mortuary</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1840,7 +1840,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const fhCases=(byFH[selFH.id]||[]).sort((a,b)=>a.lastName.localeCompare(b.lastName));
 
   if(!selCase) return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <BackBtn onClick={()=>setSelFH(null)} label="Back to Funeral Directors"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1">{selFH.name}</h2>
       <p className="text-gray-500 text-sm mb-6">Select deceased</p>
@@ -1881,7 +1881,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   return (
     <>
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       <div className="mb-5"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       <div className="grid grid-cols-5 gap-2 mb-5">
@@ -2150,7 +2150,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   }
 
   if(done) return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
         <h2 className="text-2xl font-black text-gray-900 mb-1">Checked Out ✓</h2>
@@ -2167,7 +2167,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const displayCases=(showPast?pastCases:currentCases).filter(c=>selFH?c.funeralHomeId===selFH.id:true);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Check Out</h2>
 
@@ -2367,7 +2367,7 @@ function MyCases({user,cases,onUpdateCase}) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Cases</h2>
       <p className="text-gray-500 text-sm mb-5">{myCases.length} total</p>
       <div className="flex gap-2 mb-5">
@@ -2401,7 +2401,7 @@ function MyTransfers({user,cases}) {
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
   const myCases=cases.filter(c=>{const d=c.checkedInAt?new Date(c.checkedInAt):null;return d&&d>=cutoff;}).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Transfers</h2>
       <p className="text-gray-500 text-sm mb-6">Past 2 weeks · {myCases.length} records</p>
       {myCases.length===0&&<p className="text-gray-400 text-center py-12">No transfers in the past 2 weeks.</p>}
@@ -2459,7 +2459,7 @@ function RecordsView({user,cases,onUpdateCase}) {
   }).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-black text-gray-900">Records</h2><span className="text-sm text-gray-500">{filtered.length} records</span></div>
       <input className={`${s.inp} mb-4`} placeholder="Search by name, case ref, funeral home…" value={search} onChange={e=>setSearch(e.target.value)}/>
       <div className="flex gap-2 mb-5">{[["all","All"],["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}</div>
@@ -2513,7 +2513,7 @@ function PinManagement({users,onPinUpdate}) {
   const fds=sortAlpha(users.filter(u=>u.role==="fd"),"name");
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <h2 className="text-2xl font-black text-gray-900 mb-1">PIN Management</h2>
       <p className="text-gray-500 text-sm mb-5">Admin only — changes save to database immediately</p>
       <button onClick={()=>setShow(x=>!x)} className={`${s.btnDark} mb-5`}>{show?"Hide PINs":"Reveal PINs"}</button>
@@ -2733,7 +2733,7 @@ function ReportsView({cases}) {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="w-full px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-black text-gray-900">Reports</h2>
         <div className="flex items-center gap-3">
