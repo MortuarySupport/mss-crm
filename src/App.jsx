@@ -1887,7 +1887,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       <div className="mb-5"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       <div className="grid grid-cols-5 gap-2 mb-5">
-        {[["secondNote","2nd Note"],["clothes","Clothes"],["coffin","Coffin"],["mccd","MCCD"],["photo","Photo"]].map(([k,l])=>(
+        {[["secondNote","2nd Note"],["clothes","Clothes"],["coffin","Coffin"],["mccd","MCCD | BO"],["photo","Photo"]].map(([k,l])=>(
           <button key={k} onClick={()=>updStatus(k,!statusItems[k])} className={`py-3 rounded-xl border-2 text-xs font-bold transition ${statusItems[k]?"bg-green-500 border-green-500 text-white":"bg-red-50 border-red-300 text-red-600"}`}>{l}</button>
         ))}
       </div>
