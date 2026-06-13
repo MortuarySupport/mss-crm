@@ -409,7 +409,7 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
   }
 
   return(
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={onBack} label="BACK TO HOME"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1 uppercase">Approvals</h2>
       <p className="text-gray-500 text-sm font-bold uppercase mb-5">{pendingCases.length} case{pendingCases.length!==1?"s":""} awaiting approval</p>
@@ -469,7 +469,7 @@ function LockView({cases,onUpdateCase,onBack}){
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
 
   return(
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={onBack} label="BACK TO HOME"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1 uppercase">Lock Cases</h2>
       <p className="text-gray-500 text-sm font-bold uppercase mb-5">{approvedCases.length} approved · {lockedCases.length} locked</p>
@@ -621,9 +621,8 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
     try{
       const list=await listDocuments(caseId);
       setDocs(list.filter(f=>f.name&&!f.name.endsWith("/")));
-      const certsRes=await fetch(SUPABASE_URL+"/rest/v1/pacemaker_certificates?case_id=eq."+caseId+"&order=created_at.desc",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});
-      const certs=certsRes.ok?await certsRes.json():[];
-      setPaceCerts(Array.isArray(certs)?certs:[]);
+      const{data:certs}=await supabase.from("pacemaker_certificates").select("*").eq("case_id",caseId).order("created_at",{ascending:false});
+      setPaceCerts(certs||[]);
     }catch(e){console.error(e);}
     setLoading(false);
   }
@@ -829,7 +828,7 @@ function TransferByPicker({value,onChange}) {
       <div className="flex flex-wrap gap-2 mb-3">
         {TRANSFER_BY_COMPANIES_PRIMARY.map(c=><button key={c} type="button" onClick={()=>selectCompany(c)} className={s.tb(company===c)}>{c}</button>)}
       </div>
-                    {sortAlpha(FUNERAL_HOMES,"name").map(f=><button key={f.id} type="button" onClick={()=>selectCompany(f.name)} className={`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${company===f.name?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`}>{f.name}</button>)}</div>}
+
       {company&&(
         <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
           {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>}
@@ -1033,22 +1032,28 @@ function HomeScreen({user,onAction}) {
   const isTransfer=user?.role==="transfer";
   const isFD=user?.role==="fd";
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
+  const btns=[
+    {label:"CHECK IN",action:"checkin",show:true},
+    {label:"MORTUARY",action:"mortuary",show:isMSS},
+    {label:"CHECK OUT",action:"checkout",show:true},
+    {label:"MY CASES",action:"mycases",show:isMSS||isFD},
+    {label:"CALENDAR",action:"calendar",show:isMSS||isFD},
+    {label:"REPORTS",action:"reports",show:isMSS},
+    {label:"APPROVALS",action:"approvals",show:isMSS},
+    {label:"LOCK CASES",action:"lockview",show:isAdmin},
+    {label:"MY TRANSFERS",action:"transfers",show:isTransfer},
+  ].filter(b=>b.show);
+  const cols=btns.length<=4?"grid-cols-2":"grid-cols-2 sm:grid-cols-3";
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="text-center mb-8">
         <p className="text-gray-600 text-sm">Welcome, <span className="font-bold text-gray-900">{user?.name}</span></p>
         <p className="text-gray-400 text-xs mt-1">{user?.roleLabel} · Baulkham Hills</p>
       </div>
-      <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
-        <button onClick={()=>onAction("checkin")} className={s.btnLg}>CHECK IN</button>
-        {isMSS&&<button onClick={()=>onAction("mortuary")} className={s.btnLg}>MORTUARY</button>}
-        <button onClick={()=>onAction("checkout")} className={s.btnLg}>CHECK OUT</button>
-        {(isMSS||isFD)&&<button onClick={()=>onAction("mycases")} className={s.btnLg}>MY CASES</button>}
-        {isMSS&&<button onClick={()=>onAction("reports")} className={s.btnLg}>REPORTS</button>}
-        {(isMSS||isFD)&&<button onClick={()=>onAction("calendar")} className={s.btnLg}>CALENDAR</button>}
-        {isMSS&&<button onClick={()=>onAction("approvals")} className={s.btnLg}>APPROVALS</button>}
-        {isAdmin&&<button onClick={()=>onAction("lockview")} className={s.btnLg}>LOCK CASES</button>}
-        {isTransfer&&<button onClick={()=>onAction("transfers")} className={s.btnLg}>MY TRANSFERS</button>}
+      <div className={`grid ${cols} gap-3 max-w-lg mx-auto`}>
+        {btns.map(b=>(
+          <button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>
+        ))}
       </div>
     </div>
   );
@@ -1233,7 +1238,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     const subj=encodeURIComponent(`T/L ${submitted.firstName} ${submitted.lastName} has been checked into MSS`);
     const body=encodeURIComponent(buildCheckInEmail(submitted));
     return (
-      <div className="w-full px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1254,7 +1259,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const effectiveStep=isFD?3:isTransfer?3:step;
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Check In</h2>
 
@@ -1275,10 +1280,10 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           <p className={s.section}>Select Funeral Director</p>
           <div className="grid grid-cols-4 gap-3 mb-4">
             {sortedFH.map(fh=>(
-              <button key={fh.id} onClick={()=>{setSelFH(fh.id);setStep(3);}}
-                className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-left transition ${selFH===fh.id?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>{fh.name}</button>
+              <button key={fh.id} onClick={()=>{if(selFH===fh.id){setSelFH(null);setStep(2);}else{setSelFH(fh.id);setStep(3);}}}
+                className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-center transition ${selFH===fh.id?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>{fh.name}</button>
             ))}
-            {!isTransfer&&<button onClick={()=>setSelFH("OTHER")} className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-left transition ${selFH==="OTHER"?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>OTHER</button>}
+            {!isTransfer&&<button onClick={()=>setSelFH("OTHER")} className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-center transition ${selFH==="OTHER"?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>OTHER</button>}
           </div>
           {selFH==="OTHER"&&(
             <Field label="Funeral Home Name" required>
@@ -1293,10 +1298,10 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       {(isFD||(effectiveStep===3))&&(
         <div>
           {!isFD&&<BackBtn onClick={()=>setStep(2)}/>}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+          {!isTransfer&&<div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 flex items-center gap-3">
             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Funeral Director:</span>
             <span className="text-base font-bold text-gray-900">{isFD?user.name:selFH==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===selFH)?.name}</span>
-          </div>
+          </div>}
 
           <div className={s.card}>
             <p className={s.section}>Deceased Details</p>
@@ -1575,10 +1580,12 @@ const SU="${SU}",SK="${SK}";
 const caseData=${cdJSON};
 function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
 function toggleOther(){document.getElementById("otherF").style.display=document.getElementById("embSel").value==="other"?"block":"none";}
-const cv=document.getElementById("cv");
-cv.width=cv.parentElement.offsetWidth||580;cv.height=150;
-const cx=cv.getContext("2d");cx.strokeStyle="#111";cx.lineWidth=2;cx.lineCap="round";cx.lineJoin="round";
-let dr=false,empty=true;
+let cv,cx,dr=false,empty=true;
+setTimeout(function(){
+cv=document.getElementById("cv");
+if(!cv)return;
+cv.width=cv.parentElement.offsetWidth||560;cv.height=150;
+cx=cv.getContext("2d");cx.strokeStyle="#111";cx.lineWidth=2;cx.lineCap="round";cx.lineJoin="round";
 function gp(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
 cv.addEventListener("mousedown",e=>{dr=true;const p=gp(e);cx.beginPath();cx.moveTo(p.x,p.y);});
 cv.addEventListener("mousemove",e=>{if(!dr)return;const p=gp(e);cx.lineTo(p.x,p.y);cx.stroke();empty=false;});
@@ -1586,7 +1593,8 @@ cv.addEventListener("mouseup",()=>dr=false);
 cv.addEventListener("touchstart",e=>{e.preventDefault();dr=true;const p=gp(e);cx.beginPath();cx.moveTo(p.x,p.y);},{passive:false});
 cv.addEventListener("touchmove",e=>{e.preventDefault();if(!dr)return;const p=gp(e);cx.lineTo(p.x,p.y);cx.stroke();empty=false;},{passive:false});
 cv.addEventListener("touchend",()=>dr=false);
-function clearSig(){cx.clearRect(0,0,cv.width,cv.height);empty=true;}
+});
+function clearSig(){if(cx)cx.clearRect(0,0,cv.width,cv.height);empty=true;}
 function vals(){const s=document.getElementById("embSel").value;return{name:s==="other"?document.getElementById("embOther").value.trim():"Steve Lambert",date:document.getElementById("certDate").value,sig:empty?null:cv.toDataURL("image/png")};}
 function ok(){const{name,date,sig}=vals();if(!date){alert("Please enter the date of removal.");return false;}if(!name){alert("Please enter the embalmer name.");return false;}if(!sig){alert("Please draw a signature.");return false;}return true;}
 function savePDF(){
@@ -1650,13 +1658,10 @@ async function saveAndEmail(){
       const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
       const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
       const filePath="cases/"+caseData.id+"/"+fileName;
-      const upRes=await fetch(SU+"/storage/v1/object/Case-documents/"+filePath,{method:"POST",headers:{"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
-      console.log("Upload status (SU):", upRes.status);
+      const upRes=await fetch(SU+"/storage/v1/object/case-documents/"+filePath,{method:"POST",headers:{"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
+      if(upRes.ok){await fetch(SU+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()})});}
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
-    console.log("caseData.funeralHomeId:", caseData.funeralHomeId, "caseData keys:", Object.keys(caseData));
-    const fdContacts=caseData.funeralHomeId?getFHContacts(caseData.funeralHomeId):[];
-    console.log("fdContacts:", fdContacts);
-    const to=["info@mortuarysupport.com.au",...fdContacts].join(",");
+    const to="info@mortuarysupport.com.au";
     const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
     const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumēn\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
     window.open("mailto:"+to+"?subject="+subj+"&body="+body);
@@ -1671,57 +1676,92 @@ async function saveAndEmail(){
   const overlay=document.createElement("div");
   overlay.id="pmCertOverlay";
   overlay.style.cssText="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2147483647;background:#f5f5f5;overflow-y:auto;";
-  const iframe=document.createElement("iframe");
-  iframe.style.cssText="width:100%;height:100%;border:none;";
-  overlay.appendChild(iframe);
   document.body.appendChild(overlay);
-  iframe.contentDocument.open();
-  iframe.contentDocument.write(html);
-  iframe.contentDocument.close();
-  // Pass PDF template to iframe
-  iframe.contentWindow.__PACEMAKER_PDF_B64__ = PACEMAKER_PDF_B64;
+  // Inject HTML directly (no iframe - avoids event blocking)
+  const wrapper=document.createElement("div");
+  overlay.appendChild(wrapper);
+  wrapper.innerHTML=html;
+  // Re-execute scripts (innerHTML doesn't run scripts)
+  window.__PACEMAKER_PDF_B64__=PACEMAKER_PDF_B64;
+  Array.from(wrapper.querySelectorAll("script")).forEach(s=>{
+    const ns=document.createElement("script");
+    ns.textContent=s.textContent;
+    s.parentNode.replaceChild(ns,s);
+  });
 }
 
 
 function PacemakerCertificate({caseData, onClose, onSaved}){
-  const [embName,setEmbName]=useState("Steve Lambert");
-  const [showOther,setShowOther]=useState(false);
-  const [embOther,setEmbOther]=useState("");
-  const [certDate,setCertDate]=useState(new Date().toISOString().split("T")[0]);
-  const [saving,setSaving]=useState(false);
-  const canvasRef=useRef(null);
-  const drawingRef=useRef(false);
-  const emptyRef=useRef(true);
-  const displayName=showOther?embOther:embName;
+  const [embName, setEmbName] = useState("Steve Lambert");
+  const [showOther, setShowOther] = useState(false);
+  const [embOther, setEmbOther] = useState("");
+  const [certDate, setCertDate] = useState(new Date().toISOString().split("T")[0]);
+  const [saving, setSaving] = useState(false);
+  const canvasRef = useRef(null);
+  const drawingRef = useRef(false);
+  const emptyRef = useRef(true);
+
+  const displayName = showOther ? embOther : embName;
+
+  const SU = SUPABASE_URL;
+  const SK = SUPABASE_KEY;
+
   function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
+
   useEffect(()=>{
-    const cv=canvasRef.current;
-    if(!cv)return;
-    cv.width=cv.parentElement.offsetWidth||500;
-    cv.height=150;
-    const cx=cv.getContext("2d");
-    cx.strokeStyle="#111";cx.lineWidth=2;cx.lineCap="round";cx.lineJoin="round";
+    const cv = canvasRef.current;
+    if(!cv) return;
+    cv.width = cv.parentElement.offsetWidth || 500;
+    cv.height = 150;
+    const cx = cv.getContext("2d");
+    cx.strokeStyle = "#111"; cx.lineWidth = 2; cx.lineCap = "round"; cx.lineJoin = "round";
+
     function gp(e){const r=cv.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
     function onDown(e){e.preventDefault();e.stopPropagation();drawingRef.current=true;const p=gp(e);cx.beginPath();cx.moveTo(p.x,p.y);}
     function onMove(e){e.preventDefault();e.stopPropagation();if(!drawingRef.current)return;const p=gp(e);cx.lineTo(p.x,p.y);cx.stroke();emptyRef.current=false;}
-    function onUp(){drawingRef.current=false;}
+    function onUp(e){e.stopPropagation();drawingRef.current=false;}
+
     cv.addEventListener("mousedown",onDown);
     cv.addEventListener("mousemove",onMove);
     cv.addEventListener("mouseup",onUp);
     cv.addEventListener("touchstart",onDown,{passive:false});
     cv.addEventListener("touchmove",onMove,{passive:false});
     cv.addEventListener("touchend",onUp);
-    return()=>{cv.removeEventListener("mousedown",onDown);cv.removeEventListener("mousemove",onMove);cv.removeEventListener("mouseup",onUp);cv.removeEventListener("touchstart",onDown);cv.removeEventListener("touchmove",onMove);cv.removeEventListener("touchend",onUp);};
+    return()=>{
+      cv.removeEventListener("mousedown",onDown);
+      cv.removeEventListener("mousemove",onMove);
+      cv.removeEventListener("mouseup",onUp);
+      cv.removeEventListener("touchstart",onDown);
+      cv.removeEventListener("touchmove",onMove);
+      cv.removeEventListener("touchend",onUp);
+    };
   },[]);
-  function clearSig(){const cv=canvasRef.current;if(!cv)return;cv.getContext("2d").clearRect(0,0,cv.width,cv.height);emptyRef.current=true;}
-  async function handleSave(){
+
+  function clearSig(){
+    const cv=canvasRef.current;
+    if(!cv)return;
+    const cx=cv.getContext("2d");
+    cx.clearRect(0,0,cv.width,cv.height);
+    emptyRef.current=true;
+  }
+
+  async function handleSaveAndEmail(){
     if(!certDate){alert("Please enter the date of removal.");return;}
     if(!displayName.trim()){alert("Please enter the embalmer name.");return;}
     if(emptyRef.current){alert("Please draw a signature.");return;}
     setSaving(true);
-    const sig=canvasRef.current.toDataURL("image/png");
+    const sig = canvasRef.current.toDataURL("image/png");
     try{
-      await fetch(SUPABASE_URL+"/rest/v1/pacemaker_certificates",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,case_ref:caseData.caseRef,first_name:caseData.firstName,last_name:caseData.lastName,dob:caseData.dob,dod:caseData.dod,funeral_home_name:caseData.funeralHomeName||"",removal_date:certDate,embalmer_name:displayName,signature_data:sig})});
+      // Save cert record
+      const r=await supabase.from("pacemaker_certificates").insert({
+        case_id:caseData.id,case_ref:caseData.caseRef,
+        first_name:caseData.firstName,last_name:caseData.lastName,
+        dob:caseData.dob,dod:caseData.dod,
+        funeral_home_name:caseData.funeralHomeName||"",
+        removal_date:certDate,embalmer_name:displayName,signature_data:sig
+      });
+
+      // Fill and upload official PDF
       try{
         const {PDFDocument,rgb,StandardFonts}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
         const pdfBytes=Uint8Array.from(atob(PACEMAKER_PDF_B64),ch=>ch.charCodeAt(0));
@@ -1732,26 +1772,33 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
         page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
         page.drawText(fmt(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
-        const sigBytes=Uint8Array.from(atob(sig.split(",")[1]||sig),ch=>ch.charCodeAt(0));
+        const sigData=sig.split(",")[1]||sig;
+        const sigBytes=Uint8Array.from(atob(sigData),ch=>ch.charCodeAt(0));
         const sigImg=await pdfDoc.embedPng(sigBytes);
         page.drawImage(sigImg,{x:100,y:height-310,width:200,height:36});
         const filledBytes=await pdfDoc.save();
-        const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
+        const dd=new Date();
+        const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
         const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
         const filePath="cases/"+caseData.id+"/"+fileName;
-        const upRes=await fetch(SUPABASE_URL+"/storage/v1/object/Case-documents/"+filePath,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
-        console.log("Upload status (SUPABASE_URL):", upRes.status);
+        const {data:storageData,error:upErr}=await supabase.storage.from("case-documents").upload(filePath,filledBytes,{contentType:"application/pdf",upsert:true});
+        if(!upErr){
+          await supabase.from("case_documents").insert({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()});
+        }
       }catch(pdfErr){console.error("PDF error:",pdfErr);}
-      const fdContacts=caseData.funeralHomeId?getFHContacts(caseData.funeralHomeId):[];
-      const to=["info@mortuarysupport.com.au",...fdContacts].join(",");
+
+      // Email
+      const to="info@mortuarysupport.com.au";
       const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
       const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumēn\nPh: 02 8814 5500");
       window.open("mailto:"+to+"?subject="+subj+"&body="+body);
       alert("Certificate saved to case documents.");
-      onSaved&&onSaved();onClose&&onClose();
+      onSaved&&onSaved();
+      onClose&&onClose();
     }catch(e){alert("Error: "+e.message);}
     setSaving(false);
   }
+
   return createPortal(
     <div style={{position:"fixed",top:0,left:0,width:"100vw",height:"100vh",zIndex:2147483647,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
       <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:580,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 4px 24px rgba(0,0,0,0.2)"}}>
@@ -1764,44 +1811,56 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
             {[["Full Name",caseData.firstName+" "+caseData.lastName],["Case Reference",caseData.caseRef],["Date of Birth",fmt(caseData.dob)],["Date of Death",fmt(caseData.dod)]].map(([l,v])=>(
               <div key={l} style={{background:"#f9f9f9",border:"1px solid #eee",borderRadius:8,padding:"9px 11px"}}>
                 <div style={{fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#999",marginBottom:2}}>{l}</div>
-                <div style={{fontSize:13,fontWeight:700}}>{v}</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#111"}}>{v}</div>
               </div>
             ))}
             <div style={{background:"#f9f9f9",border:"1px solid #eee",borderRadius:8,padding:"9px 11px",gridColumn:"span 2"}}>
               <div style={{fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#999",marginBottom:2}}>Funeral Director</div>
-              <div style={{fontSize:13,fontWeight:700}}>{caseData.funeralHomeName||"—"}</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#111"}}>{caseData.funeralHomeName||"—"}</div>
             </div>
           </div>
+
           <div style={{marginBottom:12}}>
             <label style={{display:"block",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#666",marginBottom:5}}>Date of Removal *</label>
-            <input type="date" value={certDate} onChange={e=>setCertDate(e.target.value)} style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111"}}/>
+            <input type="date" value={certDate} onChange={e=>setCertDate(e.target.value)}
+              style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111"}}/>
           </div>
+
           <div style={{marginBottom:12}}>
             <label style={{display:"block",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#666",marginBottom:5}}>Embalmer / Technician *</label>
-            <select value={showOther?"other":embName} onChange={e=>{if(e.target.value==="other"){setShowOther(true);}else{setShowOther(false);setEmbName(e.target.value);}}} style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111",background:"white"}}>
+            <select value={showOther?"other":embName} onChange={e=>{if(e.target.value==="other"){setShowOther(true);}else{setShowOther(false);setEmbName(e.target.value);}}}
+              style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111",background:"white"}}>
               <option value="Steve Lambert">Steve Lambert</option>
               <option value="other">Other…</option>
             </select>
-            {showOther&&<input type="text" value={embOther} onChange={e=>setEmbOther(e.target.value)} placeholder="Full name…" style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,marginTop:8}}/>}
+            {showOther&&<input type="text" value={embOther} onChange={e=>setEmbOther(e.target.value)} placeholder="Full name…"
+              style={{width:"100%",padding:"9px 11px",border:"1.5px solid #ddd",borderRadius:8,fontSize:14,fontWeight:600,color:"#111",marginTop:8}}/>}
           </div>
+
           <div style={{background:"#f5f5f5",border:"1px solid #ddd",borderRadius:8,padding:12,fontSize:11,lineHeight:1.6,color:"#444",marginBottom:14}}>
-            <strong>DECLARATION:</strong> I hereby certify that I have examined the above-named deceased and have successfully removed the pacemaker/implantable cardiac device. The device has been safely disposed of per regulations. MSS Mortuary Support Services, Baulkham Hills NSW.
+            <strong>DECLARATION:</strong><br/>I hereby certify that I have examined the above-named deceased and have successfully removed the pacemaker/implantable cardiac device prior to cremation/preparation. The device has been safely disposed of in accordance with relevant regulations. This removal was carried out at MSS Mortuary Support Services, Baulkham Hills NSW.
           </div>
+
           <div style={{marginBottom:8}}>
             <label style={{display:"block",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#666",marginBottom:5}}>Signature *</label>
             <canvas ref={canvasRef} style={{border:"1.5px solid #ddd",borderRadius:8,display:"block",width:"100%",height:150,touchAction:"none",background:"white",cursor:"crosshair"}}/>
             <button onClick={clearSig} style={{marginTop:7,padding:"7px 14px",border:"1.5px solid #ddd",borderRadius:8,fontSize:11,fontWeight:700,textTransform:"uppercase",cursor:"pointer",background:"white",color:"#666"}}>CLEAR SIGNATURE</button>
           </div>
         </div>
+
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,padding:"18px 22px",borderTop:"2px solid #f0f0f0"}}>
           <button onClick={onClose} style={{padding:13,borderRadius:9,fontSize:12,fontWeight:900,textTransform:"uppercase",cursor:"pointer",border:"none",background:"#f0f0f0",color:"#666"}}>CANCEL</button>
-          <button onClick={handleSave} disabled={saving} style={{padding:13,borderRadius:9,fontSize:12,fontWeight:900,textTransform:"uppercase",cursor:"pointer",border:"none",background:"#111",color:"white",opacity:saving?0.5:1}}>{saving?"SAVING…":"SAVE & EMAIL"}</button>
+          <button onClick={handleSaveAndEmail} disabled={saving}
+            style={{padding:13,borderRadius:9,fontSize:12,fontWeight:900,textTransform:"uppercase",cursor:"pointer",border:"none",background:"#111",color:"white",opacity:saving?0.5:1}}>
+            {saving?"SAVING…":"SAVE & EMAIL"}
+          </button>
         </div>
       </div>
     </div>,
     document.body
   );
 }
+
 
 
 // ─── MORTUARY ─────────────────────────────────────────────────────────────────
@@ -1824,7 +1883,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   if(!selFH) return (
     <>
-      <div className="w-full px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Mortuary</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1840,7 +1899,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const fhCases=(byFH[selFH.id]||[]).sort((a,b)=>a.lastName.localeCompare(b.lastName));
 
   if(!selCase) return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={()=>setSelFH(null)} label="Back to Funeral Directors"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1">{selFH.name}</h2>
       <p className="text-gray-500 text-sm mb-6">Select deceased</p>
@@ -1881,11 +1940,11 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   return (
     <>
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       <div className="mb-5"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       <div className="grid grid-cols-5 gap-2 mb-5">
-        {[["secondNote","2nd Note"],["clothes","Clothes"],["coffin","Coffin"],["mccd","MCCD | BO"],["photo","Photo Required"]].map(([k,l])=>(
+        {[["secondNote","2nd Note"],["clothes","Clothes"],["coffin","Coffin"],["mccd","MCCD | BO"],["photo","Photo"]].map(([k,l])=>(
           <button key={k} onClick={()=>updStatus(k,!statusItems[k])} className={`py-3 rounded-xl border-2 text-xs font-bold transition ${statusItems[k]?"bg-green-500 border-green-500 text-white":"bg-red-50 border-red-300 text-red-600"}`}>{l}</button>
         ))}
       </div>
@@ -1897,12 +1956,12 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <div className="grid grid-cols-2 gap-3">
           <Field label="Collection Date">
             <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrep("collectionDate",e.target.value)}/>
-            {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
+            {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
           </Field>
           <Field label="Funeral Date">
             <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)}/>
-            {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
+            {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
           </Field>
         </div>
@@ -2150,7 +2209,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   }
 
   if(done) return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
         <h2 className="text-2xl font-black text-gray-900 mb-1">Checked Out ✓</h2>
@@ -2167,7 +2226,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const displayCases=(showPast?pastCases:currentCases).filter(c=>selFH?c.funeralHomeId===selFH.id:true);
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Check Out</h2>
 
@@ -2367,7 +2426,7 @@ function MyCases({user,cases,onUpdateCase}) {
   }
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Cases</h2>
       <p className="text-gray-500 text-sm mb-5">{myCases.length} total</p>
       <div className="flex gap-2 mb-5">
@@ -2401,7 +2460,7 @@ function MyTransfers({user,cases}) {
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
   const myCases=cases.filter(c=>{const d=c.checkedInAt?new Date(c.checkedInAt):null;return d&&d>=cutoff;}).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Transfers</h2>
       <p className="text-gray-500 text-sm mb-6">Past 2 weeks · {myCases.length} records</p>
       {myCases.length===0&&<p className="text-gray-400 text-center py-12">No transfers in the past 2 weeks.</p>}
@@ -2459,7 +2518,7 @@ function RecordsView({user,cases,onUpdateCase}) {
   }).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-black text-gray-900">Records</h2><span className="text-sm text-gray-500">{filtered.length} records</span></div>
       <input className={`${s.inp} mb-4`} placeholder="Search by name, case ref, funeral home…" value={search} onChange={e=>setSearch(e.target.value)}/>
       <div className="flex gap-2 mb-5">{[["all","All"],["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}</div>
@@ -2513,7 +2572,7 @@ function PinManagement({users,onPinUpdate}) {
   const fds=sortAlpha(users.filter(u=>u.role==="fd"),"name");
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <h2 className="text-2xl font-black text-gray-900 mb-1">PIN Management</h2>
       <p className="text-gray-500 text-sm mb-5">Admin only — changes save to database immediately</p>
       <button onClick={()=>setShow(x=>!x)} className={`${s.btnDark} mb-5`}>{show?"Hide PINs":"Reveal PINs"}</button>
@@ -2733,7 +2792,7 @@ function ReportsView({cases}) {
   });
 
   return (
-    <div className="w-full px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-black text-gray-900">Reports</h2>
         <div className="flex items-center gap-3">
@@ -2909,6 +2968,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const slots=dur==="2 HOURS"?4:dur==="1 HOUR"?2:1;
     const label=(b.deceased_label||b.type)+" ("+dur+")";
     const color=b.type==="Viewing Room"?"green":"blue";
+    // Fill all slots for the duration
     const roomKey=b.type==="Viewing Room"?"ViewingRoom":"FamilyRoom";
     let h=hour,half=isHalf;
     for(let i=0;i<slots;i++){
@@ -2925,7 +2985,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   const fhCasesForSel=selFHId?(casesByFH[selFHId]||[]).sort((a,b)=>a.lastName.localeCompare(b.lastName)):[];
 
   function getBookingLabel(){
-    if(careType==="in-care"&&selCaseId){const cx=cases.find(x=>x.id===selCaseId);if(cx){const fhN=FUNERAL_HOMES.find(f=>f.id===cx.funeralHomeId)?.name||cx.funeralHomeName||"";return`${fhN} — ${(cx.lastName||"").toUpperCase()}`;}return "";}
+    if(careType==="in-care"&&selCaseId){const cx=cases.find(x=>x.id===selCaseId);if(cx){const fhN=FUNERAL_HOMES.find(f=>f.id===cx.funeralHomeId)?.name||cx.funeralHomeName||"";return`${fhN} — ${(cx.lastName||"").toUpperCase()}`;}return"";}
     if(careType==="not-in-care"&&selFHId&&notInCareRef){const fh=FUNERAL_HOMES.find(f=>f.id===selFHId);return`${fh?.name||""} - ${notInCareRef}`;}
     return bookType;
   }
@@ -3021,13 +3081,17 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
           {CALENDAR_SLOTS.map(({hour,half,label})=>(
             <div key={label} className="mb-0.5">
+              <div className="grid gap-1" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
+                <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-500"}`} style={{fontSize:"10px",gridRow:"span 2"}}>{label}</div>
+              </div>
               {["ViewingRoom","FamilyRoom"].map(roomKey=>(
               <div key={roomKey} className="grid gap-1 mb-0.5" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
-              <div className={`text-xs p-1 flex items-center ${half?(roomKey==="ViewingRoom"?"text-green-300":"text-blue-300"):(roomKey==="ViewingRoom"?"text-green-600":"text-blue-600")}`} style={{fontSize:"9px",fontWeight:900}}>{half?"":roomKey==="ViewingRoom"?label+" VR":label+" FM"}</div>
+              <div className={`text-xs p-1 flex items-center ${roomKey==="ViewingRoom"?"text-green-400":"text-blue-400"}`} style={{fontSize:"8px"}}>{roomKey==="ViewingRoom"?"VR":"FM"}</div>
               {weekDates.map(date=>{
                 const key=`${date}_${hour}_${half?"half":"full"}_${roomKey}`;
                 const slot=slotMap[key];
                 const slotId=`${date}_${label}`;
+                const roomLabel=roomKey;
                 const editable=canEditSlot(slot)||(isFD&&slot?.fhId===user.funeralHomeId);
 
                 if(isFD){
