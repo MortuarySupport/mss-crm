@@ -1275,7 +1275,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
         <div>
           {!isTransfer&&<BackBtn onClick={()=>setStep(1)}/>}
           <p className={s.section}>Select Funeral Director</p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-4 gap-3 mb-4">
             {sortedFH.map(fh=>(
               <button key={fh.id} onClick={()=>{setSelFH(fh.id);setStep(3);}}
                 className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-left transition ${selFH===fh.id?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>{fh.name}</button>
