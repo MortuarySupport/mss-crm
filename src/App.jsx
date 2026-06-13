@@ -829,9 +829,7 @@ function TransferByPicker({value,onChange}) {
       <div className="flex flex-wrap gap-2 mb-3">
         {TRANSFER_BY_COMPANIES_PRIMARY.map(c=><button key={c} type="button" onClick={()=>selectCompany(c)} className={s.tb(company===c)}>{c}</button>)}
       </div>
-      {!isAllHoursOrMSS && <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">FUNERAL DIRECTORS</div>}
-      {(!isAllHoursOrMSS||company==="ALL") && <div className="flex flex-wrap gap-2 mb-3">
-        {sortAlpha(FUNERAL_HOMES,"name").map(f=><button key={f.id} type="button" onClick={()=>selectCompany(f.name)} className={`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${company===f.name?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`}>{f.name}</button>)}</div>}
+                    {sortAlpha(FUNERAL_HOMES,"name").map(f=><button key={f.id} type="button" onClick={()=>selectCompany(f.name)} className={`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${company===f.name?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`}>{f.name}</button>)}</div>}
       {company&&(
         <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
           {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>}
