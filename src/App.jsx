@@ -829,6 +829,7 @@ function TransferByPicker({value,onChange}) {
       <div className="flex flex-wrap gap-2 mb-3">
         {TRANSFER_BY_COMPANIES_PRIMARY.map(c=><button key={c} type="button" onClick={()=>selectCompany(c)} className={s.tb(company===c)}>{c}</button>)}
       </div>
+                    {sortAlpha(FUNERAL_HOMES,"name").map(f=><button key={f.id} type="button" onClick={()=>selectCompany(f.name)} className={`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${company===f.name?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`}>{f.name}</button>)}</div>}
       {company&&(
         <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
           {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>}
@@ -1038,11 +1039,11 @@ function HomeScreen({user,onAction}) {
         <p className="text-gray-600 text-sm">Welcome, <span className="font-bold text-gray-900">{user?.name}</span></p>
         <p className="text-gray-400 text-xs mt-1">{user?.roleLabel} · Baulkham Hills</p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
         <button onClick={()=>onAction("checkin")} className={s.btnLg}>CHECK IN</button>
-        {isMSS?<button onClick={()=>onAction("mortuary")} className={s.btnLg}>MORTUARY</button>:<div/>}
+        {isMSS&&<button onClick={()=>onAction("mortuary")} className={s.btnLg}>MORTUARY</button>}
         <button onClick={()=>onAction("checkout")} className={s.btnLg}>CHECK OUT</button>
-        {(isMSS||isFD)?<button onClick={()=>onAction("mycases")} className={s.btnLg}>MY CASES</button>:<div/>}
+        {(isMSS||isFD)&&<button onClick={()=>onAction("mycases")} className={s.btnLg}>MY CASES</button>}
         {isMSS&&<button onClick={()=>onAction("reports")} className={s.btnLg}>REPORTS</button>}
         {(isMSS||isFD)&&<button onClick={()=>onAction("calendar")} className={s.btnLg}>CALENDAR</button>}
         {isMSS&&<button onClick={()=>onAction("approvals")} className={s.btnLg}>APPROVALS</button>}
