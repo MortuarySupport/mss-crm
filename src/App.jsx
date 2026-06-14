@@ -1881,7 +1881,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
   const neutral="bg-white border-gray-300 text-gray-700 hover:border-gray-700";
   function scrollTo(id){setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth"});},100);}
   return(
-    <div className="space-y-3">
+    <div>
     <div>
       <div className="grid grid-cols-5 gap-2 mb-3">
         <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>{si.secondNote==="received"?"2ND NOTE ✓":"2ND NOTE"}</button>
