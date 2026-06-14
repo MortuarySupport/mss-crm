@@ -1003,7 +1003,6 @@ function LoginScreen({onLogin,users}) {
       const u=users.find(x=>x.pin===pin);
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
-        logActivity({...u,roleLabel},"LOGIN","User logged in");
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
       }
