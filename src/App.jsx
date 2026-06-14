@@ -2036,6 +2036,16 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           ))}
         </div>
       </div>
+      <div className={s.card}>
+        <p className={s.section}>COFFIN DETAILS</p>
+        <div className="mb-4"><label className={s.label}>Coffin Name</label><input type="text" className={s.inp} value={prep.coffinName||""} onChange={e=>updPrep("coffinName",e.target.value)} placeholder="Enter coffin name"/></div>
+        <div className="mb-3"><label className={s.label}>Size</label><div className="flex flex-wrap gap-2">{["Under","Std","OS1","OS2","OS3","OS4","OS5","Baby","Infant"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinSize",prep.coffinSize===v?"":v)} className={s.tb(prep.coffinSize===v)}>{v}</button>)}</div></div>
+        <div className="mb-3"><label className={s.label}>Colour</label><div className="flex flex-wrap gap-2">{["Maple","Teak","Rosewood","White","Black","Timber","Cardboard","NSNA"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinColour",prep.coffinColour===v?"":v)} className={s.tb(prep.coffinColour===v)}>{v}</button>)}</div></div>
+        <div className="mb-3"><label className={s.label}>Hardware</label><div className="flex flex-wrap gap-2">{["Cross - Large","Cross - Small","Crucifix - Small","Crucifix - Large","Gravemarker"].map(v=><button key={v} type="button" onClick={()=>{const cur=prep.coffinHardware||[];updPrep("coffinHardware",cur.includes(v)?cur.filter(x=>x!==v):[...cur,v]);}} className={s.tb((prep.coffinHardware||[]).includes(v))}>{v}</button>)}</div></div>
+        <div className="mb-3"><label className={s.label}>Handles</label><div className="flex flex-wrap gap-2">{["Silver","Gold"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinHandles",prep.coffinHandles===v?"":v)} className={s.tb(prep.coffinHandles===v)}>{v}</button>)}</div></div>
+        <div className="mb-3"><label className={s.label}>Name Plate Colour</label><div className="flex flex-wrap gap-2">{["Silver","Gold"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinPlateColour",prep.coffinPlateColour===v?"":v)} className={s.tb(prep.coffinPlateColour===v)}>{v}</button>)}</div></div>
+        <div className="mb-2"><label className={s.label}>Number of Name Plates</label><div className="flex flex-wrap gap-2">{["1","2","3","4"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinPlateQty",prep.coffinPlateQty===v?"":v)} className={s.tb(prep.coffinPlateQty===v)}>{v}</button>)}</div></div>
+      </div>
       <Divider/>
       <DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
       <div className="grid grid-cols-3 gap-3 mb-8">
