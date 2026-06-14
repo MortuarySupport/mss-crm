@@ -1015,10 +1015,12 @@ function LoginScreen({onLogin,users}) {
             placeholder="••••" value={pin} autoFocus
             onChange={e=>setPin(e.target.value.replace(/\D/g,"").slice(0,6))}
             onKeyDown={e=>e.key==="Enter"&&attempt()}/>
-          {error&&<p className="text-red-500 text-sm text-center mb-3 font-semibold">{error}</p>}
-          <button onClick={attempt} disabled={pin.length<4||loading}
+          {lockout&&<div className="bg-red-50 border border-red-300 rounded-xl p-4 mb-3 text-center"><p className="text-red-700 font-black text-sm uppercase">LOCKED</p><p className="text-red-600 text-xs mt-1">Too many failed attempts. Please wait {Math.ceil((new Date(lockout.until)-new Date())/60000)} minute{Math.ceil((new Date(lockout.until)-new Date())/60000)===1?"":"s"}.</p></div>}
+          {error&&!lockout&&<p className="text-red-500 text-sm text-center mb-3 font-semibold">{error}</p>}
+          {!lockout&&attempts>0&&<p className="text-amber-600 text-xs text-center mb-2">{MAX_ATTEMPTS-attempts} attempt{MAX_ATTEMPTS-attempts===1?"":"s"} remaining before lockout</p>}
+          <button onClick={attempt} disabled={pin.length<4||loading||!!lockout}
             className={`${s.btnDark} w-full text-xl py-5 disabled:opacity-40 disabled:cursor-not-allowed`}>
-            {loading?"Verifying…":"Enter"}
+            {loading?"Verifying…":lockout?"LOCKED":"Enter"}
           </button>
         </div>
         <p className="text-center text-gray-400 text-xs mt-5">Contact your administrator if you have lost your PIN</p>
