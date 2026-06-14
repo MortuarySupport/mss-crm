@@ -7,6 +7,13 @@ const PACEMAKER_PDF_B64 = "JVBERi0xLjQKJfbk/N8KMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZ
 const SUPABASE_URL = "https://qhazwfbhbelpcfwczjdb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYXp3ZmJoYmVscGNmd2N6amRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODQ1MTEsImV4cCI6MjA5NjQ2MDUxMX0.2xg7Kj56r7n_x2nZxbttqZU6Rly6ZSSnpuequpyihBo";
 
+
+async function logActivity(user, action, detail, caseRef, caseId){
+  try{
+    await fetch(SUPABASE_URL+"/rest/v1/activity_log",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({user_id:user?.id||"",user_name:user?.name||"",user_role:user?.roleLabel||user?.role||"",funeral_home_name:user?.funeralHomeName||"",action:action||"Unknown",detail:detail||"",case_ref:caseRef||"",case_id:caseId||""})});
+  }catch(e){console.warn("Log error:",e);}
+}
+
 async function sb(path, options = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     headers: {
@@ -573,7 +580,7 @@ function BottomNav({onAction,onNav,activeTab,action}){
 function Header({user,onSignOut,onNav,activeTab}) {
   const isAdmin=user?.role==="admin",isMSS=user?.role==="mss"||isAdmin;
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
-  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"]]
+  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"],["activitylog","ACTIVITY"]]
     :isMSS?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["mypin","MY PIN"]]
     :isFD?[["home","Home"],["records","My Cases"],["calendar","Calendar"]]
     :isTransfer?[["home","Home"],["transfers","My Transfers"]]
@@ -996,6 +1003,7 @@ function LoginScreen({onLogin,users}) {
       const u=users.find(x=>x.pin===pin);
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
+        logActivity({...u,roleLabel},"LOGIN","User logged in");
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
       }
@@ -3622,7 +3630,7 @@ export default function App() {
   },[]);
 
   function handleLogin(u){setUser(u);setTab("home");setAction(null);}
-  function handleLogout(){setUser(null);setTab("home");setAction(null);}
+  function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
   // Auto-logout after 2 minutes of inactivity
   useEffect(()=>{
@@ -3694,7 +3702,8 @@ export default function App() {
       {tab==="records"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={cases}/>}
-      {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>}
+      {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
