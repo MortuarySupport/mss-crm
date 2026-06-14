@@ -782,7 +782,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
       <div className="grid grid-cols-1 gap-1 text-sm">
         <div><span className="text-gray-500">Paperwork: </span><span className="font-bold text-gray-900">{c.paperwork||"None"}</span>&nbsp;|&nbsp;<span className="text-gray-500">Disposition: </span>{isAdmin?<InlineEdit isAdmin value={prep.disposition} onSave={v=>savePrep("disposition",v)} options={DISPOSITION_OPTIONS}/>:<span className="font-bold text-gray-900">{prep.disposition||"—"}</span>}</div>
         <div><span className="text-gray-500">Preparation: </span><span className="font-bold text-gray-900">{prepShorts}</span>&nbsp;|&nbsp;<span className="text-gray-500">Collection: </span>{isAdmin?<InlineEdit isAdmin value={prep.collectionDate} onSave={v=>savePrep("collectionDate",v)} type="date" display={fmt(prep.collectionDate)}/>:<span className="font-bold text-gray-900">{fmt(prep.collectionDate)||"—"}</span>}</div>
-        <div><span className="text-gray-500">Funeral Director: </span>{isAdmin?<InlineEdit isAdmin value={c.funeralHomeName} onSave={v=>save("funeral_home_name",v)}/>:<span className="font-bold text-gray-900">{c.funeralHomeName||"—"}</span>}&nbsp;|&nbsp;<span className="text-gray-500">Person: </span>{isAdmin?<InlineEdit isAdmin value={c.transferPersonName} onSave={v=>save("transfer_person_name",v)}/>:<span className="font-bold text-gray-900">{c.transferPersonName||"—"}</span>}</div>
+        <div><span className="text-gray-500">Funeral Director: </span>{isAdmin?<InlineEdit isAdmin value={c.funeralHomeName} onSave={v=>save("funeral_home_name",v)}/>:<span className="font-bold text-gray-900">{c.funeralHomeName||"—"}</span>}</div>
       </div>
     </div>
   );
@@ -1863,6 +1863,75 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
 
 
 
+// ChecklistItems component
+function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
+  const si=statusItems||{};
+  const funeralDate=prep.funeralDate||null;
+  const funeralTime=prep.funeralTime||"09:00";
+  const checkedInAt=c.checkedInAt||c.createdAt||null;
+  function within36hrs(){if(!funeralDate)return false;const f=new Date(funeralDate+"T"+funeralTime+":00");const now=new Date();const h=(f-now)/(1000*60*60);return h>0&&h<=36;}
+  function past5days(){if(!checkedInAt)return false;return(new Date()-new Date(checkedInAt))/(1000*60*60*24)>=5;}
+  const alert36=within36hrs();
+  const alert5d=past5days();
+  const green="bg-green-500 border-green-500 text-white";
+  const red="bg-red-600 border-red-600 text-white";
+  const pulse="animate-pulse bg-red-600 border-red-600 text-white";
+  const neutral="bg-white border-gray-300 text-gray-700 hover:border-gray-700";
+  function scrollTo(id){setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth"});},100);}
+  return(
+    <div className="space-y-3">
+      <div>
+        <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")}
+          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>
+          {si.secondNote==="received"?"2ND NOTE RECEIVED":"2ND NOTE"}
+        </button>
+      </div>
+      <div className="space-y-2">
+        <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)}
+          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>
+          {si.clothes==="received"?"CLOTHES RECEIVED":"CLOTHES"}
+        </button>
+        {si.clothes===null&&<div className="flex gap-2 pl-2">
+          <button onClick={()=>updStatus("clothes","received")} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>RECEIVED</button>
+          <button onClick={()=>updStatus("clothes","not-yet")} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
+        </div>}
+      </div>
+      <div className="space-y-2">
+        <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)}
+          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>
+          {si.coffin==="received"?"COFFIN RECEIVED":"COFFIN"}
+        </button>
+        {si.coffin===null&&<div className="flex gap-2 pl-2">
+          <button onClick={()=>{updStatus("coffin","received");scrollTo("coffinDetails");}} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>RECEIVED</button>
+          <button onClick={()=>{updStatus("coffin","not-yet");scrollTo("coffinDetails");}} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
+        </div>}
+      </div>
+      <div className="space-y-2">
+        <button onClick={()=>updStatus("mccd",si.mccd===undefined?null:undefined)}
+          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.mccd==="proceed"?green:si.mccd==="infectious"?red:alert36&&!si.mccd?red:neutral)}>
+          {si.mccd==="proceed"?"MCCD | BO - PROCEED":si.mccd==="infectious"?"MCCD | BO - INFECTIOUS":si.mccd==="not-yet"?"MCCD | BO - NOT YET":"MCCD | BO"}
+        </button>
+        {si.mccd===null&&<div className="flex gap-2 pl-2">
+          <button onClick={()=>updStatus("mccd","proceed")} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>PROCEED</button>
+          <button onClick={()=>updStatus("mccd","infectious")} className={"flex-1 py-2 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 text-xs font-black uppercase"}>INFECTIOUS</button>
+          <button onClick={()=>updStatus("mccd","not-yet")} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
+        </div>}
+      </div>
+      <div className="space-y-2">
+        <button onClick={()=>updStatus("photo",si.photo===undefined?null:undefined)}
+          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.photo==="received"?green:neutral)}>
+          {si.photo==="received"?"PHOTO RECEIVED":"PHOTO REQUIRED"}
+        </button>
+        {si.photo===null&&<div className="flex gap-2 pl-2">
+          <button onClick={()=>{updStatus("photo","received");scrollTo("docsSection");}} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>RECEIVED - UPLOAD</button>
+          <button onClick={()=>{updStatus("photo","not-yet");}} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+
 // ─── MORTUARY ─────────────────────────────────────────────────────────────────
 function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const [selFH,setSelFH]=useState(null);
@@ -1943,10 +2012,9 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       <div className="mb-5"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
-      <div className="grid grid-cols-5 gap-2 mb-5">
-        {[["secondNote","2nd Note"],["clothes","Clothes"],["coffin","Coffin"],["mccd","MCCD | BO"],["photo","Photo"]].map(([k,l])=>(
-          <button key={k} onClick={()=>updStatus(k,!statusItems[k])} className={`py-3 rounded-xl border-2 text-xs font-bold transition ${statusItems[k]?"bg-green-500 border-green-500 text-white":"bg-red-50 border-red-300 text-red-600"}`}>{l}</button>
-        ))}
+      <div className={s.card}>
+        <p className={s.section}>Checklist</p>
+        <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
       </div>
       <Divider/>
       <div className={s.card}><p className={s.section}>Preparation Required</p><MultiToggle options={PREP_OPTIONS.map(p=>p.label)} selected={prep.prepOptions||[]} onToggle={o=>{const cur=prep.prepOptions||[];updPrep("prepOptions",cur.includes(o)?cur.filter(x=>x!==o):[...cur,o]);}}/></div>
@@ -2019,24 +2087,31 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         ))}
       </div>
       <div className={s.card}>
-        <p className={s.section}>BILLABLE ITEMS</p>
-        <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">POPULAR ITEMS</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {["Casual Labour Hire - 4hrs min, PP","Crucifix/Cross - Large","Crucifix/Cross - Small","Dr Referee","Name Plate - Gold Large","Name Plate - Silver Large","Shroud","Tyvek Suits","Viewing Room","Viewing Room Host"].map(item=>(
-            <button key={item} type="button" onClick={()=>updBill(item,!billable[item])}
-              className={s.tb(!!billable[item])}>{item}</button>
-          ))}
-        </div>
-        <div className="border-t-2 border-gray-100 my-3"/>
-        <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">ALL ITEMS</p>
-        <div className="flex flex-wrap gap-2">
-          {BILLABLE_ITEMS.filter(item=>!["Casual Labour Hire - 4hrs min, PP","Crucifix/Cross - Large","Crucifix/Cross - Small","Dr Referee","Name Plate - Gold Large","Name Plate - Silver Large","Shroud","Tyvek Suits","Viewing Room","Viewing Room Host"].includes(item)).sort().map(item=>(
-            <button key={item} type="button" onClick={()=>updBill(item,!billable[item])}
-              className={s.tb(!!billable[item])}>{item}</button>
-          ))}
-        </div>
+        <p className={s.section}>SERVICES & ITEMS</p>
+        {[
+          {cat:"Preparation",items:[{code:"BP",label:"Basic Preparation"},{code:"TP",label:"Temporary Preservation"},{code:"FE",label:"Full Embalm"},{code:"BP1",label:"Basic Preparation (OS)"},{code:"TP1",label:"Temp Preservation (OS)"},{code:"FE1",label:"Full Embalm (OS)"},{code:"TPC",label:"Temp Preservation - Coroner"},{code:"FEC",label:"Full Embalm - Coroner"},{code:"TPC1",label:"Temp Preservation - Coroner (OS)"},{code:"FEC1",label:"Full Embalm - Coroner (OS)"},{code:"DRS",label:"Dressing/Make Up"},{code:"FP",label:"Finger Prints/Hair Locks"},{code:"PR",label:"Pacemaker Removal"}]},
+          {cat:"Supplementary Care",items:[{code:"ASP",label:"Aspiration/Cavity Treatment"},{code:"BSI",label:"Bio-Seal"},{code:"INF",label:"List A | Covid | Infectious"},{code:"REC",label:"Reconstruction"}]},
+          {cat:"Storage",items:[{code:"ACC",label:"Accommodation (per night)"}]},
+          {cat:"Additional Services",items:[{code:"AHB",label:"After Hours Body Prep Surcharge"},{code:"BB",label:"Body Bag"},{code:"CP",label:"Capri Pants"},{code:"CPT",label:"Coffin/Casket Packaging"},{code:"CL",label:"Crucifix/Cross - Large"},{code:"CS",label:"Crucifix/Cross - Small"},{code:"DRR",label:"Dr Cremation Referee"},{code:"DID",label:"Dr ID - Inperson"},{code:"DIV",label:"Dr ID - Virtual"},{code:"GA",label:"Gravemarker Assembly"},{code:"HCO",label:"Hair Colouring"},{code:"NPL",label:"Name Plate - Large"},{code:"NPS",label:"Name Plate - Small"},{code:"NPE",label:"Name Plate Etching"},{code:"OPC",label:"Open/Close Mortuary A/H"},{code:"SHR",label:"Shroud"},{code:"TYV",label:"Tyvek Suits"}]},
+          {cat:"Room Hire",items:[{code:"FMR",label:"Family Meeting Room (in care)"},{code:"FMR2",label:"Family Meeting Room (not in care)"},{code:"VR1",label:"Viewing Room"},{code:"VRH",label:"Viewing Room Host"},{code:"WD",label:"Witness Dressing - Per Person"},{code:"CPL",label:"Chapel (up to 12 guests)"}]},
+          {cat:"Labour",items:[{code:"CL4",label:"Casual Labour Hire - 4hrs min"}]},
+          {cat:"Delivery & Hearse",items:[{code:"RSF",label:"Repatriation Service Fee"},{code:"ED1",label:"ED - Mac Park | North Sub | Pine | Castle"},{code:"ED2",label:"ED - Rookwood | Frenchs | Penrith"},{code:"ED3",label:"ED - Forest Lawn | L pool | Kemps Crk"},{code:"ED4",label:"ED - ESMP | WMP"},{code:"EDS",label:"ED - Weekend/AH Surcharge"},{code:"HH1",label:"Hearse - Single Location"},{code:"HH2",label:"Hearse - Dual Location"}]},
+          {cat:"Audio Visual",items:[{code:"AV",label:"AV - Speakers/Mic/Projector/Screen"},{code:"LS1",label:"Livestream over 90mins"},{code:"LS2",label:"Livestream under 90mins"},{code:"SSO",label:"Slideshow Only"},{code:"SSM",label:"Slideshow | Music | Chapel Ready"}]},
+          {cat:"Transfers - Hospital/Coroner",items:[{code:"TH1",label:"Mon-Fri 7am-4pm"},{code:"TH2",label:"Weekend 7am-4pm"},{code:"TH3",label:"Mon-Fri 4pm-12pm"},{code:"TH4",label:"Weekend 4pm-12pm"},{code:"TH5",label:"Mon-Fri 12am-7am"},{code:"TH6",label:"Weekend 12am-7am"}]},
+          {cat:"Transfers - Home/Residential",items:[{code:"TR1",label:"Mon-Fri 7am-4pm"},{code:"TR2",label:"Weekend 7am-4pm"},{code:"TR3",label:"Mon-Fri 4pm-12pm"},{code:"TR4",label:"Weekend 4pm-12pm"},{code:"TR5",label:"Mon-Fri 12am-7am"},{code:"TR6",label:"Weekend 12am-7am"}]},
+        ].map(({cat,items})=>(
+          <div key={cat} className="mb-5">
+            <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{cat}</p>
+            <div className="flex flex-wrap gap-2">
+              {items.map(({code,label})=>(
+                <button key={code} type="button" onClick={()=>updBill(code,!billable[code])}
+                  className={s.tb(!!billable[code])}>{label}</button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-      <div className={s.card}>
+      <div id="coffinDetails" className={s.card}>
         <p className={s.section}>COFFIN DETAILS</p>
         <div className="mb-4"><label className={s.label}>Coffin Name</label><input type="text" className={s.inp} value={prep.coffinName||""} onChange={e=>updPrep("coffinName",e.target.value)} placeholder="Enter coffin name"/></div>
         <div className="mb-3"><label className={s.label}>Size</label><div className="flex flex-wrap gap-2">{["Under","Std","OS1","OS2","OS3","OS4","OS5","Baby","Infant"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinSize",prep.coffinSize===v?"":v)} className={s.tb(prep.coffinSize===v)}>{v}</button>)}</div></div>
@@ -2047,7 +2122,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <div className="mb-2"><label className={s.label}>Number of Name Plates</label><div className="flex flex-wrap gap-2">{["1","2","3","4"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinPlateQty",prep.coffinPlateQty===v?"":v)} className={s.tb(prep.coffinPlateQty===v)}>{v}</button>)}</div></div>
       </div>
       <Divider/>
-      <DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
+      <div id="docsSection"><DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
       <div className="grid grid-cols-3 gap-3 mb-8">
         {[["not-started","Not Started","bg-red-500"],["in-progress","In Progress","bg-amber-500"],["completed","Completed","bg-green-600"]].map(([val,label,col])=>(
           <button key={val} onClick={()=>handleStatus(val)} className={`py-4 rounded-2xl text-white font-black text-base transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-80 hover:opacity-100"}`}>{label}</button>
