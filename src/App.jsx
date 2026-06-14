@@ -1880,51 +1880,18 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
   function scrollTo(id){setTimeout(()=>{const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth"});},100);}
   return(
     <div className="space-y-3">
-      <div>
-        <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")}
-          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>
-          {si.secondNote==="received"?"2ND NOTE RECEIVED":"2ND NOTE"}
-        </button>
+    <div>
+      <div className="grid grid-cols-5 gap-2 mb-3">
+        <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>{si.secondNote==="received"?"2ND NOTE ✓":"2ND NOTE"}</button>
+        <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>{si.clothes==="received"?"CLOTHES ✓":"CLOTHES"}</button>
+        <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>{si.coffin==="received"?"COFFIN ✓":"COFFIN"}</button>
+        <button onClick={()=>updStatus("mccd",si.mccd===undefined?null:undefined)} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.mccd==="proceed"?green:si.mccd==="infectious"?red:alert36&&si.mccd===undefined?red:neutral)}>{si.mccd==="proceed"?"MCCD ✓":si.mccd==="infectious"?"MCCD ⚠":"MCCD | BO"}</button>
+        <button onClick={()=>updStatus("photo",si.photo===undefined?null:undefined)} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.photo==="received"?green:neutral)}>{si.photo==="received"?"PHOTO ✓":"PHOTO"}</button>
       </div>
-      <div className="space-y-2">
-        <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)}
-          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>
-          {si.clothes==="received"?"CLOTHES RECEIVED":"CLOTHES"}
-        </button>
-        {si.clothes===null&&<div className="flex gap-2 pl-2">
-          <button onClick={()=>updStatus("clothes","received")} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>RECEIVED</button>
-          <button onClick={()=>updStatus("clothes","not-yet")} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
-        </div>}
-      </div>
-      <div className="space-y-2">
-        <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)}
-          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>
-          {si.coffin==="received"?"COFFIN RECEIVED":"COFFIN"}
-        </button>
-        {si.coffin===null&&<div className="flex gap-2 pl-2">
-          <button onClick={()=>{updStatus("coffin","received");scrollTo("coffinDetails");}} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>RECEIVED</button>
-          <button onClick={()=>{updStatus("coffin","not-yet");scrollTo("coffinDetails");}} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
-        </div>}
-      </div>
-      <div className="space-y-2">
-        <button onClick={()=>updStatus("mccd",si.mccd===undefined?null:undefined)}
-          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.mccd==="proceed"?green:si.mccd==="infectious"?red:alert36&&!si.mccd?red:neutral)}>
-          {si.mccd==="proceed"?"MCCD | BO - PROCEED":si.mccd==="infectious"?"MCCD | BO - INFECTIOUS":si.mccd==="not-yet"?"MCCD | BO - NOT YET":"MCCD | BO"}
-        </button>
-        {si.mccd===null&&<div className="flex gap-2 pl-2">
-          <button onClick={()=>updStatus("mccd","proceed")} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>PROCEED</button>
-          <button onClick={()=>updStatus("mccd","infectious")} className={"flex-1 py-2 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 text-xs font-black uppercase"}>INFECTIOUS</button>
-          <button onClick={()=>updStatus("mccd","not-yet")} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
-        </div>}
-      </div>
-      <div className="space-y-2">
-        <button onClick={()=>updStatus("photo",si.photo===undefined?null:undefined)}
-          className={"w-full py-3 rounded-xl border-2 text-sm font-black uppercase transition "+(si.photo==="received"?green:neutral)}>
-          {si.photo==="received"?"PHOTO RECEIVED":"PHOTO REQUIRED"}
-        </button>
-        {si.photo===null&&<div className="flex gap-2 pl-2">
-          <button onClick={()=>{updStatus("photo","received");scrollTo("docsSection");}} className={"flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase"}>RECEIVED - UPLOAD</button>
-          <button onClick={()=>{updStatus("photo","not-yet");}} className={"flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase"}>NOT YET</button>
+      {si.clothes===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">Clothes:</span><button onClick={()=>updStatus("clothes","received")} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">RECEIVED</button><button onClick={()=>updStatus("clothes","not-yet")} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
+      {si.coffin===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">Coffin:</span><button onClick={()=>{updStatus("coffin","received");scrollTo("coffinDetails");}} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">RECEIVED</button><button onClick={()=>{updStatus("coffin","not-yet");scrollTo("coffinDetails");}} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
+      {si.mccd===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">MCCD|BO:</span><button onClick={()=>updStatus("mccd","proceed")} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">PROCEED</button><button onClick={()=>updStatus("mccd","infectious")} className="flex-1 py-2 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 text-xs font-black uppercase">INFECTIOUS</button><button onClick={()=>updStatus("mccd","not-yet")} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
+      {si.photo===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">Photo:</span><button onClick={()=>{updStatus("photo","received");scrollTo("docsSection");}} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">RECEIVED</button><button onClick={()=>updStatus("photo","not-yet")} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
         </div>}
       </div>
     </div>
