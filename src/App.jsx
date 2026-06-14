@@ -1894,8 +1894,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
       {si.coffin===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">Coffin:</span><button onClick={()=>{updStatus("coffin","received");scrollTo("coffinDetails");}} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">RECEIVED</button><button onClick={()=>{updStatus("coffin","not-yet");scrollTo("coffinDetails");}} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
       {si.mccd===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">MCCD|BO:</span><button onClick={()=>updStatus("mccd","proceed")} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">PROCEED</button><button onClick={()=>updStatus("mccd","infectious")} className="flex-1 py-2 rounded-xl border-2 border-red-400 bg-red-50 text-red-700 text-xs font-black uppercase">INFECTIOUS</button><button onClick={()=>updStatus("mccd","not-yet")} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
       {si.photo===null&&<div className="flex gap-2 mb-2"><span className="text-xs font-black text-gray-500 uppercase pt-2 w-20">Photo:</span><button onClick={()=>{updStatus("photo","received");scrollTo("docsSection");}} className="flex-1 py-2 rounded-xl border-2 border-green-400 bg-green-50 text-green-700 text-xs font-black uppercase">RECEIVED</button><button onClick={()=>updStatus("photo","not-yet")} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">NOT YET</button></div>}
-        </div>}
-      </div>
+    </div>
     </div>
   );
 }
