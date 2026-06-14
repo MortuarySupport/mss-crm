@@ -603,7 +603,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
 
 
 // ─── DOCUMENT SECTION ─────────────────────────────────────────────────────────
-const DOC_LABELS = ["MCCD","VOD","BO","LE","OTHER"];
+const DOC_LABELS = ["MCCD","VOD","BO","LE","PHOTO","OTHER"];
 
 function DocumentSection({caseId, funeralHomeName, lastName, dod}){
   const[docs,setDocs]=useState([]);
@@ -766,8 +766,10 @@ function CaseViewCard({c,isAdmin,onSave}) {
   const age=calcAge(c.dob,c.dod);
   function save(field,val){onSave&&onSave({[field]:val});}
   function savePrep(field,val){onSave&&onSave({prep:{...prep,[field]:val}});}
+  const isInfectious=c.statusItems?.mccd==="infectious";
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5">
+    <div className={"rounded-2xl p-5 "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
+      {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
       <div className="text-2xl font-black text-gray-900 mb-1">
         {isAdmin?<><InlineEdit isAdmin value={c.lastName?.toUpperCase()} onSave={v=>save("last_name",v)}/>, <InlineEdit isAdmin value={c.firstName} onSave={v=>save("first_name",v)}/></>
           :<>{(c.lastName||"").toUpperCase()}, {c.firstName}</>}
