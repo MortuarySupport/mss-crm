@@ -1901,6 +1901,194 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
 
 
 // ─── MORTUARY ─────────────────────────────────────────────────────────────────
+
+function printJobCard(c, prep, billable, statusItems, docs){
+  const si=statusItems||{};
+  const b=billable||{};
+  function fmt(d){if(!d)return"—";const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}
+  
+  // Build services list with codes
+  const serviceMap={
+    BP:"BP - Basic Preparation",TP:"TP - Temporary Preservation",FE:"FE - Full Embalm",
+    BP1:"BP1 - Basic Prep (OS)",TP1:"TP1 - Temp Preservation (OS)",FE1:"FE1 - Full Embalm (OS)",
+    TPC:"TPC - Temp Preservation (Coroner)",FEC:"FEC - Full Embalm (Coroner)",
+    TPC1:"TPC1 - Temp Preservation Coroner (OS)",FEC1:"FEC1 - Full Embalm Coroner (OS)",
+    DRS:"DRS - Dressing/Make Up",FP:"FP - Finger Prints/Hair Locks",PR:"PR - Pacemaker Removal",
+    ASP:"ASP - Aspiration/Cavity Treatment",BSI:"BSI - Bio-Seal",INF:"INF - List A/Covid/Infectious",
+    REC:"REC - Reconstruction",ACC:"ACC - Accommodation",AHB:"AHB - After Hours Surcharge",
+    BB:"BB - Body Bag",CP:"CP - Capri Pants",CPT:"CPT - Coffin Packaging",
+    CL:"CL - Crucifix/Cross Large",CS:"CS - Crucifix/Cross Small",DRR:"DRR - Dr Cremation Referee",
+    DID:"DID - Dr ID Inperson",DIV:"DIV - Dr ID Virtual",GA:"GA - Gravemarker Assembly",
+    HCO:"HCO - Hair Colouring",NPL:"NPL - Name Plate Large",NPS:"NPS - Name Plate Small",
+    NPE:"NPE - Name Plate Etching",OPC:"OPC - Open/Close Mortuary A/H",SHR:"SHR - Shroud",
+    TYV:"TYV - Tyvek Suits",FMR:"FMR - Family Meeting Room (in care)",
+    FMR2:"FMR - Family Meeting Room (not in care)",VR1:"VR1 - Viewing Room",
+    VRH:"VRH - Viewing Room Host",WD:"WD - Witness Dressing",CPL:"CPL - Chapel",
+    CL4:"CL4 - Casual Labour Hire",RSF:"RSF - Repatriation Service Fee",
+    ED1:"ED1 - ED Mac Park/North Sub/Pine/Castle",ED2:"ED2 - ED Rookwood/Frenchs/Penrith",
+    ED3:"ED3 - ED Forest Lawn/Liverpool/Kemps Crk",ED4:"ED4 - ED ESMP/WMP",
+    EDS:"EDS - ED Weekend/AH Surcharge",HH1:"HH1 - Hearse Single Location",HH2:"HH2 - Hearse Dual Location",
+    AV:"AV - Audio Visual",LS1:"LS1 - Livestream 90min+",LS2:"LS2 - Livestream Under 90min",
+    SSO:"SSO - Slideshow Only",SSM:"SSM - Slideshow/Music/Chapel",
+    TH1:"TH1 - Transfer Mon-Fri 7am-4pm",TH2:"TH2 - Transfer Weekend 7am-4pm",
+    TH3:"TH3 - Transfer Mon-Fri 4pm-12pm",TH4:"TH4 - Transfer Weekend 4pm-12pm",
+    TH5:"TH5 - Transfer Mon-Fri 12am-7am",TH6:"TH6 - Transfer Weekend 12am-7am",
+    TR1:"TR1 - Home Transfer Mon-Fri 7am-4pm",TR2:"TR2 - Home Transfer Weekend 7am-4pm",
+    TR3:"TR3 - Home Transfer Mon-Fri 4pm-12pm",TR4:"TR4 - Home Transfer Weekend 4pm-12pm",
+    TR5:"TR5 - Home Transfer Mon-Fri 12am-7am",TR6:"TR6 - Home Transfer Weekend 12am-7am",
+  };
+  const services=Object.entries(b).filter(([k,v])=>v&&serviceMap[k]).map(([k])=>serviceMap[k]);
+  
+  // Checklist status
+  function clStatus(v){if(v==="received"||v==="proceed")return"✓";if(v==="infectious")return"⚠ INFECTIOUS";if(v==="not-yet")return"NOT YET";return"–";}
+  
+  // Photo doc
+  const photoDocs=(docs||[]).filter(d=>d.name&&(d.name.toLowerCase().includes("photo")||d.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)));
+  const hasPhoto=photoDocs.length>0;
+  
+  const pw=window.open("","_blank");
+  if(!pw){alert("Allow popups to print.");return;}
+  
+  pw.document.write(`<!DOCTYPE html><html><head><title>Job Card - ${c.firstName} ${c.lastName}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;}
+.page{width:210mm;min-height:297mm;padding:12mm 14mm;page-break-after:always;}
+.page2{width:210mm;min-height:297mm;padding:12mm 14mm;}
+.header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:12px;}
+.logo-wrap{display:flex;align-items:center;gap:12px;}
+.logo-div{width:1px;height:44px;background:#111;}
+.logo-main{font-family:Georgia,serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:#111;}
+.logo-sub{font-family:Georgia,serif;font-size:10px;font-weight:300;color:#555;letter-spacing:6px;text-transform:uppercase;margin-top:4px;}
+.case-ref{font-size:13px;font-weight:900;color:#111;letter-spacing:1px;}
+.infectious-banner{background:#dc2626;color:#fff;padding:6px 12px;border-radius:6px;font-weight:900;font-size:12px;text-align:center;margin-bottom:10px;letter-spacing:2px;}
+.name-block{background:#111;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:10px;}
+.name-block h1{font-size:20px;font-weight:900;letter-spacing:1px;}
+.name-block p{font-size:11px;opacity:0.8;margin-top:3px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
+.box{border:1px solid #ddd;border-radius:6px;padding:8px 10px;}
+.box-title{font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:3px;}
+.box-value{font-size:12px;font-weight:700;color:#111;}
+.section{margin-bottom:10px;}
+.section-title{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#555;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:6px;}
+.checklist-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.cl-item{border:2px solid #ddd;border-radius:6px;padding:6px;text-align:center;}
+.cl-item.done{border-color:#16a34a;background:#f0fdf4;}
+.cl-item.warn{border-color:#dc2626;background:#fef2f2;}
+.cl-title{font-size:8px;font-weight:900;text-transform:uppercase;color:#666;}
+.cl-val{font-size:11px;font-weight:900;margin-top:2px;}
+.items-grid{display:flex;flex-wrap:wrap;gap:4px;}
+.item-chip{border:1px solid #999;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;}
+.coffin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+table{width:100%;border-collapse:collapse;}
+th{background:#111;color:#fff;padding:5px 8px;text-align:left;font-size:10px;letter-spacing:1px;}
+td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
+.sig-area{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:10px;}
+.sig-box{border-top:2px solid #111;padding-top:6px;}
+.sig-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#666;}
+.footer{margin-top:auto;border-top:1px solid #ccc;padding-top:6px;font-size:9px;color:#999;text-align:center;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>
+<div class="page">
+
+<div class="header">
+  <div class="logo-wrap">
+    <svg width="38" height="48" viewBox="0 0 64 80" fill="none"><path d="M32 75 Q30 60 32 45" stroke="#111" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M32 62 Q20 55 16 46 Q25 52 32 58" stroke="#111" stroke-width="1" fill="none"/><path d="M32 57 Q44 51 48 42 Q39 49 32 55" stroke="#111" stroke-width="1" fill="none"/><path d="M32 44 Q16 34 12 16 Q20 30 28 40 Q30 42 32 44" stroke="#111" stroke-width="1.2" fill="none"/><path d="M32 44 Q48 34 52 16 Q44 30 36 40 Q34 42 32 44" stroke="#111" stroke-width="1.2" fill="none"/><path d="M32 44 Q18 30 20 10 Q26 28 30 41 Q31 43 32 44" stroke="#111" stroke-width="1" fill="none"/><path d="M32 44 Q46 30 44 10 Q38 28 34 41 Q33 43 32 44" stroke="#111" stroke-width="1" fill="none"/><path d="M32 44 Q25 26 32 6 Q39 26 32 44" stroke="#111" stroke-width="1" fill="none"/><line x1="32" y1="44" x2="25" y2="31" stroke="#111" stroke-width="0.8"/><line x1="32" y1="44" x2="32" y2="29" stroke="#111" stroke-width="0.8"/><line x1="32" y1="44" x2="39" y2="31" stroke="#111" stroke-width="0.8"/><circle cx="25" cy="30" r="1.8" fill="#111"/><circle cx="32" cy="28" r="1.8" fill="#111"/><circle cx="39" cy="30" r="1.8" fill="#111"/></svg>
+    <div class="logo-div"></div>
+    <div><div class="logo-main">Mortuary Support</div><div class="logo-sub">Lum&#x113;n</div></div>
+  </div>
+  <div style="text-align:right">
+    <div class="case-ref">${c.caseRef}</div>
+    <div style="font-size:10px;color:#666;margin-top:2px;">MORTUARY JOB CARD</div>
+    <div style="font-size:9px;color:#999;margin-top:1px;">Printed: ${new Date().toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"})}</div>
+  </div>
+</div>
+
+${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE — TAKE APPROPRIATE PRECAUTIONS ⚠️</div>':""}
+
+<div class="name-block">
+  <h1>${(c.lastName||"").toUpperCase()}, ${c.firstName}</h1>
+  <p>DOB: ${fmt(c.dob)} &nbsp;|&nbsp; DOD: ${fmt(c.dod)} &nbsp;|&nbsp; Age: ${c.ageAtDeath??"&mdash;"} &nbsp;|&nbsp; ${c.sex||"&mdash;"} &nbsp;|&nbsp; Funeral Director: ${c.funeralHomeName||"&mdash;"}</p>
+</div>
+
+<div class="grid3">
+  <div class="box"><div class="box-title">Disposition</div><div class="box-value">${prep.disposition||"—"}</div></div>
+  <div class="box"><div class="box-title">Collection</div><div class="box-value">${fmt(prep.collectionDate)}${prep.collectionTime?" @ "+prep.collectionTime:""}</div></div>
+  <div class="box"><div class="box-title">Funeral Date</div><div class="box-value">${fmt(prep.funeralDate)}${prep.funeralTime?" @ "+prep.funeralTime:""}</div></div>
+</div>
+
+<div class="grid2">
+  <div class="box"><div class="box-title">Paperwork</div><div class="box-value">${c.paperwork||"None"}</div></div>
+  <div class="box"><div class="box-title">Pacemaker</div><div class="box-value">${prep.pacemakerRemoved||"—"}</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Checklist</div>
+  <div class="checklist-grid">
+    ${[["2ND NOTE",si.secondNote],["CLOTHES",si.clothes],["COFFIN",si.coffin],["MCCD | BO",si.mccd],["PHOTO",si.photo]].map(([l,v])=>`<div class="cl-item ${v==="received"||v==="proceed"?"done":v==="infectious"?"warn":""}"><div class="cl-title">${l}</div><div class="cl-val">${v==="received"||v==="proceed"?"✓":v==="infectious"?"⚠":v==="not-yet"?"NOT YET":"–"}</div></div>`).join("")}
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="section">
+    <div class="section-title">Preparation</div>
+    <div class="items-grid">${(prep.prepOptions||[]).map(p=>`<span class="item-chip">${p}</span>`).join("") || "<span style='color:#999'>None selected</span>"}</div>
+  </div>
+  <div class="section">
+    <div class="section-title">Viewing</div>
+    <div class="box-value">${prep.viewing||"—"}</div>
+    ${prep.viewing==="Yes"?`<div style="font-size:10px;color:#555;margin-top:3px;">${prep.viewingSlot?prep.viewingSlot.split("_").join(" @ "):""}${prep.viewingDuration?" ("+prep.viewingDuration+")":""} &nbsp; ${prep.viewingLocation||""}</div>`:""}
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Coffin Details</div>
+  <div class="coffin-grid">
+    <div class="box"><div class="box-title">Coffin Name</div><div class="box-value">${prep.coffinName||"—"}</div></div>
+    <div class="box"><div class="box-title">Size</div><div class="box-value">${prep.coffinSize||"—"}</div></div>
+    <div class="box"><div class="box-title">Colour</div><div class="box-value">${prep.coffinColour||"—"}</div></div>
+    <div class="box"><div class="box-title">Handles</div><div class="box-value">${prep.coffinHandles||"—"}</div></div>
+    <div class="box"><div class="box-title">Name Plate</div><div class="box-value">${prep.coffinPlateColour||"—"} ${prep.coffinPlateQty?"x"+prep.coffinPlateQty:""}</div></div>
+    <div class="box"><div class="box-title">Hardware</div><div class="box-value">${(prep.coffinHardware||[]).join(", ")||"—"}</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Services & Items</div>
+  ${services.length>0?`<div class="items-grid">${services.map(s=>`<span class="item-chip">${s}</span>`).join("")}</div>`:"<span style='color:#999'>None selected</span>"}
+</div>
+
+${prep.comments?`<div class="section"><div class="section-title">Comments</div><div style="border:1px solid #ddd;border-radius:6px;padding:8px;font-size:11px;">${prep.comments}</div></div>`:""}
+
+<div class="section">
+  <div class="section-title">Valuables</div>
+  <div style="font-size:11px;">${c.valuables||"NIL"}</div>
+</div>
+
+<div class="sig-area">
+  <div class="sig-box"><div style="height:40px"></div><div class="sig-label">Prepared by</div></div>
+  <div class="sig-box"><div style="height:40px"></div><div class="sig-label">Checked by</div></div>
+</div>
+
+<div class="footer" style="margin-top:16px">MSS Mortuary Support Services &nbsp;&middot;&nbsp; Mortuary Support | Lum&#x113;n &nbsp;&middot;&nbsp; Ph: 02 8814 5500 &nbsp;&middot;&nbsp; info@mortuarysupport.com.au</div>
+</div>
+
+${hasPhoto?`<div class="page2">
+<div class="header">
+  <div><div class="logo-main" style="font-family:Georgia,serif;font-size:14px;letter-spacing:3px;text-transform:uppercase;">Mortuary Support | Lum&#x113;n</div></div>
+  <div style="text-align:right"><div class="case-ref">${c.caseRef} &mdash; PHOTO</div><div style="font-size:10px;color:#666;">${(c.lastName||"").toUpperCase()}, ${c.firstName}</div></div>
+</div>
+${photoDocs.map(d=>`<div style="margin-bottom:20px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:6px;">${d.name}</div><img src="${window.location.origin}/rest/v1/storage/v1/object/public/Case-documents/${c.id}/${d.name}" style="max-width:100%;max-height:220mm;display:block;" alt="Photo" onerror="this.style.display=none"/></div>`).join("")}
+</div>`:""}
+
+</body></html>`);
+  pw.document.close();
+  pw.focus();
+  setTimeout(()=>pw.print(),600);
+}
+
+
 function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const [selFH,setSelFH]=useState(null);
   const [selCase,setSelCase]=useState(null);
@@ -2091,11 +2279,12 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       </div>
       <Divider/>
       <div id="docsSection"><DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         {[["not-started","Not Started","bg-red-500"],["in-progress","In Progress","bg-amber-500"],["completed","Completed","bg-green-600"]].map(([val,label,col])=>(
           <button key={val} onClick={()=>handleStatus(val)} className={`py-4 rounded-2xl text-white font-black text-base transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-80 hover:opacity-100"}`}>{label}</button>
         ))}
       </div>
+      <button onClick={()=>printJobCard(c,prep,billable,statusItems,[])} className="w-full py-4 rounded-2xl border-2 border-gray-900 text-gray-900 font-black text-base uppercase hover:bg-gray-100 transition mb-8">🖨️ PRINT JOB CARD</button>
       {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>setShowPacemakerCert(false)}/>}
     </div>
     </>
