@@ -986,22 +986,36 @@ function ViewingSection({prep,updPrepMulti,bookedSlots}) {
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
+const MAX_ATTEMPTS=5;
+const LOCKOUT_MINS=15;
+const LOCKOUT_KEY="mss_lockout";
+const ATTEMPTS_KEY="mss_attempts";
+function getLockout(){try{const d=JSON.parse(localStorage.getItem(LOCKOUT_KEY)||"null");if(!d)return null;if(new Date()>new Date(d.until)){localStorage.removeItem(LOCKOUT_KEY);localStorage.removeItem(ATTEMPTS_KEY);return null;}return d;}catch(e){return null;}}
+function getAttempts(){try{return parseInt(localStorage.getItem(ATTEMPTS_KEY)||"0");}catch(e){return 0;}}
+function recordFailedAttempt(){const a=getAttempts()+1;localStorage.setItem(ATTEMPTS_KEY,a);if(a>=MAX_ATTEMPTS){const until=new Date(Date.now()+LOCKOUT_MINS*60*1000);localStorage.setItem(LOCKOUT_KEY,JSON.stringify({until:until.toISOString()}));localStorage.setItem(ATTEMPTS_KEY,"0");}return a;}
+function clearAttempts(){localStorage.removeItem(ATTEMPTS_KEY);localStorage.removeItem(LOCKOUT_KEY);}
+
 function LoginScreen({onLogin,users}) {
   const [pin,setPin]=useState("");
+  const [lockout,setLockout]=useState(getLockout);
+  const [attempts,setAttempts]=useState(getAttempts);
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
 
   function attempt() {
     if(pin.length<4) return;
+    const l=getLockout();if(l){setLockout(l);return;}
     setLoading(true); setError("");
     setTimeout(()=>{
       const u=users.find(x=>x.pin===pin);
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
+        clearAttempts();setAttempts(0);
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
       }
-      setError("Invalid PIN. Please try again.");
+      const a=recordFailedAttempt();const nl=getLockout();setLockout(nl);setAttempts(nl?0:a);
+      if(nl){setError("Too many failed attempts. Locked for "+LOCKOUT_MINS+" minutes.");}else{setError("Invalid PIN. "+(MAX_ATTEMPTS-a)+" attempts remaining.");}
       setLoading(false); setPin("");
     },300);
   }
