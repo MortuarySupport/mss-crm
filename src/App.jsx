@@ -1902,7 +1902,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
 
 // ─── MORTUARY ─────────────────────────────────────────────────────────────────
 
-function printJobCard(c, prep, billable, statusItems, docs){
+function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
   const si=statusItems||{};
   const b=billable||{};
   function fmt(d){if(!d)return"—";const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}
@@ -1990,7 +1990,7 @@ td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
 .footer{margin-top:auto;border-top:1px solid #ccc;padding-top:6px;font-size:9px;color:#999;text-align:center;}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>
-<div class="page">
+<div class="page" style="page-break-after:${hasPhoto?'always':'avoid'}">
 
 <div class="header">
   <div class="logo-wrap">
@@ -2085,7 +2085,7 @@ ${photoDocs.map(d=>`<div style="margin-bottom:20px;"><div style="font-size:9px;f
 </body></html>`);
   pw.document.close();
   pw.focus();
-  setTimeout(()=>pw.print(),600);
+  if(autoPrint)setTimeout(()=>pw.print(),600);
 }
 
 
@@ -2167,7 +2167,11 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     <>
     <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
-      <div className="mb-5"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
+      <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
+      <div className="flex gap-3 mb-5">
+        <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
+        <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],true)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">🖨️ PRINT JOB CARD</button>
+      </div>
       <div className={s.card}>
         <p className={s.section}>Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
@@ -2284,7 +2288,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           <button key={val} onClick={()=>handleStatus(val)} className={`py-4 rounded-2xl text-white font-black text-base transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-80 hover:opacity-100"}`}>{label}</button>
         ))}
       </div>
-      <button onClick={()=>printJobCard(c,prep,billable,statusItems,[])} className="w-full py-4 rounded-2xl border-2 border-gray-900 text-gray-900 font-black text-base uppercase hover:bg-gray-100 transition mb-8">🖨️ PRINT JOB CARD</button>
+
       {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>setShowPacemakerCert(false)}/>}
     </div>
     </>
