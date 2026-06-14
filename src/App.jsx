@@ -7,12 +7,7 @@ const PACEMAKER_PDF_B64 = "JVBERi0xLjQKJfbk/N8KMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZ
 const SUPABASE_URL = "https://qhazwfbhbelpcfwczjdb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYXp3ZmJoYmVscGNmd2N6amRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODQ1MTEsImV4cCI6MjA5NjQ2MDUxMX0.2xg7Kj56r7n_x2nZxbttqZU6Rly6ZSSnpuequpyihBo";
 
-
-async function logActivity(user, action, detail, caseRef, caseId){
-  try{
-    await fetch(SUPABASE_URL+"/rest/v1/activity_log",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({user_id:user?.id||"",user_name:user?.name||"",user_role:user?.roleLabel||user?.role||"",funeral_home_name:user?.funeralHomeName||"",action:action||"Unknown",detail:detail||"",case_ref:caseRef||"",case_id:caseId||""})});
-  }catch(e){console.warn("Log error:",e);}
-}
+async function logActivity(user,action,detail,caseRef,caseId){try{await fetch(SUPABASE_URL+"/rest/v1/activity_log",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({user_id:user?.id||"",user_name:user?.name||"",user_role:user?.roleLabel||user?.role||"",funeral_home_name:user?.funeralHomeName||"",action:action||"Unknown",detail:detail||"",case_ref:caseRef||"",case_id:caseId||""})});}catch(e){console.warn("Log error:",e);}}
 
 async function sb(path, options = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
