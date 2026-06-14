@@ -2105,6 +2105,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       await updateCase(id,caseToDb({...cases.find(c=>c.id===id),...updates}));
       onUpdateCase(id,updates);
       setSelCase(p=>p?.id===id?{...p,...updates}:p);
+      logActivity(user,"MORTUARY UPDATE","Updated case "+c.caseRef,c.caseRef,c.id);
     }catch(err){alert("Save error: "+err.message);}
   }
 
@@ -2450,6 +2451,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
       const to=[MORTUARY_EMAIL,...fhContacts].join(",");
       const subj=encodeURIComponent(`T/L ${selCase.firstName} ${selCase.lastName} has departed MSS`);
       const body=encodeURIComponent(buildCheckOutEmail(selCase,coData));
+      logActivity(user,"CHECK OUT","Checked out "+selCase.firstName+" "+selCase.lastName,selCase.caseRef,selCase.id);
       setDone(true);
       // EMAIL DISABLED — window.open(`mailto:${to}?subject=${subj}&body=${body}`);
     }catch(err){alert("Error: "+err.message);}
@@ -2726,6 +2728,75 @@ function MyTransfers({user,cases}) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─── ACTIVITY LOG VIEW ────────────────────────────────────────────────────────
+function ActivityLogView(){
+  const [logs,setLogs]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState("");
+  const [roleFilter,setRoleFilter]=useState("ALL");
+
+  useEffect(()=>{
+    fetch(SUPABASE_URL+"/rest/v1/activity_log?order=created_at.desc&limit=500",{
+      headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+    }).then(r=>r.json()).then(d=>{setLogs(Array.isArray(d)?d:[]);setLoading(false);}).catch(()=>setLoading(false));
+  },[]);
+
+  function fmtDT(d){if(!d)return"—";return new Date(d).toLocaleString("en-AU",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});}
+
+  const roles=["ALL","Admin","MSS Staff","Funeral Director","Transfer Team"];
+  const actionColors={"LOGIN":"bg-blue-100 text-blue-700","LOGOUT":"bg-gray-100 text-gray-600","CHECK IN":"bg-green-100 text-green-700","CHECK OUT":"bg-amber-100 text-amber-700","MORTUARY UPDATE":"bg-purple-100 text-purple-700","PACEMAKER CERT":"bg-red-100 text-red-700"};
+
+  const filtered=logs.filter(l=>{
+    const matchRole=roleFilter==="ALL"||l.user_role===roleFilter;
+    const matchSearch=!filter||l.user_name?.toLowerCase().includes(filter.toLowerCase())||l.action?.toLowerCase().includes(filter.toLowerCase())||l.case_ref?.toLowerCase().includes(filter.toLowerCase())||l.detail?.toLowerCase().includes(filter.toLowerCase());
+    return matchRole&&matchSearch;
+  });
+
+  return(
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <h2 className="text-2xl font-black text-gray-900 mb-6">Activity Log</h2>
+      <div className="flex gap-3 mb-5 flex-wrap">
+        <input type="text" value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Search name, action, case..." className="flex-1 min-w-48 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-gray-800"/>
+        <div className="flex gap-2 flex-wrap">
+          {roles.map(r=>(
+            <button key={r} onClick={()=>setRoleFilter(r)} className={"px-3 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(roleFilter===r?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700")}>{r}</button>
+          ))}
+        </div>
+      </div>
+      {loading?<p className="text-gray-400 text-center py-10">Loading...</p>:(
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-900 text-white">
+                <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">Date & Time</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">User</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">Role</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">Detail</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-wider">Case</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length===0?<tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No activity found</td></tr>:
+              filtered.map((l,i)=>(
+                <tr key={l.id} className={i%2===0?"bg-white":"bg-gray-50"}>
+                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap font-mono text-xs">{fmtDT(l.created_at)}</td>
+                  <td className="px-4 py-3 font-bold text-gray-900">{l.user_name||"—"}<div className="text-xs text-gray-400 font-normal">{l.funeral_home_name}</div></td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{l.user_role}</td>
+                  <td className="px-4 py-3"><span className={"px-2 py-1 rounded-lg text-xs font-black "+(actionColors[l.action]||"bg-gray-100 text-gray-600")}>{l.action}</span></td>
+                  <td className="px-4 py-3 text-gray-600 text-xs">{l.detail}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{l.case_ref}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">{filtered.length} of {logs.length} entries</div>
+        </div>
+      )}
     </div>
   );
 }
