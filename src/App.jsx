@@ -1301,8 +1301,10 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
-      <BackBtn onClick={onBack} label="Back to Home"/>
-      <h2 className="text-2xl font-black text-gray-900 mb-3">Check In</h2>
+      <div className="flex items-center justify-between mb-3">
+        <BackBtn onClick={onBack} label="Back to Home"/>
+        <h2 className="text-2xl font-black text-gray-900">Check In</h2>
+      </div>
 
       {!isFD&&!isTransfer&&step===1&&(
         <div>
