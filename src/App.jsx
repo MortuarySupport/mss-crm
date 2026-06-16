@@ -583,7 +583,7 @@ function BottomNav({onAction,onNav,activeTab,action}){
 function Header({user,onSignOut,onNav,activeTab}) {
   const isAdmin=user?.role==="admin",isMSS=user?.role==="mss"||isAdmin;
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
-  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"],["activitylog","ACTIVITY"]]
+  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"],["activitylog","ACTIVITY"],["invoicing","INVOICING"]]
     :isMSS?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["mypin","MY PIN"]]
     :isFD?[["home","Home"],["records","My Cases"],["calendar","Calendar"]]
     :isTransfer?[["home","Home"],["transfers","My Transfers"]]
@@ -2163,6 +2163,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <h2 className="text-2xl font-black text-gray-900 mb-1">{selFH.name}</h2>
       <p className="text-gray-500 text-sm mb-6">Select deceased</p>
       <div className="space-y-3">
+      {fhCasesRaw.some(x=>!x.acceptedAt)&&<div className="mb-2 px-1"><span className="text-xs font-black uppercase tracking-widest text-green-600">New Cases</span></div>}
         {fhCases.map(c=>(
           <button key={c.id} onClick={()=>setSelCase(c)} className="w-full bg-white border-2 border-gray-200 hover:border-gray-900 rounded-2xl p-5 text-left transition">
             <div className="flex items-center justify-between">
@@ -4057,7 +4058,7 @@ export default function App() {
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={cases}/>}
       {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
-      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
