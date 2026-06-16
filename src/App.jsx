@@ -1250,6 +1250,19 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     };
     try {
       await insertCase(caseToDb(record));
+      // Upload check-in documents
+      const docs=form.checkInDocs||[];
+      for(const doc of docs){
+        if(!doc.file) continue;
+        try{
+          const path=`${record.id}/${Date.now()}_${doc.label.replace(/\s+/g,"_")}_${doc.file.name}`;
+          await fetch(`${SUPABASE_URL}/storage/v1/object/Case-documents/${path}`,{
+            method:"POST",
+            headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":doc.file.type||"application/octet-stream","x-upsert":"true"},
+            body:doc.file
+          });
+        }catch(e){console.warn("Doc upload error:",e);}
+      }
       setSubmitted(record);
       onComplete(record);
     } catch(err) {
