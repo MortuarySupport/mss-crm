@@ -1415,6 +1415,46 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             </Field>
           </div>
 
+          <div className="mb-6">
+            <p className={s.section}>DOCUMENTS (OPTIONAL)</p>
+            <p className="text-xs text-gray-500 mb-3">Upload any documents that arrived with the deceased</p>
+            {(form.checkInDocs||[]).map((doc,i)=>(
+              <div key={i} className="flex items-center gap-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                <span className="text-xs font-black text-gray-600 uppercase">{doc.label}</span>
+                <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
+                <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕</button>
+              </div>
+            ))}
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>(
+                <label key={lbl} className="cursor-pointer">
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file}]);}e.target.value="";}}/>
+                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">+ {lbl}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <p className={s.section}>DOCUMENTS (OPTIONAL)</p>
+            <p className="text-xs text-gray-500 mb-3">Upload any documents that arrived with the deceased</p>
+            {(form.checkInDocs||[]).map((doc,i)=>(
+              <div key={i} className="flex items-center gap-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                <span className="text-xs font-black text-gray-600 uppercase">{doc.label}</span>
+                <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
+                <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕</button>
+              </div>
+            ))}
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>(
+                <label key={lbl} className="cursor-pointer">
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file}]);}e.target.value="";}}/>
+                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">+ {lbl}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <button onClick={submit} disabled={saving} className={`${s.btnDark} w-full text-lg py-4 disabled:opacity-40`}>{saving?"Saving…":"Submit Check-In →"}</button>
         </div>
       )}
