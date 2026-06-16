@@ -2135,6 +2135,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   const newJobs=cases.filter(x=>x.status==="active"&&!x.acceptedAt).sort((a,b)=>new Date(a.checkedInAt||0)-new Date(b.checkedInAt||0));
   console.log("DEBUG newJobs:",newJobs.length,"total cases:",cases.length,JSON.stringify(cases.map(x=>({s:x.status,a:x.acceptedAt}))));
+  console.log("DEBUG newJobs:",newJobs.length,"total cases:",cases.length,JSON.stringify(cases.map(x=>({s:x.status,a:x.acceptedAt}))));
 
   if(!selFH) return (
     <>
