@@ -419,7 +419,7 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
   }
 
   return(
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={onBack} label="BACK TO HOME"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1 uppercase">Approvals</h2>
       <p className="text-gray-500 text-sm font-bold uppercase mb-5">{pendingCases.length} case{pendingCases.length!==1?"s":""} awaiting approval</p>
@@ -479,7 +479,7 @@ function LockView({cases,onUpdateCase,onBack}){
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
 
   return(
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={onBack} label="BACK TO HOME"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1 uppercase">Lock Cases</h2>
       <p className="text-gray-500 text-sm font-bold uppercase mb-5">{approvedCases.length} approved · {lockedCases.length} locked</p>
@@ -1073,7 +1073,7 @@ function HomeScreen({user,onAction}) {
   ].filter(b=>b.show);
   const cols=btns.length<=4?"grid-cols-2":"grid-cols-2 sm:grid-cols-3";
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <div className="text-center mb-8">
         <p className="text-gray-600 text-sm">Welcome, <span className="font-bold text-gray-900">{user?.name}</span></p>
         <p className="text-gray-400 text-xs mt-1">{user?.roleLabel} · Baulkham Hills</p>
@@ -1279,7 +1279,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     const subj=encodeURIComponent(`T/L ${submitted.firstName} ${submitted.lastName} has been checked into MSS`);
     const body=encodeURIComponent(buildCheckInEmail(submitted));
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1300,9 +1300,9 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const effectiveStep=isFD?3:isTransfer?3:step;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={onBack} label="Back to Home"/>
-      <h2 className="text-2xl font-black text-gray-900 mb-6">Check In</h2>
+      <h2 className="text-2xl font-black text-gray-900 mb-3">Check In</h2>
 
       {!isFD&&!isTransfer&&step===1&&(
         <div>
@@ -2170,9 +2170,9 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   if(!selFH) return (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={onBack} label="Back to Home"/>
-      <h2 className="text-2xl font-black text-gray-900 mb-6">Mortuary</h2>
+      <h2 className="text-2xl font-black text-gray-900 mb-3">Mortuary</h2>
       {newJobs.length>0&&(<div className="mb-8"><div className="flex items-center gap-3 mb-4"><span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"/><h3 className="text-sm font-black uppercase tracking-widest text-gray-700">New Jobs — {newJobs.length} case{newJobs.length>1?"s":""}</h3>
             <button onClick={()=>{const w=window.open("","_blank");w.document.write("<html><head><title>New Jobs</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}h2{margin-bottom:16px}</style></head><body><h2>New Jobs — "+new Date().toLocaleDateString("en-AU")+"</h2><table><tr><th>Case Ref</th><th>Deceased</th><th>Funeral Director</th><th>Checked In</th></tr>"+newJobs.map(x=>"<tr><td>"+x.caseRef+"</td><td>"+(x.lastName||"").toUpperCase()+", "+x.firstName+"</td><td>"+(x.funeralHomeName||"")+"</td><td>"+(x.checkedInAt?new Date(x.checkedInAt).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—")+"</td></tr>").join("")+"</table></body></html>");w.document.close();w.print();}} className="text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">🖨 PRINT LIST</button></div><div className="space-y-3">{newJobs.map(x=>(<div key={x.id} className="bg-white border-2 border-green-400 rounded-2xl p-5"><div className="flex items-start justify-between gap-4"><div><div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName}</div><div className="text-sm text-gray-500 mt-0.5">{x.caseRef} · {x.funeralHomeName}</div><div className="text-xs text-gray-400 mt-0.5">Checked in: {x.checkedInAt?new Date(x.checkedInAt).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</div></div><button onClick={async()=>{await upd(x.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="shrink-0 px-5 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">ACCEPT</button></div></div>))}</div><div className="border-t-2 border-gray-100 my-6"/></div>)}
       <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-4">Funeral Directors</h3>
@@ -2196,7 +2196,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   ];
 
   if(!selCase) return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={()=>setSelFH(null)} label="Back to Funeral Directors"/>
       <h2 className="text-2xl font-black text-gray-900 mb-1">{selFH.name}</h2>
       <p className="text-gray-500 text-sm mb-6">Select deceased</p>
@@ -2238,7 +2238,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   return (
     <>
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       {!c.acceptedAt&&(
@@ -2532,7 +2532,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   }
 
   if(done) return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
         <h2 className="text-2xl font-black text-gray-900 mb-1">Checked Out ✓</h2>
@@ -2549,9 +2549,9 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const displayCases=(showPast?pastCases:currentCases).filter(c=>selFH?c.funeralHomeId===selFH.id:true);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <BackBtn onClick={onBack} label="Back to Home"/>
-      <h2 className="text-2xl font-black text-gray-900 mb-6">Check Out</h2>
+      <h2 className="text-2xl font-black text-gray-900 mb-3">Check Out</h2>
 
       {step===1&&!isFD&&(
         <div><p className={s.section}>Who is checking out?</p><div className="grid grid-cols-1 gap-3">{[["MSS","MSS Staff"],["DRIVER","Driver / Transfer Team"],["FUNERAL DIRECTOR","Funeral Director"]].map(([v,l])=><button key={v} onClick={()=>{setCheckoutRole(v);setStep(2);}} className={s.btnLgGhost}>{l}</button>)}</div></div>
@@ -2749,7 +2749,7 @@ function MyCases({user,cases,onUpdateCase}) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Cases</h2>
       <p className="text-gray-500 text-sm mb-5">{myCases.length} total</p>
       <div className="flex gap-2 mb-5">
@@ -2783,7 +2783,7 @@ function MyTransfers({user,cases}) {
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
   const myCases=cases.filter(c=>{const d=c.checkedInAt?new Date(c.checkedInAt):null;return d&&d>=cutoff;}).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Transfers</h2>
       <p className="text-gray-500 text-sm mb-6">Past 2 weeks · {myCases.length} records</p>
       {myCases.length===0&&<p className="text-gray-400 text-center py-12">No transfers in the past 2 weeks.</p>}
@@ -2874,7 +2874,7 @@ function InvoicingView({cases,onUpdateCase}){
     const items=Object.entries(selCase.prep?.billable||{}).filter(([k,v])=>v&&serviceLabels[k]);
     const nights=selCase.checkedInAt&&selCase.checkout?.checkedOutAt?Math.max(1,Math.ceil((new Date(selCase.checkout.checkedOutAt)-new Date(selCase.checkedInAt))/(1000*60*60*24))):1;
     return(
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         <button onClick={()=>setSelCase(null)} className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-900 mb-6">← Back to Invoicing</button>
         <div className="bg-gray-900 text-white rounded-2xl px-6 py-5 mb-6">
           <div className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Invoice Summary</div>
@@ -2924,8 +2924,8 @@ function InvoicingView({cases,onUpdateCase}){
   }
 
   return(
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h2 className="text-2xl font-black text-gray-900 mb-6">Invoicing</h2>
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <h2 className="text-2xl font-black text-gray-900 mb-3">Invoicing</h2>
       <div className="flex gap-3 mb-6">
         {[["ready","Ready to Invoice",readyCases.length],["invoiced","Invoiced",invoicedCases.length]].map(([t,l,count])=>(
           <button key={t} onClick={()=>setTab(t)} className={"px-5 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(tab===t?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700")}>
@@ -2995,8 +2995,8 @@ function ActivityLogView(){
   });
 
   return(
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h2 className="text-2xl font-black text-gray-900 mb-6">Activity Log</h2>
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <h2 className="text-2xl font-black text-gray-900 mb-3">Activity Log</h2>
       <div className="flex gap-3 mb-5 flex-wrap">
         <input type="text" value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Search name, action, case..." className="flex-1 min-w-48 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-gray-800"/>
         <div className="flex gap-2 flex-wrap">
@@ -3075,7 +3075,7 @@ function RecordsView({user,cases,onUpdateCase}) {
   }).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-black text-gray-900">Records</h2><span className="text-sm text-gray-500">{filtered.length} records</span></div>
       <input className={`${s.inp} mb-4`} placeholder="Search by name, case ref, funeral home…" value={search} onChange={e=>setSearch(e.target.value)}/>
       <div className="flex gap-2 mb-5">{[["all","All"],["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}</div>
@@ -3129,7 +3129,7 @@ function PinManagement({users,onPinUpdate}) {
   const fds=sortAlpha(users.filter(u=>u.role==="fd"),"name");
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <h2 className="text-2xl font-black text-gray-900 mb-1">PIN Management</h2>
       <p className="text-gray-500 text-sm mb-5">Admin only — changes save to database immediately</p>
       <button onClick={()=>setShow(x=>!x)} className={`${s.btnDark} mb-5`}>{show?"Hide PINs":"Reveal PINs"}</button>
@@ -3173,7 +3173,7 @@ function MyPin({user,users}) {
   const me=users.find(u=>u.name===user.name&&u.role===user.role);
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
-      <h2 className="text-2xl font-black text-gray-900 mb-6">My PIN</h2>
+      <h2 className="text-2xl font-black text-gray-900 mb-3">My PIN</h2>
       <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center">
         <p className="text-sm text-gray-500 mb-2">{user.name}</p>
         <p className="text-5xl font-black font-mono text-gray-900 tracking-widest mb-3">{me?.pin||"——"}</p>
@@ -3349,7 +3349,7 @@ function ReportsView({cases}) {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-4">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-black text-gray-900">Reports</h2>
         <div className="flex items-center gap-3">
