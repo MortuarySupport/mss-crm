@@ -2133,16 +2133,20 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     }catch(err){alert("Save error: "+err.message);}
   }
 
+  const newJobs=cases.filter(x=>x.status==="active"&&!x.acceptedAt).sort((a,b)=>new Date(a.checkedInAt||0)-new Date(b.checkedInAt||0));
+
   if(!selFH) return (
     <>
       <div className="max-w-7xl mx-auto px-4 py-8">
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-6">Mortuary</h2>
+      {newJobs.length>0&&(<div className="mb-8"><div className="flex items-center gap-3 mb-4"><span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"/><h3 className="text-sm font-black uppercase tracking-widest text-gray-700">New Jobs — {newJobs.length} case{newJobs.length>1?"s":""}</h3></div><div className="space-y-3">{newJobs.map(x=>(<div key={x.id} className="bg-white border-2 border-green-400 rounded-2xl p-5"><div className="flex items-start justify-between gap-4"><div><div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName}</div><div className="text-sm text-gray-500 mt-0.5">{x.caseRef} · {x.funeralHomeName}</div><div className="text-xs text-gray-400 mt-0.5">Checked in: {x.checkedInAt?new Date(x.checkedInAt).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</div></div><button onClick={async()=>{await upd(x.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="shrink-0 px-5 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">ACCEPT</button></div></div>))}</div><div className="border-t-2 border-gray-100 my-6"/></div>)}
+      <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-4">Funeral Directors</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {sortAlpha(FUNERAL_HOMES,"name").map(fh=>{
           const has=!!(byFH[fh.id]?.length);
           const hasNew=byFH[fh.id]?.some(x=>!x.acceptedAt);
-          return <button key={fh.id} disabled={!has} onClick={()=>setSelFH(fh)} className={`relative py-5 px-4 rounded-2xl border-2 text-sm font-bold text-center transition ${has?"border-gray-200 hover:border-gray-900 bg-white text-gray-900":"border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"}`}>{hasNew&&<span className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white"/>}{fh.name}{has&&<div className="text-xs font-normal text-gray-400 mt-1">{byFH[fh.id].length} case{byFH[fh.id].length>1?"s":""}</div>}</button>;
+          return <button key={fh.id} disabled={!has} onClick={()=>setSelFH(fh)} className={`relative py-5 px-4 rounded-2xl border-2 text-sm font-bold text-center transition ${has?"border-gray-200 hover:border-gray-900 bg-white text-gray-900":"border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"}`}>{hasNew&&<span className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"/>}{fh.name}{has&&<div className="text-xs font-normal text-gray-400 mt-1">{byFH[fh.id].length} case{byFH[fh.id].length>1?"s":""}</div>}</button>;
         })}
       </div>
       </div>
