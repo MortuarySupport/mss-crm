@@ -589,7 +589,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
     :isTransfer?[["home","Home"],["transfers","My Transfers"]]
     :[["home","Home"]];
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-30">
+    <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50" style={{position:"sticky",top:0}}>
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <MSSLogo size="sm"/>
         <div className="flex items-center gap-4">
@@ -3926,7 +3926,7 @@ export default function App() {
   const isTransfer=user.role==="transfer";
 
   const wrap=(children)=>(
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch"}}>
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
       {children}
       {(isMSS||isAdmin)&&<BottomNav onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}} onNav={t=>{setTab(t);setAction(null);window.scrollTo({top:0,behavior:"smooth"});}} activeTab={tab} action={action}/>}
