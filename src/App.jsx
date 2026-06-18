@@ -3790,38 +3790,31 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 const slotId=`${date}_${label}`;
                 const editable=canEditSlot(slot)||(isFD&&slot?.fhId===user.funeralHomeId);
 
-                if(isFD){
-                  const mine=slot?.fhId===user.funeralHomeId;
-                  const blocked=slot&&!mine;
-                  if(mine){
-                    if(slot.isContinuation) return <div key={date} style={{height:"0px",overflow:"hidden"}}/>;
-                    const spanPx=slot.spanOf===4?108:slot.spanOf===2?54:26;
-                    return(<button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                      style={{height:spanPx+"px"}}
-                      className="rounded p-2 text-xs font-bold uppercase bg-green-100 border-2 border-green-400 text-green-800 text-left hover:bg-green-200 transition w-full block">
-                      <span className="truncate block">{slot.label}</span>
-                      <span className="text-green-600 text-xs block mt-1">{slot.booking?.duration||""}</span>
-                      <span className="text-green-600 text-xs">TAP TO EDIT</span>
-                    </button>);}
-                  if(blocked)return<div key={date} className="rounded p-1 min-h-[26px] text-xs font-bold uppercase bg-gray-200 text-gray-400 flex items-center justify-center">BUSY</div>;
-                  return<div key={date} className={`rounded p-1 min-h-[26px] border border-gray-100 ${half?"bg-gray-50":"bg-white"}`}/>;
-                }
+                // Skip continuation slots - handled by rowSpan
+                if(slot?.isContinuation) return null;
 
                 if(slot){
-                  if(slot.isContinuation) return <div key={date} style={{height:"0px",overflow:"hidden"}}/>;
-                  const spanPx=slot.spanOf===4?108:slot.spanOf===2?54:26;
+                  const rowSpan=slot.spanOf||1;
+                  const bgColor=slot.color==="green"?"#dcfce7":"#dbeafe";
+                  const borderColor=slot.color==="green"?"#16a34a":"#2563eb";
+                  const textColor=slot.color==="green"?"#166534":"#1e40af";
+                  const isMine=!isFD||(slot.fhId===user.funeralHomeId);
+                  if(isFD&&!isMine) return <td key={date} rowSpan={rowSpan} style={{padding:"2px",backgroundColor:"#e5e7eb",fontSize:"10px",textAlign:"center",color:"#9ca3af",fontWeight:"700"}}>BUSY</td>;
                   return(
-                  <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                    style={{height:spanPx+"px",position:"relative",zIndex:3}}
-                    className={`rounded p-2 text-xs font-bold uppercase text-left transition hover:opacity-80 w-full block ${slot.color==="green"?"bg-green-100 border-2 border-green-400 text-green-800":"bg-blue-100 border-2 border-blue-400 text-blue-800"}`}>
-                    <span className="truncate block">{slot.label}</span>
-                    {!slot.fromCase&&<span className="opacity-60 text-xs block mt-1">{slot.booking?.duration||""}</span>}
-                    {!slot.fromCase&&canEdit&&<span className="opacity-40 text-xs">TAP TO EDIT</span>}
-                  </button>
-                );}
+                    <td key={date} rowSpan={rowSpan} style={{padding:"2px",backgroundColor:bgColor,border:`2px solid ${borderColor}`,borderRadius:"4px",verticalAlign:"top"}}>
+                      <button onClick={()=>handleSlotClick(slot,slotId)} style={{width:"100%",height:"100%",minHeight:"24px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left",padding:"2px 4px",color:textColor}}>
+                        <span style={{display:"block",fontSize:"11px",fontWeight:"700",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</span>
+                        {!slot.fromCase&&<span style={{display:"block",fontSize:"9px",opacity:0.7}}>{slot.booking?.duration||""}</span>}
+                        {!slot.fromCase&&canEdit&&<span style={{display:"block",fontSize:"9px",opacity:0.5}}>TAP TO EDIT</span>}
+                      </button>
+                    </td>
+                  );
+                }
 
                 return canEdit
-                  ?<button key={date} onClick={()=>handleSlotClick(null,slotId,activeRoom)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
+                  ?<td key={date} style={{padding:"2px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f3f4f6"}}>
+                    <button onClick={()=>handleSlotClick(null,slotId,activeRoom)} style={{width:"100%",minHeight:"24px",background:"transparent",border:"none",cursor:"pointer",color:"#d1d5db",fontWeight:"900",fontSize:"12px",textAlign:"center"}}>+</button>
+                  </td>
                   :<td key={date} style={{padding:"2px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f3f4f6"}}/>;
               })}
             </tr>
