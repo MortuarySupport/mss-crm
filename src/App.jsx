@@ -765,10 +765,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
                   className="px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-gray-700 text-white text-xs font-black uppercase transition">
                   VIEW
                 </a>
-                <a href={url} download={doc.name}
-                  className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:border-gray-700 text-xs font-black uppercase transition">
-                  ↓
-                </a>
+                <button onClick={async()=>{try{const r=await fetch(url);const b=await r.blob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=doc.name;a.click();URL.revokeObjectURL(a.href);}catch(e){window.open(url,"_blank");}}} className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:border-gray-700 text-xs font-black uppercase transition">↓</button>
                 <button onClick={()=>handleDelete(path)}
                   className="px-2 py-1.5 rounded-lg border border-red-200 text-red-400 hover:border-red-500 hover:text-red-600 text-xs font-black transition">
                   ✕
