@@ -3769,18 +3769,21 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
       </div>
 
       <div className="overflow-x-auto">
-        <div style={{minWidth:"600px"}}>
-          <div className="grid gap-1 mb-1" style={{gridTemplateColumns:"56px repeat(7, minmax(100px, 1fr))"}}>
-            <div className="text-xs font-black uppercase text-gray-400 p-1">TIME</div>
-            {weekDates.map(d=>{const dd=new Date(d);const isToday=d===today();return<div key={d} className={`text-xs font-black uppercase text-center p-1.5 rounded-lg ${isToday?"bg-gray-900 text-white":"bg-gray-100 text-gray-700"}`}>{dd.toLocaleDateString("en-AU",{weekday:"short"})}<br/><span className="text-xs">{dd.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></div>;})}
-          </div>
-
-          {CALENDAR_SLOTS.map(({hour,half,label})=>{
+        <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr>
+              <th style={{width:"56px",padding:"4px",fontSize:"10px",color:"#9ca3af",textAlign:"left",fontWeight:"900",textTransform:"uppercase"}}>TIME</th>
+              {weekDates.map(d=>{const dd=new Date(d);const isToday=d===today();return<th key={d} style={{padding:"4px",textAlign:"center",backgroundColor:isToday?"#111":"#f3f4f6",color:isToday?"#fff":"#374151",borderRadius:"6px",fontSize:"11px",fontWeight:"900",textTransform:"uppercase"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})}<br/><span style={{fontSize:"10px"}}>{dd.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></th>;})}
+            </tr>
+          </thead>
+          <tbody>
+          {(()=>{
             const roomKey=activeRoom;
+            const renderedKeys=new Set();
+            return CALENDAR_SLOTS.map(({hour,half,label})=>{
             return(
-            <div key={label} className="mb-0.5">
-              <div className="grid gap-1" style={{gridTemplateColumns:"56px repeat(7, minmax(100px, 1fr))"}}>
-                <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-600"}`} style={{fontSize:"10px"}}>{label}</div>
+            <tr key={label}>
+              <td style={{fontSize:"10px",fontWeight:"900",color:half?"#d1d5db":"#6b7280",padding:"2px 4px",verticalAlign:"top",whiteSpace:"nowrap"}}>{label}</td>
               {weekDates.map(date=>{
                 const key=`${date}_${hour}_${half?"half":"full"}_${activeRoom}`;
                 const slot=slotMap[key];
