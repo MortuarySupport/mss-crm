@@ -2922,6 +2922,90 @@ function exportXeroCSV(cases,qtys){
   URL.revokeObjectURL(url);
 }
 
+// ─── XERO CSV EXPORT ──────────────────────────────────────────────────────────
+const PRICE_LIST={
+  BP:220,TP:295,FE:685,BP1:260,TP1:365,FE1:825,
+  TPC:355,FEC:720,TPC1:425,FEC1:860,
+  DRS:100,FP:25,PR:25,ASP:90,BSI:295,INF:220,REC:220,
+  ACC:55,AHB:320,BB:35,CP:55,CPT:190,
+  CL:28,CS:21,DRR:150,DID:180,DIV:65,GA:35,HCO:100,
+  NPL:28,NPS:28,NPE:28,OPC:250,SHR:35,TYV:55,
+  FMR:0,FMR2:120,VR1:150,VRH:150,WD:175,CPL:250,CL4:280,
+  RSF:1565,ED1:210,ED2:235,ED3:260,ED4:295,EDS:165,
+  HH1:395,HH2:595,AV:950,LS1:950,LS2:750,SSO:150,SSM:285,
+  TH1:330,TH2:440,TH3:440,TH4:440,TH5:495,TH6:495,
+  TR1:395,TR2:495,TR3:495,TR4:495,TR5:655,TR6:655,
+};
+const SERVICE_LABELS_XERO={
+  BP:"Basic Preparation",TP:"Temporary Preservation",FE:"Full Embalm",
+  BP1:"Basic Preparation (Over 100kg)",TP1:"Temporary Preservation (Over 100kg)",FE1:"Full Embalm (Over 100kg)",
+  TPC:"Temporary Preservation - Coroner",FEC:"Full Embalm - Coroner",
+  TPC1:"Temporary Preservation - Coroner (Over 100kg)",FEC1:"Full Embalm - Coroner (Over 100kg)",
+  DRS:"Dressing/Make Up",FP:"Finger Prints/Hair Locks",PR:"Pacemaker Removal",
+  ASP:"Aspiration/Cavity Treatment",BSI:"Bio-Seal",INF:"List A/Covid/Infectious Case",
+  REC:"Reconstruction",ACC:"Accommodation (per night)",AHB:"After Hours Surcharge",
+  BB:"Body Bag",CP:"Capri Pants",CPT:"Coffin/Casket Packaging",
+  CL:"Crucifix/Cross - Large",CS:"Crucifix/Cross - Small",DRR:"Dr Cremation Referee",
+  DID:"Dr ID - Inperson",DIV:"Dr ID - Virtual",GA:"Gravemarker Assembly",
+  HCO:"Hair Colouring",NPL:"Name Plate - Large",NPS:"Name Plate - Small",
+  NPE:"Name Plate Etching",OPC:"Open/Close Mortuary A/H",SHR:"Shroud",TYV:"Tyvek Suits",
+  FMR:"Family Meeting Room (in care)",FMR2:"Family Meeting Room (not in care)",
+  VR1:"Viewing Room",VRH:"Viewing Room Host",WD:"Witness Dressing - Per Person",
+  CPL:"Chapel (up to 12 guests)",CL4:"Casual Labour Hire - 4hrs min",
+  RSF:"Repatriation Service Fee",ED1:"ED - Mac Park/North Sub/Pine/Castle",
+  ED2:"ED - Rookwood/Frenchs/Penrith",ED3:"ED - Forest Lawn/Liverpool/Kemps Crk",
+  ED4:"ED - ESMP/WMP",EDS:"ED - Weekend/AH Surcharge",
+  HH1:"Hearse - Single Location",HH2:"Hearse - Dual Location",
+  AV:"AV - Speakers/Mic/Projector/Screen",LS1:"Livestream over 90mins",
+  LS2:"Livestream under 90mins",SSO:"Slideshow Only",SSM:"Slideshow/Music/Chapel Ready",
+  TH1:"Transfer Mon-Fri 7am-4pm",TH2:"Transfer Weekend 7am-4pm",
+  TH3:"Transfer Mon-Fri 4pm-12pm",TH4:"Transfer Weekend 4pm-12pm",
+  TH5:"Transfer Mon-Fri 12am-7am",TH6:"Transfer Weekend 12am-7am",
+  TR1:"Home Transfer Mon-Fri 7am-4pm",TR2:"Home Transfer Weekend 7am-4pm",
+  TR3:"Home Transfer Mon-Fri 4pm-12pm",TR4:"Home Transfer Weekend 4pm-12pm",
+  TR5:"Home Transfer Mon-Fri 12am-7am",TR6:"Home Transfer Weekend 12am-7am",
+};
+function exportXeroCSV(cases,qtys){
+  const today=new Date().toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"numeric"});
+  const due=new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"numeric"});
+  const rows=[["*ContactName","*InvoiceNumber","*InvoiceDate","*DueDate","*Description","*Quantity","*UnitAmount","AccountCode","TaxType"]];
+  cases.forEach(cas=>{
+    const billable=cas.billable||cas.prep?.billable||{};
+    const items=Object.entries(billable).filter(([k,v])=>v&&SERVICE_LABELS_XERO[k]);
+    if(items.length===0) return;
+    items.forEach(([code],i)=>{
+      let qty=1;
+      if(qtys&&qtys[cas.id+"_"+code]!==undefined) qty=qtys[cas.id+"_"+code];
+      else if(code==="NPL"||code==="NPS") qty=parseInt(cas.prep?.coffinPlateQty||1);
+      else if(code==="ACC"&&cas.checkedInAt&&cas.checkout?.checkedOutAt){
+        qty=Math.max(1,Math.ceil((new Date(cas.checkout.checkedOutAt)-new Date(cas.checkedInAt))/(1000*60*60*24)));
+      }
+      const price=PRICE_LIST[code]||0;
+      const desc=`${SERVICE_LABELS_XERO[code]} - ${(cas.lastName||"").toUpperCase()}, ${cas.firstName} (${cas.caseRef})`;
+      rows.push([
+        cas.funeralHomeName||"",
+        cas.caseRef||"",
+        i===0?today:"",
+        i===0?due:"",
+        desc,
+        qty,
+        price,
+        "4000",
+        "GST on Income"
+      ]);
+    });
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("
+");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`MSS_Xero_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── INVOICING VIEW ───────────────────────────────────────────────────────────
 function InvoicingView({cases,onUpdateCase}){
   const [tab,setTab]=useState("ready");
@@ -3034,6 +3118,7 @@ function InvoicingView({cases,onUpdateCase}){
         )}
         <div className="grid grid-cols-2 gap-3">
           <button onClick={()=>exportXeroCSV([selCase],qtys)} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">📥 XERO CSV</button>
+        <button onClick={()=>exportXeroCSV([selCase],qtys)} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">📥 XERO CSV</button>
         <button onClick={()=>window.print()} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">🖨️ PRINT</button>
           <button onClick={()=>markInvoiced(selCase)} className="py-4 rounded-2xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">✓ MARK AS INVOICED</button>
         </div>
@@ -3053,6 +3138,7 @@ function InvoicingView({cases,onUpdateCase}){
       </div>
       {tab==="ready"&&(
         <div className="space-y-3">
+          {readyCases.length>0&&<button onClick={()=>exportXeroCSV(readyCases,qtys)} className="mb-4 px-5 py-2.5 rounded-xl border-2 border-gray-900 font-black text-sm uppercase hover:bg-gray-900 hover:text-white transition">📥 EXPORT ALL TO XERO CSV</button>}
           {readyCases.length>0&&<button onClick={()=>exportXeroCSV(readyCases,qtys)} className="mb-4 px-5 py-2.5 rounded-xl border-2 border-gray-900 font-black text-sm uppercase hover:bg-gray-900 hover:text-white transition">📥 EXPORT ALL TO XERO CSV</button>}
           {readyCases.length===0&&<p className="text-gray-400 text-center py-10">No cases ready to invoice</p>}
           {readyCases.map(c=>(
