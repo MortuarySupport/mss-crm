@@ -3659,7 +3659,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     let h=hour,half=isHalf;
     for(let i=0;i<slots;i++){
       const key=`${date}_${h}_${half?"half":"full"}_${roomKey}`;
-      slotMap[key]={type:b.type,label:i===0?label:"",fhId:b.funeral_home_id||null,color,bookingId:b.id,booking:b,isFirst:i===0,spanOf:slots};
+      slotMap[key]={type:b.type,label:i===0?label:"",fhId:b.funeral_home_id||null,color,bookingId:b.id,booking:b,isFirst:i===0,isContinuation:i>0,spanOf:slots};
       if(half){half=false;h++;}else{half=true;}
     }
   });
@@ -3791,7 +3791,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                   const mine=slot?.fhId===user.funeralHomeId;
                   const blocked=slot&&!mine;
                   if(mine){
-                    if(slot.isFirst===false) return <div key={date} className="rounded min-h-[26px]"/>;
+                    if(slot.isContinuation) return <div key={date} style={{height:"0px",overflow:"hidden"}}/>;
                     const spanPx=slot.spanOf===4?108:slot.spanOf===2?54:26;
                     return(<button key={date} onClick={()=>handleSlotClick(slot,slotId)}
                       style={{height:spanPx+"px"}}
@@ -3805,11 +3805,11 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 }
 
                 if(slot){
-                  if(slot.isFirst===false) return <div key={date} className="rounded min-h-[26px]"/>;
+                  if(slot.isContinuation) return <div key={date} style={{height:"0px",overflow:"hidden"}}/>;
                   const spanPx=slot.spanOf===4?108:slot.spanOf===2?54:26;
                   return(
                   <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                    style={{height:spanPx+"px"}}
+                    style={{height:spanPx+"px",position:"relative",zIndex:3}}
                     className={`rounded p-2 text-xs font-bold uppercase text-left transition hover:opacity-80 w-full block ${slot.color==="green"?"bg-green-100 border-2 border-green-400 text-green-800":"bg-blue-100 border-2 border-blue-400 text-blue-800"}`}>
                     <span className="truncate block">{slot.label}</span>
                     {!slot.fromCase&&<span className="opacity-60 text-xs block mt-1">{slot.booking?.duration||""}</span>}
