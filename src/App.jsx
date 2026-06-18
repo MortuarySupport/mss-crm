@@ -3644,7 +3644,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const hour=parseInt(time.split(":")[0]);
     const key=`${date}_${hour}_${isHalf?"half":"full"}_ViewingRoom`;
     const fhName1=FUNERAL_HOMES.find(f=>f.id===c.funeralHomeId)?.name||c.funeralHomeName||"";
-    slotMap[key]={type:"Viewing Room",label:`${fhName1} — ${(c.lastName||"").toUpperCase()}`,fhId:c.funeralHomeId,color:"green",fromCase:true};
+    slotMap[key]={type:"Viewing Room",label:`${fhName1} — ${(c.lastName||"").toUpperCase()}`,fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:true,spanOf:1};
   });
   (calendarBookings||[]).forEach(b=>{
     const[date,time]=b.slot.split("_");
@@ -3791,7 +3791,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                   const mine=slot?.fhId===user.funeralHomeId;
                   const blocked=slot&&!mine;
                   if(mine){
-                    if(!slot.isFirst) return <div key={date} className="rounded min-h-[26px]"/>;
+                    if(slot.isFirst===false) return <div key={date} className="rounded min-h-[26px]"/>;
                     const spanH=slot.spanOf===4?"min-h-[112px]":slot.spanOf===2?"min-h-[56px]":"min-h-[26px]";
                     return(<button key={date} onClick={()=>handleSlotClick(slot,slotId)}
                       className={`rounded p-2 ${spanH} text-xs font-bold uppercase bg-green-100 border-2 border-green-400 text-green-800 text-left hover:bg-green-200 transition w-full`}>
@@ -3804,7 +3804,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 }
 
                 if(slot){
-                  if(!slot.isFirst) return <div key={date} className="rounded min-h-[26px]"/>;
+                  if(slot.isFirst===false) return <div key={date} className="rounded min-h-[26px]"/>;
                   const spanH=slot.spanOf===4?"min-h-[112px]":slot.spanOf===2?"min-h-[56px]":"min-h-[26px]";
                   return(
                   <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
