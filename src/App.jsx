@@ -3582,7 +3582,7 @@ function printWeek(weekDates,slotMap,slots){
       if(!hasCells) return "";
       return `<tr><td style="padding:4px 6px;border:1px solid #eee;font-size:10px;color:#666;white-space:nowrap;background:#fafafa">${slot.label}</td>${cells.filter(x=>x!==null).join("")}</tr>`;
     }).join("");
-    return `<div style="margin-bottom:24px"><div style="padding:8px 10px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;${header};border-radius:4px">${roomLabel}</div><table style="border-collapse:collapse;width:100%"><thead><tr><th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;width:55px">Time</th>${cols}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    return `<div style="margin-bottom:32px;page-break-inside:avoid"><div style="padding:14px 16px;margin-bottom:8px;${header};border-radius:6px"><div style="font-size:28px;font-weight:900;letter-spacing:3px;text-transform:uppercase">${roomLabel}</div><div style="font-size:13px;opacity:0.8;margin-top:4px">Week of ${fmtDay(weekDates[0])} — ${fmtDay(weekDates[6])}</div></div><table style="border-collapse:collapse;width:100%"><thead><tr><th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;width:55px">Time</th>${cols}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   const vrTable=buildTable("ViewingRoom","Viewing Room","green");
