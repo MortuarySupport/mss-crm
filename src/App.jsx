@@ -3644,7 +3644,14 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const hour=parseInt(time.split(":")[0]);
     const key=`${date}_${hour}_${isHalf?"half":"full"}_ViewingRoom`;
     const fhName1=FUNERAL_HOMES.find(f=>f.id===c.funeralHomeId)?.name||c.funeralHomeName||"";
-    slotMap[key]={type:"Viewing Room",label:`${fhName1} — ${(c.lastName||"").toUpperCase()}`,fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:true,spanOf:1};
+    const vDur=c.prep?.viewingDuration||"1 HOUR";
+    const vSlots=vDur==="2 HOURS"?4:2;
+    let vh=hour,vhalf=isHalf;
+    for(let vi=0;vi<vSlots;vi++){
+      const vkey=`${date}_${vh}_${vhalf?"half":"full"}_ViewingRoom`;
+      slotMap[vkey]={type:"Viewing Room",label:vi===0?`${fhName1} — ${(c.lastName||"").toUpperCase()}`:"",fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:vi===0,isContinuation:vi>0,spanOf:vSlots};
+      if(vhalf){vhalf=false;vh++;}else{vhalf=true;}
+    }
   });
   (calendarBookings||[]).forEach(b=>{
     const[date,time]=b.slot.split("_");
