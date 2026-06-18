@@ -3770,7 +3770,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
       <div className="overflow-x-auto">
         <div style={{minWidth:"600px"}}>
-          <div className="grid gap-1 mb-1" style={{gridTemplateColumns:"56px repeat(7, 1fr)"}}>
+          <div className="grid gap-1 mb-1" style={{gridTemplateColumns:"56px repeat(7, minmax(100px, 1fr))"}}>
             <div className="text-xs font-black uppercase text-gray-400 p-1">TIME</div>
             {weekDates.map(d=>{const dd=new Date(d);const isToday=d===today();return<div key={d} className={`text-xs font-black uppercase text-center p-1.5 rounded-lg ${isToday?"bg-gray-900 text-white":"bg-gray-100 text-gray-700"}`}>{dd.toLocaleDateString("en-AU",{weekday:"short"})}<br/><span className="text-xs">{dd.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></div>;})}
           </div>
@@ -3779,7 +3779,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
             const roomKey=activeRoom;
             return(
             <div key={label} className="mb-0.5">
-              <div className="grid gap-1" style={{gridTemplateColumns:"56px repeat(7, 1fr)"}}>
+              <div className="grid gap-1" style={{gridTemplateColumns:"56px repeat(7, minmax(100px, 1fr))"}}>
                 <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-600"}`} style={{fontSize:"10px"}}>{label}</div>
               {weekDates.map(date=>{
                 const key=`${date}_${hour}_${half?"half":"full"}_${activeRoom}`;
@@ -3790,24 +3790,30 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 if(isFD){
                   const mine=slot?.fhId===user.funeralHomeId;
                   const blocked=slot&&!mine;
-                  if(mine)return(
-                    <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                      className="rounded p-1 min-h-[26px] text-xs font-bold uppercase bg-green-100 border border-green-400 text-green-800 text-left hover:bg-green-200 transition">
-                      {slot.isFirst!==false&&<span className="truncate block">{slot.label}</span>}
-                      {slot.isFirst!==false&&!slot.fromCase&&<span className="text-green-600 text-xs">TAP TO EDIT</span>}
-                    </button>
-                  );
+                  if(mine){
+                    if(!slot.isFirst) return <div key={date} className="rounded min-h-[26px]"/>;
+                    const spanH=slot.spanOf===4?"min-h-[112px]":slot.spanOf===2?"min-h-[56px]":"min-h-[26px]";
+                    return(<button key={date} onClick={()=>handleSlotClick(slot,slotId)}
+                      className={`rounded p-2 ${spanH} text-xs font-bold uppercase bg-green-100 border-2 border-green-400 text-green-800 text-left hover:bg-green-200 transition w-full`}>
+                      <span className="truncate block">{slot.label}</span>
+                      <span className="text-green-600 text-xs block mt-1">{slot.booking?.duration||""}</span>
+                      <span className="text-green-600 text-xs">TAP TO EDIT</span>
+                    </button>);}
                   if(blocked)return<div key={date} className="rounded p-1 min-h-[26px] text-xs font-bold uppercase bg-gray-200 text-gray-400 flex items-center justify-center">BUSY</div>;
                   return<div key={date} className={`rounded p-1 min-h-[26px] border border-gray-100 ${half?"bg-gray-50":"bg-white"}`}/>;
                 }
 
-                if(slot)return(
+                if(slot){
+                  if(!slot.isFirst) return <div key={date} className="rounded min-h-[26px]"/>;
+                  const spanH=slot.spanOf===4?"min-h-[112px]":slot.spanOf===2?"min-h-[56px]":"min-h-[26px]";
+                  return(
                   <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                    className={`rounded p-1 min-h-[26px] text-xs font-bold uppercase text-left transition hover:opacity-80 ${slot.color==="green"?"bg-green-100 border border-green-400 text-green-800":"bg-blue-100 border border-blue-400 text-blue-800"}`}>
-                    {slot.isFirst!==false&&<span className="truncate block">{slot.label}</span>}
-                    {slot.isFirst!==false&&!slot.fromCase&&<span className="opacity-60 text-xs">TAP TO EDIT</span>}
+                    className={`rounded p-2 ${spanH} text-xs font-bold uppercase text-left transition hover:opacity-80 w-full ${slot.color==="green"?"bg-green-100 border-2 border-green-400 text-green-800":"bg-blue-100 border-2 border-blue-400 text-blue-800"}`}>
+                    <span className="truncate block">{slot.label}</span>
+                    {!slot.fromCase&&<span className="opacity-60 text-xs block mt-1">{slot.booking?.duration||""}</span>}
+                    {!slot.fromCase&&canEdit&&<span className="opacity-40 text-xs">TAP TO EDIT</span>}
                   </button>
-                );
+                );}
 
                 return canEdit
                   ?<button key={date} onClick={()=>handleSlotClick(null,slotId,activeRoom)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
