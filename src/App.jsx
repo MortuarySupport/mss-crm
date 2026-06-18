@@ -3650,7 +3650,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     let vh=hour,vhalf=isHalf;
     for(let vi=0;vi<vSlots;vi++){
       const vkey=`${date}_${vh}_${vhalf?"half":"full"}_ViewingRoom`;
-      slotMap[vkey]={type:"Viewing Room",label:vi===0?`${fhName1} — ${(c.lastName||"").toUpperCase()}`:"",fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:vi===0,isContinuation:vi>0,spanOf:vSlots};
+      slotMap[vkey]={type:"Viewing Room",label:vi===0?`${fhName1} — ${(c.lastName||"").toUpperCase()}`:"",fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:vi===0,isContinuation:vi>0,spanOf:vSlots,caseId:c.id,caseRef:c.caseRef,funeralHomeId:c.funeralHomeId};
       if(vhalf){vhalf=false;vh++;}else{vhalf=true;}
     }
   });
@@ -3717,7 +3717,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   // Check if current user can edit a slot
   function canEditSlot(slot){
     if(!slot) return false;
-    if(slot.fromCase) return false; // case-derived viewings managed in Mortuary
+    if(slot.fromCase) return canEdit; // admin/mss can edit mortuary viewings
     if(canEdit) return true; // admin/mss can always edit
     if(isFD&&slot.fhId===user.funeralHomeId) return true; // FD can edit their own
     return false;
@@ -3734,7 +3734,11 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
       return;
     }
     if(slot.fromCase){
-      if(canEdit) alert(`VIEWING\n${slot.label}\nBooked via Mortuary screen`);
+      if(canEdit){
+        setEditingBooking({...slot,isMortuaryBooking:true,label:slot.label});
+        setBookSlot(slotId);
+        setShowBookModal(true);
+      }
       return;
     }
     if(canEditSlot(slot)){
