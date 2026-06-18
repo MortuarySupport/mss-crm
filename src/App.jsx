@@ -3769,7 +3769,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
       </div>
 
       <div className="overflow-x-auto">
-        <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse"}}>
+        <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
           <thead>
             <tr>
               <th style={{width:"56px",padding:"4px",fontSize:"10px",color:"#9ca3af",textAlign:"left",fontWeight:"900",textTransform:"uppercase"}}>TIME</th>
