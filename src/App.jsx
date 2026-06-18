@@ -3562,19 +3562,33 @@ function printWeek(weekDates,slotMap,slots){
   function fmtDay(d){const x=new Date(d+"T12:00:00");return `${dayNames[x.getDay()]} ${x.getDate()} ${months[x.getMonth()]}`;}
   const pw=window.open("","_blank");
   const cols=weekDates.map(d=>`<th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;min-width:90px">${fmtDay(d)}</th>`).join("");
-  const rows=slots.map(slot=>{
-    const timeLabel=slot.label;
-    const cells=weekDates.map(d=>{
-      const key=`${d}_${slot.hour}_${slot.half?"half":"full"}`;
-      const b=slotMap[key];
-      if(!b) return `<td style="padding:4px;border:1px solid #eee;height:28px"></td>`;
-      const bg=b.color==="green"?"#d1fae5":b.color==="blue"?"#dbeafe":"#f5f5f5";
-      const border=b.color==="green"?"#059669":b.color==="blue"?"#2563eb":"#999";
-      return `<td style="padding:4px 6px;border:1px solid #eee;background:${bg};border-left:3px solid ${border};font-size:10px;font-weight:600">${b.label}</td>`;
+
+  function buildTable(roomKey,roomLabel,color){
+    const bg=color==="green"?"#d1fae5":"#dbeafe";
+    const border=color==="green"?"#059669":"#2563eb";
+    const header=color==="green"?"background:#065f46;color:#fff":"background:#1e3a8a;color:#fff";
+    const renderedRows=new Set();
+    const rows=slots.map(slot=>{
+      const cells=weekDates.map(d=>{
+        const key=`${d}_${slot.hour}_${slot.half?"half":"full"}_${roomKey}`;
+        const cellKey=`${d}_${slot.hour}_${slot.half}`;
+        const b=slotMap[key];
+        if(b?.isContinuation) return null;
+        const rowSpan=b?.spanOf||1;
+        if(!b) return `<td style="padding:4px;border:1px solid #eee;height:24px"></td>`;
+        return `<td rowspan="${rowSpan}" style="padding:4px 6px;border:2px solid ${border};background:${bg};font-size:10px;font-weight:700;vertical-align:top">${b.label||""}${b.label2?`<br><span style="font-size:9px;font-weight:600">${b.label2}</span>`:""}</td>`;
+      });
+      const hasCells=cells.some(x=>x!==null);
+      if(!hasCells) return "";
+      return `<tr><td style="padding:4px 6px;border:1px solid #eee;font-size:10px;color:#666;white-space:nowrap;background:#fafafa">${slot.label}</td>${cells.filter(x=>x!==null).join("")}</tr>`;
     }).join("");
-    return `<tr><td style="padding:4px 6px;border:1px solid #eee;font-size:10px;color:#666;white-space:nowrap;background:#fafafa">${timeLabel}</td>${cells}</tr>`;
-  }).join("");
-  pw.document.write(`<!DOCTYPE html><html><head><title>MSS Calendar</title><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}@media print{body{padding:10px}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #111;padding-bottom:10px"><div style="font-size:20px;font-weight:900">MSS Mortuary Support Services</div><div style="font-size:12px;color:#666">Week of ${fmtDay(weekDates[0])} — ${fmtDay(weekDates[6])}</div></div><table><thead><tr><th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;width:55px">Time</th>${cols}</tr></thead><tbody>${rows}</tbody></table><div style="margin-top:16px;font-size:10px;color:#999;display:flex;gap:20px"><span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:#d1fae5;border-left:3px solid #059669"></span>Viewing Room</span><span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;background:#dbeafe;border-left:3px solid #2563eb"></span>Family Meeting Room</span></div></body></html>`);
+    return `<div style="margin-bottom:24px"><div style="padding:8px 10px;font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;${header};border-radius:4px">${roomLabel}</div><table style="border-collapse:collapse;width:100%"><thead><tr><th style="padding:6px 4px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#f5f5f5;width:55px">Time</th>${cols}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  const vrTable=buildTable("ViewingRoom","Viewing Room","green");
+  const fmTable=buildTable("FamilyRoom","Family Meeting Room","blue");
+
+  pw.document.write(`<!DOCTYPE html><html><head><title>MSS Calendar</title><style>body{font-family:Arial,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}@media print{body{padding:10px}}</style></head><body><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #111;padding-bottom:10px"><div style="font-size:20px;font-weight:900">MSS Mortuary Support Services</div><div style="font-size:12px;color:#666">Week of ${fmtDay(weekDates[0])} — ${fmtDay(weekDates[6])}</div></div>${vrTable}${fmTable}</body></html>`);
   pw.document.close();
   pw.focus();
   setTimeout(()=>pw.print(),400);
