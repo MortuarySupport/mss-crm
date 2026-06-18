@@ -3779,7 +3779,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
             const roomKey=activeRoom;
             return(
             <div key={label} className="mb-0.5">
-              <div className="grid gap-1" style={{gridTemplateColumns:"56px repeat(7, minmax(100px, 1fr))"}}>
+              <div className="grid gap-1 relative" style={{gridTemplateColumns:"56px repeat(7, minmax(100px, 1fr))",minHeight:"28px"}}>
                 <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-600"}`} style={{fontSize:"10px"}}>{label}</div>
               {weekDates.map(date=>{
                 const key=`${date}_${hour}_${half?"half":"full"}_${activeRoom}`;
@@ -3792,9 +3792,10 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                   const blocked=slot&&!mine;
                   if(mine){
                     if(slot.isFirst===false) return <div key={date} className="rounded min-h-[26px]"/>;
-                    const spanH=slot.spanOf===4?"min-h-[112px]":slot.spanOf===2?"min-h-[56px]":"min-h-[26px]";
+                    const spanPx=slot.spanOf===4?112:slot.spanOf===2?56:28;
                     return(<button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                      className={`rounded p-2 ${spanH} text-xs font-bold uppercase bg-green-100 border-2 border-green-400 text-green-800 text-left hover:bg-green-200 transition w-full`}>
+                      style={{height:spanPx+"px",position:"absolute",zIndex:2,width:"calc(100% - 4px)"}}
+                      className="rounded p-2 text-xs font-bold uppercase bg-green-100 border-2 border-green-400 text-green-800 text-left hover:bg-green-200 transition">
                       <span className="truncate block">{slot.label}</span>
                       <span className="text-green-600 text-xs block mt-1">{slot.booking?.duration||""}</span>
                       <span className="text-green-600 text-xs">TAP TO EDIT</span>
@@ -3805,10 +3806,11 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
                 if(slot){
                   if(slot.isFirst===false) return <div key={date} className="rounded min-h-[26px]"/>;
-                  const spanH=slot.spanOf===4?"min-h-[112px]":slot.spanOf===2?"min-h-[56px]":"min-h-[26px]";
+                  const spanPx=slot.spanOf===4?112:slot.spanOf===2?56:28;
                   return(
                   <button key={date} onClick={()=>handleSlotClick(slot,slotId)}
-                    className={`rounded p-2 ${spanH} text-xs font-bold uppercase text-left transition hover:opacity-80 w-full ${slot.color==="green"?"bg-green-100 border-2 border-green-400 text-green-800":"bg-blue-100 border-2 border-blue-400 text-blue-800"}`}>
+                    style={{height:spanPx+"px",position:"absolute",zIndex:2,width:"calc(100% - 4px)"}}
+                    className={`rounded p-2 text-xs font-bold uppercase text-left transition hover:opacity-80 ${slot.color==="green"?"bg-green-100 border-2 border-green-400 text-green-800":"bg-blue-100 border-2 border-blue-400 text-blue-800"}`}>
                     <span className="truncate block">{slot.label}</span>
                     {!slot.fromCase&&<span className="opacity-60 text-xs block mt-1">{slot.booking?.duration||""}</span>}
                     {!slot.fromCase&&canEdit&&<span className="opacity-40 text-xs">TAP TO EDIT</span>}
