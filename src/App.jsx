@@ -3033,8 +3033,6 @@ function InvoicingView({cases,onUpdateCase}){
         )}
         <div className="grid grid-cols-2 gap-3">
           <button onClick={()=>exportXeroCSV([selCase],qtys)} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">📥 XERO CSV</button>
-        <button onClick={()=>exportXeroCSV([selCase],qtys)} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">📥 XERO CSV</button>
-        <button onClick={()=>exportXeroCSV([selCase],qtys)} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">📥 XERO CSV</button>
         <button onClick={()=>window.print()} className="py-4 rounded-2xl border-2 border-gray-300 font-black text-sm uppercase hover:border-gray-700 transition">🖨️ PRINT</button>
           <button onClick={()=>markInvoiced(selCase)} className="py-4 rounded-2xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">✓ MARK AS INVOICED</button>
         </div>
@@ -3054,8 +3052,6 @@ function InvoicingView({cases,onUpdateCase}){
       </div>
       {tab==="ready"&&(
         <div className="space-y-3">
-          {readyCases.length>0&&<button onClick={()=>exportXeroCSV(readyCases,qtys)} className="mb-4 px-5 py-2.5 rounded-xl border-2 border-gray-900 font-black text-sm uppercase hover:bg-gray-900 hover:text-white transition">📥 EXPORT ALL TO XERO CSV</button>}
-          {readyCases.length>0&&<button onClick={()=>exportXeroCSV(readyCases,qtys)} className="mb-4 px-5 py-2.5 rounded-xl border-2 border-gray-900 font-black text-sm uppercase hover:bg-gray-900 hover:text-white transition">📥 EXPORT ALL TO XERO CSV</button>}
           {readyCases.length>0&&<button onClick={()=>exportXeroCSV(readyCases,qtys)} className="mb-4 px-5 py-2.5 rounded-xl border-2 border-gray-900 font-black text-sm uppercase hover:bg-gray-900 hover:text-white transition">📥 EXPORT ALL TO XERO CSV</button>}
           {readyCases.length===0&&<p className="text-gray-400 text-center py-10">No cases ready to invoice</p>}
           {readyCases.map(c=>(
