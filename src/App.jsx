@@ -3650,7 +3650,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     let vh=hour,vhalf=isHalf;
     for(let vi=0;vi<vSlots;vi++){
       const vkey=`${date}_${vh}_${vhalf?"half":"full"}_ViewingRoom`;
-      slotMap[vkey]={type:"Viewing Room",label:vi===0?`${fhName1} — ${(c.lastName||"").toUpperCase()}`:"",fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:vi===0,isContinuation:vi>0,spanOf:vSlots,caseId:c.id,caseRef:c.caseRef,funeralHomeId:c.funeralHomeId};
+      slotMap[vkey]={type:"Viewing Room",label:vi===0?fhName1:"",label2:vi===0?(c.lastName||"").toUpperCase():"",fhId:c.funeralHomeId,color:"green",fromCase:true,isFirst:vi===0,isContinuation:vi>0,spanOf:vSlots,caseId:c.id,caseRef:c.caseRef,funeralHomeId:c.funeralHomeId};
       if(vhalf){vhalf=false;vh++;}else{vhalf=true;}
     }
   });
@@ -3660,14 +3660,16 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const hour=parseInt(time.split(":")[0]);
     const dur=b.duration||"1 HOUR";
     const slots=dur==="2 HOURS"?4:dur==="1 HOUR"?2:1;
-    const label=(b.deceased_label||b.type)+" ("+dur+")";
+    const labelParts=(b.deceased_label||b.type).split(" — ");
+    const label=labelParts[0];
+    const label2=labelParts[1]||"";
     const color=b.type==="Viewing Room"?"green":"blue";
     // Fill all slots for the duration
     const roomKey=b.type==="Viewing Room"?"ViewingRoom":"FamilyRoom";
     let h=hour,half=isHalf;
     for(let i=0;i<slots;i++){
       const key=`${date}_${h}_${half?"half":"full"}_${roomKey}`;
-      slotMap[key]={type:b.type,label:i===0?label:"",fhId:b.funeral_home_id||null,color,bookingId:b.id,booking:b,isFirst:i===0,isContinuation:i>0,spanOf:slots};
+      slotMap[key]={type:b.type,label:i===0?label:"",label2:i===0?label2:"",fhId:b.funeral_home_id||null,color,bookingId:b.id,booking:b,isFirst:i===0,isContinuation:i>0,spanOf:slots};
       if(half){half=false;h++;}else{half=true;}
     }
   });
@@ -3816,6 +3818,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                     <td key={date} rowSpan={rowSpan} style={{padding:"2px",backgroundColor:bgColor,border:`2px solid ${borderColor}`,borderRadius:"4px",verticalAlign:"top"}}>
                       <button onClick={()=>handleSlotClick(slot,slotId)} style={{width:"100%",height:"100%",minHeight:"24px",background:"transparent",border:"none",cursor:"pointer",textAlign:"left",padding:"2px 4px",color:textColor}}>
                         <span style={{display:"block",fontSize:"11px",fontWeight:"700",textTransform:"uppercase",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</span>
+                        {slot.label2&&<span style={{display:"block",fontSize:"10px",fontWeight:"600",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",opacity:0.85}}>{slot.label2}</span>}
                         {!slot.fromCase&&<span style={{display:"block",fontSize:"9px",opacity:0.7}}>{slot.booking?.duration||""}</span>}
                         {!slot.fromCase&&canEdit&&<span style={{display:"block",fontSize:"9px",opacity:0.5}}>TAP TO EDIT</span>}
                       </button>
