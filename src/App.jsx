@@ -474,6 +474,14 @@ function LockView({cases,onUpdateCase,onBack}){
     catch(err){alert("Error: "+err.message);}
   }
 
+  async function undoCheckout(id){
+    if(!window.confirm("Undo check out for this case? This will clear all checkout data and return the case to active.")) return;
+    try{
+      await updateCase(id,{checked_out:false,checkout_data:null,status:"active"});
+      onUpdateCase(id,{checkedOut:false,checkout:null,status:"active"});
+    }catch(err){alert("Error: "+err.message);}
+  }
+
   // Also show locked cases so admin can unlock
   const lockedCases=cases.filter(c=>c.status==="locked")
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
@@ -2770,6 +2778,7 @@ function MyCases({user,cases,onUpdateCase}) {
                 {isMSS&&c.checkedOut&&(c.status==="pending-lock")&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 transition font-black uppercase">APPROVE</button>}
                 {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5 hover:bg-gray-700 transition font-black uppercase">LOCK</button>}
                 {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-3 py-1.5 hover:bg-red-600 transition font-black uppercase">UNLOCK</button>}
+                {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
               </div>
             </div>
             <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)}/>
@@ -3094,6 +3103,7 @@ function RecordsView({user,cases,onUpdateCase}) {
                 {isMSS&&c.checkedOut&&(c.status==="pending-lock")&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 transition font-black uppercase">APPROVE</button>}
                 {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5 hover:bg-gray-700 transition font-black uppercase">LOCK</button>}
                 {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-3 py-1.5 hover:bg-red-600 transition font-black uppercase">UNLOCK</button>}
+                {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
               </div>
             </div>
             <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)}/>
