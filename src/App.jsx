@@ -2747,7 +2747,7 @@ function MyCases({user,cases,onUpdateCase}) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="w-full px-4 py-4">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Cases</h2>
       <p className="text-gray-500 text-sm mb-5">{myCases.length} total</p>
       <div className="flex gap-2 mb-5">
