@@ -799,6 +799,12 @@ function CaseViewCard({c,isAdmin,onSave}) {
           <div><span className="text-gray-500">Funeral Director: </span>{isAdmin?<InlineEdit isAdmin value={c.funeralHomeName} onSave={v=>save("funeral_home_name",v)}/>:<span className="font-bold text-gray-900">{c.funeralHomeName||"—"}</span>}</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── DATE INPUT ─────────────────────────────────────────────────────────────
+function DOBPicker({value,onChange,maxDate,minDate}) {
   return (
     <div>
       <input type="date" className={s.inp} value={value||""} min={minDate||""} max={maxDate||today()} onChange={e=>onChange(e.target.value)}/>
