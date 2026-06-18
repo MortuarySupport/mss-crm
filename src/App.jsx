@@ -3644,7 +3644,8 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     const hour=parseInt(time.split(":")[0]);
     const key=`${date}_${hour}_${isHalf?"half":"full"}_ViewingRoom`;
     const fhName1=FUNERAL_HOMES.find(f=>f.id===c.funeralHomeId)?.name||c.funeralHomeName||"";
-    const vDur=c.prep?.viewingDuration||"1 HOUR";
+    const vDurRaw=c.prep?.viewingDuration||"1 HR";
+    const vDur=vDurRaw==="2 HR"?"2 HOURS":"1 HOUR";
     const vSlots=vDur==="2 HOURS"?4:2;
     let vh=hour,vhalf=isHalf;
     for(let vi=0;vi<vSlots;vi++){
