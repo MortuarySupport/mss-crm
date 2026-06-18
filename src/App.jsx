@@ -2751,6 +2751,18 @@ function MyCases({user,cases,onUpdateCase}) {
     catch(err){alert("Error: "+err.message);}
   }
 
+  async function undoCheckout(id){
+    if(!window.confirm("Undo check out? This clears checkout data and returns case to active.")) return;
+    try{await updateCase(id,{checked_out:false,checkout_data:null,status:"active"});onUpdateCase(id,{checkedOut:false,checkout:null,status:"active"});}
+    catch(err){alert("Error: "+err.message);}
+  }
+
+  async function undoApprove(id){
+    if(!window.confirm("Undo approval? This returns the case to pending lock.")) return;
+    try{await updateCase(id,{status:"pending-lock"});onUpdateCase(id,{status:"pending-lock"});}
+    catch(err){alert("Error: "+err.message);}
+  }
+
   async function adminSaveCase(c,updates){
     try{
       await updateCase(c.id,updates);
