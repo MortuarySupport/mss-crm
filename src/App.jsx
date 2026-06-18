@@ -3602,6 +3602,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   const[editingBooking,setEditingBooking]=useState(null); // booking being viewed/edited
   const[bookSlot,setBookSlot]=useState(null);
   const[bookDuration,setBookDuration]=useState("1 HOUR");
+  const[activeRoom,setActiveRoom]=useState("ViewingRoom");
   const[bookType,setBookType]=useState("Viewing Room");
   const[careType,setCareType]=useState("");
   const[selFHId,setSelFHId]=useState("");
@@ -3757,26 +3758,33 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
         <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
       </div>
 
+      {/* Room Tabs */}
+      <div className="flex gap-2 mb-4">
+        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"]].map(([key,label,color])=>(
+          <button key={key} onClick={()=>setActiveRoom(key)}
+            className={"px-5 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(activeRoom===key?(color==="green"?"bg-green-600 text-white border-green-600":"bg-blue-600 text-white border-blue-600"):"border-gray-200 text-gray-600 hover:border-gray-700")}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="overflow-x-auto">
-        <div style={{minWidth:"520px"}}>
-          <div className="grid gap-1 mb-1" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
+        <div style={{minWidth:"600px"}}>
+          <div className="grid gap-1 mb-1" style={{gridTemplateColumns:"56px repeat(7, 1fr)"}}>
             <div className="text-xs font-black uppercase text-gray-400 p-1">TIME</div>
             {weekDates.map(d=>{const dd=new Date(d);const isToday=d===today();return<div key={d} className={`text-xs font-black uppercase text-center p-1.5 rounded-lg ${isToday?"bg-gray-900 text-white":"bg-gray-100 text-gray-700"}`}>{dd.toLocaleDateString("en-AU",{weekday:"short"})}<br/><span className="text-xs">{dd.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></div>;})}
           </div>
 
-          {CALENDAR_SLOTS.map(({hour,half,label})=>(
+          {CALENDAR_SLOTS.map(({hour,half,label})=>{
+            const roomKey=activeRoom;
+            return(
             <div key={label} className="mb-0.5">
-              <div className="grid gap-1" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
-                <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-500"}`} style={{fontSize:"10px",gridRow:"span 2"}}>{label}</div>
-              </div>
-              {["ViewingRoom","FamilyRoom"].map(roomKey=>(
-              <div key={roomKey} className="grid gap-1 mb-0.5" style={{gridTemplateColumns:"48px repeat(7, 1fr)"}}>
-              <div className={`text-xs p-1 flex items-center ${roomKey==="ViewingRoom"?"text-green-400":"text-blue-400"}`} style={{fontSize:"8px"}}>{roomKey==="ViewingRoom"?"VR":"FM"}</div>
+              <div className="grid gap-1" style={{gridTemplateColumns:"56px repeat(7, 1fr)"}}>
+                <div className={`text-xs font-black p-1 flex items-center ${half?"text-gray-300":"text-gray-600"}`} style={{fontSize:"10px"}}>{label}</div>
               {weekDates.map(date=>{
-                const key=`${date}_${hour}_${half?"half":"full"}_${roomKey}`;
+                const key=`${date}_${hour}_${half?"half":"full"}_${activeRoom}`;
                 const slot=slotMap[key];
                 const slotId=`${date}_${label}`;
-                const roomLabel=roomKey;
                 const editable=canEditSlot(slot)||(isFD&&slot?.fhId===user.funeralHomeId);
 
                 if(isFD){
@@ -3802,13 +3810,13 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 );
 
                 return canEdit
-                  ?<button key={date} onClick={()=>handleSlotClick(null,slotId,roomKey)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
+                  ?<button key={date} onClick={()=>handleSlotClick(null,slotId,activeRoom)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
                   :<div key={date} className={`rounded p-1 min-h-[26px] border border-gray-100 ${half?"bg-gray-50":"bg-white"}`}/>;
               })}
               </div>
-              ))}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
