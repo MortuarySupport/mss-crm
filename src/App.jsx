@@ -482,6 +482,12 @@ function LockView({cases,onUpdateCase,onBack}){
     }catch(err){alert("Error: "+err.message);}
   }
 
+  async function undoApprove(id){
+    if(!window.confirm("Undo approval? This will return the case to pending lock.")) return;
+    try{await updateCase(id,{status:"pending-lock"});onUpdateCase(id,{status:"pending-lock"});}
+    catch(err){alert("Error: "+err.message);}
+  }
+
   // Also show locked cases so admin can unlock
   const lockedCases=cases.filter(c=>c.status==="locked")
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
@@ -2776,6 +2782,7 @@ function MyCases({user,cases,onUpdateCase}) {
               <div className="flex items-center gap-3"><StatusDot status={c.prepStatus||"not-started"}/><span className="text-xs font-bold text-gray-400">{c.caseRef}</span>{c.checkedOut&&<span className="text-xs bg-gray-100 text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 font-semibold">Departed</span>}{c.status==="approved"&&<span className="text-xs bg-blue-600 text-white rounded-full px-2 py-0.5 font-semibold">Approved</span>}{c.status==="locked"&&<span className="text-xs bg-gray-900 text-white rounded-full px-2 py-0.5 font-semibold">Locked</span>}</div>
               <div className="flex gap-2 flex-wrap justify-end">
                 {isMSS&&c.checkedOut&&(c.status==="pending-lock")&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 transition font-black uppercase">APPROVE</button>}
+                {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO APPROVE</button>}
                 {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5 hover:bg-gray-700 transition font-black uppercase">LOCK</button>}
                 {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-3 py-1.5 hover:bg-red-600 transition font-black uppercase">UNLOCK</button>}
                 {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
@@ -3101,6 +3108,7 @@ function RecordsView({user,cases,onUpdateCase}) {
               <div className="flex items-center gap-3"><StatusDot status={c.prepStatus||"not-started"}/><span className="text-xs font-bold text-gray-400">{c.caseRef}</span>{c.checkedOut&&<span className="text-xs bg-gray-100 text-gray-600 border border-gray-200 rounded-full px-2 py-0.5 font-semibold">Departed</span>}{c.status==="locked"&&<span className="text-xs bg-gray-900 text-white rounded-full px-2 py-0.5 font-semibold">Locked</span>}</div>
               <div className="flex gap-2 flex-wrap justify-end">
                 {isMSS&&c.checkedOut&&(c.status==="pending-lock")&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 transition font-black uppercase">APPROVE</button>}
+                {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO APPROVE</button>}
                 {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5 hover:bg-gray-700 transition font-black uppercase">LOCK</button>}
                 {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-3 py-1.5 hover:bg-red-600 transition font-black uppercase">UNLOCK</button>}
                 {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
