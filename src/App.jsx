@@ -2012,7 +2012,7 @@ function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
   pw.document.write(`<!DOCTYPE html><html><head><title>Job Card - ${c.firstName} ${c.lastName}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;}
+body{font-family:Arial,sans-serif;font-size:15px;color:#111;background:#fff;}
 .page{width:210mm;min-height:297mm;padding:12mm 14mm;page-break-after:always;}
 .page2{width:210mm;min-height:297mm;padding:12mm 14mm;}
 .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:10px;margin-bottom:12px;}
@@ -2021,29 +2021,30 @@ body{font-family:Arial,sans-serif;font-size:11px;color:#111;background:#fff;}
 .logo-main{font-family:Georgia,serif;font-size:16px;letter-spacing:3px;text-transform:uppercase;color:#111;}
 .logo-sub{font-family:Georgia,serif;font-size:10px;font-weight:300;color:#555;letter-spacing:6px;text-transform:uppercase;margin-top:4px;}
 .case-ref{font-size:13px;font-weight:900;color:#111;letter-spacing:1px;}
-.infectious-banner{background:#dc2626;color:#fff;padding:6px 12px;border-radius:6px;font-weight:900;font-size:12px;text-align:center;margin-bottom:10px;letter-spacing:2px;}
-.name-block{background:#111;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:10px;}
-.name-block h1{font-size:20px;font-weight:900;letter-spacing:1px;}
-.name-block p{font-size:11px;opacity:0.8;margin-top:3px;}
+.infectious-banner{background:#dc2626;color:#fff;padding:12px 16px;border-radius:8px;font-weight:900;font-size:20px;text-align:center;margin-bottom:12px;letter-spacing:3px;border:4px solid #7f1d1d;}
+.name-block{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;margin-bottom:10px;border-bottom:3px solid #111;}
+.name-block h1{font-size:26px;font-weight:900;letter-spacing:1px;color:#111;}
+.name-block p{font-size:14px;color:#555;margin-top:4px;}
+.name-block .fd-name{font-size:26px;font-weight:900;color:#111;text-align:right;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;}
 .box{border:1px solid #ddd;border-radius:6px;padding:8px 10px;}
-.box-title{font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:3px;}
-.box-value{font-size:12px;font-weight:700;color:#111;}
+,.box-title{font-size:14px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:3px;}
+.box-value{font-size:18px;font-weight:700;color:#111;}
 .section{margin-bottom:10px;}
-.section-title{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#555;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:6px;}
+.section-title{font-size:14px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#555;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:6px;}
 .checklist-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
 .cl-item{border:2px solid #ddd;border-radius:6px;padding:6px;text-align:center;}
 .cl-item.done{border-color:#16a34a;background:#f0fdf4;}
 .cl-item.warn{border-color:#dc2626;background:#fef2f2;}
-.cl-title{font-size:8px;font-weight:900;text-transform:uppercase;color:#666;}
-.cl-val{font-size:11px;font-weight:900;margin-top:2px;}
+.cl-title{font-size:13px;font-weight:900;text-transform:uppercase;color:#666;}
+.cl-val{font-size:16px;font-weight:900;margin-top:2px;}
 .items-grid{display:flex;flex-wrap:wrap;gap:4px;}
-.item-chip{border:1px solid #999;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;}
+.item-chip{border:1px solid #999;border-radius:4px;padding:4px 10px;font-size:14px;font-weight:700;}
 .coffin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
 table{width:100%;border-collapse:collapse;}
-th{background:#111;color:#fff;padding:5px 8px;text-align:left;font-size:10px;letter-spacing:1px;}
-td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
+th{background:#111;color:#fff;padding:8px 10px;text-align:left;font-size:14px;letter-spacing:1px;}
+td{padding:8px 10px;border-bottom:1px solid #eee;font-size:15px;}
 .sig-area{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:10px;}
 .sig-box{border-top:2px solid #111;padding-top:6px;}
 .sig-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#666;}
@@ -2068,8 +2069,11 @@ td{padding:5px 8px;border-bottom:1px solid #eee;font-size:11px;}
 ${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE — TAKE APPROPRIATE PRECAUTIONS ⚠️</div>':""}
 
 <div class="name-block">
-  <h1>${(c.lastName||"").toUpperCase()}, ${c.firstName}</h1>
-  <p>DOB: ${fmt(c.dob)} &nbsp;|&nbsp; DOD: ${fmt(c.dod)} &nbsp;|&nbsp; Age: ${c.ageAtDeath??"&mdash;"} &nbsp;|&nbsp; ${c.sex||"&mdash;"} &nbsp;|&nbsp; Funeral Director: ${c.funeralHomeName||"&mdash;"}</p>
+  <div>
+    <h1>${(c.lastName||"").toUpperCase()}, ${c.firstName}</h1>
+    <p>DOB: ${fmt(c.dob)} &nbsp;|&nbsp; DOD: ${fmt(c.dod)} &nbsp;|&nbsp; Age: ${c.ageAtDeath??"&mdash;"} &nbsp;|&nbsp; ${c.sex||"&mdash;"}</p>
+  </div>
+  <div class="fd-name">${c.funeralHomeName||"&mdash;"}</div>
 </div>
 
 <div class="grid3">
