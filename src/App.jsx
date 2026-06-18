@@ -3791,7 +3791,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                 const editable=canEditSlot(slot)||(isFD&&slot?.fhId===user.funeralHomeId);
 
                 // Skip continuation slots - handled by rowSpan
-                if(slot?.isContinuation) return null;
+                if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
 
                 if(slot){
                   const rowSpan=slot.spanOf||1;
