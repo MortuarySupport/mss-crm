@@ -2884,7 +2884,7 @@ const SERVICE_LABELS_XERO={
 function exportXeroCSV(cases,qtys){
   const today=new Date().toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"numeric"});
   const due=new Date(Date.now()+30*24*60*60*1000).toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"numeric"});
-  const rows=[["*ContactName","*InvoiceNumber","*InvoiceDate","*DueDate","*Description","*Quantity","*UnitAmount","AccountCode","TaxType"]];
+  const rows=[["*ContactName","EmailAddress","POAddressLine1","POAddressLine2","POAddressLine3","POAddressLine4","POCity","PORegion","POPostalCode","POCountry","*InvoiceNumber","Reference","*InvoiceDate","*DueDate","InventoryItemCode","*Description","*Quantity","*UnitAmount","Discount","*AccountCode","*TaxType","TrackingName1","TrackingOption1","TrackingName2","TrackingOption2","Currency","BrandingTheme"]];
   cases.forEach(cas=>{
     const billable=cas.billable||cas.prep?.billable||{};
     const items=Object.entries(billable).filter(([k,v])=>v&&SERVICE_LABELS_XERO[k]);
@@ -2899,15 +2899,23 @@ function exportXeroCSV(cases,qtys){
       const price=PRICE_LIST[code]||0;
       const desc=`${SERVICE_LABELS_XERO[code]} - ${(cas.lastName||"").toUpperCase()}, ${cas.firstName} (${cas.caseRef})`;
       rows.push([
-        cas.funeralHomeName||"",
-        cas.caseRef||"",
-        i===0?today:"",
-        i===0?due:"",
-        desc,
-        qty,
-        price,
-        "4000",
-        "GST on Income"
+        cas.funeralHomeName||"",  // *ContactName
+        "",  // EmailAddress
+        "","","","","","","","",  // PO Address fields
+        i===0?cas.caseRef||"":"",  // *InvoiceNumber
+        cas.caseRef||"",  // Reference
+        i===0?today:"",  // *InvoiceDate
+        i===0?due:"",  // *DueDate
+        code,  // InventoryItemCode
+        desc,  // *Description
+        qty,  // *Quantity
+        (price/1.1).toFixed(2),  // *UnitAmount (ex GST)
+        "",  // Discount
+        "4000",  // *AccountCode
+        "GST on Income",  // *TaxType
+        "","","","",  // Tracking
+        "AUD",  // Currency
+        ""  // BrandingTheme
       ]);
     });
   });
