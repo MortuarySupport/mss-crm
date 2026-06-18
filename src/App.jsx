@@ -3824,7 +3824,12 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                   ?<button key={date} onClick={()=>handleSlotClick(null,slotId,activeRoom)} className={`rounded p-1 min-h-[26px] border border-gray-100 hover:border-gray-400 hover:bg-gray-100 transition text-gray-200 font-black text-xs text-center ${half?"bg-gray-50":"bg-white"}`}>+</button>
                   :<div key={date} className={`rounded p-1 min-h-[26px] border border-gray-100 ${half?"bg-gray-50":"bg-white"}`}/>;
               })}
+            </tr>
+            );}))()} 
+          </tbody>
+        </table>
       </div>
+
 
       {/* Book / Edit Modal */}
       {showBookModal&&(canEdit||isFD)&&(
