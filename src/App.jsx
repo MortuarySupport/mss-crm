@@ -803,10 +803,10 @@ function CaseViewCard({c,isAdmin,onSave}) {
               :<>{(c.lastName||"").toUpperCase()}, {c.firstName}</>}
             {" — "}<span className="text-lg font-bold text-gray-500">{sexShort(c.sex)}</span>
           </div>
-          <div className="text-sm text-gray-600">
-            {isAdmin?<><InlineEdit isAdmin value={c.dob} onSave={v=>save("dob",v)} type="date" display={fmt(c.dob)}/> – <InlineEdit isAdmin value={c.dod} onSave={v=>save("dod",v)} type="date" display={fmt(c.dod)}/></>
-              :<>{fmt(c.dob)} – {fmt(c.dod)}</>}
-            {" "}&nbsp;|&nbsp; <span className="font-bold text-gray-900">Age: {age!==null?age:"—"}</span>
+          <div className="text-sm text-gray-600 flex flex-wrap gap-x-2 items-center">
+            {isAdmin?<><InlineEdit isAdmin value={c.dob} onSave={v=>save("dob",v)} type="date" display={fmt(c.dob)}/><span>–</span><InlineEdit isAdmin value={c.dod} onSave={v=>save("dod",v)} type="date" display={fmt(c.dod)}/></>
+              :<><span>{fmt(c.dob)}</span><span>–</span><span>{fmt(c.dod)}</span></>}
+            <span className="font-bold text-gray-900">Age: {age!==null?age:"—"}</span>
           </div>
         </div>
         <div className="w-full sm:flex-1 min-w-0 grid grid-cols-1 gap-1 text-sm border-t sm:border-t-0 pt-2 sm:pt-0">
@@ -1959,7 +1959,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
   return(
     <div>
     <div>
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
+      <div className="grid grid-cols-5 gap-1 mb-3">
         <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>{si.secondNote==="received"?"2ND NOTE ✓":"2ND NOTE"}</button>
         <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>{si.clothes==="received"?"CLOTHES ✓":"CLOTHES"}</button>
         <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>{si.coffin==="received"?"COFFIN ✓":"COFFIN"}</button>
