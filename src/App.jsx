@@ -4079,7 +4079,7 @@ export default function App() {
   const isTransfer=user.role==="transfer";
 
   const wrap=(children)=>(
-    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch"}}>
+    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch",overflowX:"hidden",maxWidth:"100vw"}}>
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
       {children}
       {(isMSS||isAdmin)&&<BottomNav onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}} onNav={t=>{setTab(t);setAction(null);window.scrollTo({top:0,behavior:"smooth"});}} activeTab={tab} action={action}/>}
