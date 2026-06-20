@@ -796,8 +796,8 @@ function CaseViewCard({c,isAdmin,onSave}) {
   return (
     <div className={"rounded-2xl p-5 "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
       {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
-      <div className="flex gap-6 items-start">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-start">
+        <div className="w-full sm:flex-1 min-w-0">
           <div className="text-2xl font-black text-gray-900 mb-1">
             {isAdmin?<><InlineEdit isAdmin value={c.lastName?.toUpperCase()} onSave={v=>save("last_name",v)}/>, <InlineEdit isAdmin value={c.firstName} onSave={v=>save("first_name",v)}/></>
               :<>{(c.lastName||"").toUpperCase()}, {c.firstName}</>}
@@ -809,7 +809,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
             {" "}&nbsp;|&nbsp; <span className="font-bold text-gray-900">Age: {age!==null?age:"—"}</span>
           </div>
         </div>
-        <div className="flex-1 min-w-0 grid grid-cols-1 gap-1 text-sm">
+        <div className="w-full sm:flex-1 min-w-0 grid grid-cols-1 gap-1 text-sm border-t sm:border-t-0 pt-2 sm:pt-0">
           <div><span className="text-gray-500">Paperwork: </span><span className="font-bold text-gray-900">{c.paperwork||"None"}</span>&nbsp;|&nbsp;<span className="text-gray-500">Disposition: </span>{isAdmin?<InlineEdit isAdmin value={prep.disposition} onSave={v=>savePrep("disposition",v)} options={DISPOSITION_OPTIONS}/>:<span className="font-bold text-gray-900">{prep.disposition||"—"}</span>}</div>
           <div><span className="text-gray-500">Preparation: </span><span className="font-bold text-gray-900">{prepShorts}</span>&nbsp;|&nbsp;<span className="text-gray-500">Collection: </span>{isAdmin?<InlineEdit isAdmin value={prep.collectionDate} onSave={v=>savePrep("collectionDate",v)} type="date" display={fmt(prep.collectionDate)}/>:<span className="font-bold text-gray-900">{fmt(prep.collectionDate)||"—"}</span>}</div>
           <div><span className="text-gray-500">Funeral Director: </span>{isAdmin?<InlineEdit isAdmin value={c.funeralHomeName} onSave={v=>save("funeral_home_name",v)}/>:<span className="font-bold text-gray-900">{c.funeralHomeName||"—"}</span>}</div>
