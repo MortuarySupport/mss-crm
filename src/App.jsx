@@ -1959,7 +1959,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
   return(
     <div>
     <div>
-      <div className="grid grid-cols-5 gap-2 mb-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
         <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>{si.secondNote==="received"?"2ND NOTE ✓":"2ND NOTE"}</button>
         <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>{si.clothes==="received"?"CLOTHES ✓":"CLOTHES"}</button>
         <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)} className={"py-3 rounded-xl border-2 text-xs font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>{si.coffin==="received"?"COFFIN ✓":"COFFIN"}</button>
@@ -2803,7 +2803,7 @@ function MyCases({user,cases,onUpdateCase}) {
               </div>
             </div>
             <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)}/>
-            {isFD&&<div className="grid grid-cols-5 gap-2 mt-3">{[["2nd Note",c.statusItems?.secondNote],["Clothes",c.statusItems?.clothes],["Coffin",c.statusItems?.coffin],["MCCD",c.statusItems?.mccd],["Photo",c.statusItems?.photo]].map(([l,v])=><div key={l} className={`py-2 px-1 rounded-lg text-xs font-bold text-center ${v?"bg-green-100 text-green-700 border border-green-300":"bg-red-50 text-red-500 border border-red-200"}`}>{l}</div>)}</div>}
+            {isFD&&<div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">{[["2nd Note",c.statusItems?.secondNote],["Clothes",c.statusItems?.clothes],["Coffin",c.statusItems?.coffin],["MCCD",c.statusItems?.mccd],["Photo",c.statusItems?.photo]].map(([l,v])=><div key={l} className={`py-2 px-1 rounded-lg text-xs font-bold text-center ${v?"bg-green-100 text-green-700 border border-green-300":"bg-red-50 text-red-500 border border-red-200"}`}>{l}</div>)}</div>}
             <DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
           </div>
         ))}
