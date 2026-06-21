@@ -3290,7 +3290,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
   const recentCheckIns=cases.filter(c=>c.status==="active"&&!c.checkedOut);
   
   // Collections due today
-  const todayStr=now.toISOString().slice(0,10);
+  const todayStr=now.toLocaleDateString("en-CA"); // YYYY-MM-DD in local timezone
   const collections=cases.filter(c=>c.status==="active"&&c.prep?.collectionDate===todayStr&&!c.checkedOut);
   
   // Checked out in last 24hrs
