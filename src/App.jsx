@@ -3290,7 +3290,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
   const recentCheckIns=cases.filter(c=>c.status==="active"&&!c.checkedOut);
   
   // Collections due today
-  const todayStr=now.todaySydney(); // YYYY-MM-DD in local timezone
+  const todayStr=todaySydney();
   const collections=cases.filter(c=>c.status==="active"&&c.prep?.collectionDate===todayStr&&!c.checkedOut);
   
   // Checked out in last 24hrs
