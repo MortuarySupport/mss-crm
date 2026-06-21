@@ -2287,7 +2287,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
             {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
           </Field>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={()=>updPrepMulti({sameDates:!prep.sameDates,funeralDate:!prep.sameDates?prep.collectionDate:prep.funeralDate,funeralTime:!prep.sameDates?prep.collectionTime:prep.funeralTime})} className={`px-4 py-2 rounded-xl border-2 text-xs font-black uppercase transition ${prep.sameDates?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700"}`}>
+            <button type="button" onClick={()=>updPrepMulti({sameDates:!prep.sameDates,funeralDate:!prep.sameDates?prep.collectionDate:prep.funeralDate,funeralTime:!prep.sameDates?prep.collectionTime:prep.funeralTime})} className={`inline-flex px-4 py-2 rounded-xl border-2 text-xs font-black uppercase transition ${prep.sameDates?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700"}`}>
               {prep.sameDates?"✓ Same Day":"Same Day as Collection"}
             </button>
             {prep.sameDates&&<span className="text-xs text-gray-500">Funeral date matches collection</span>}
