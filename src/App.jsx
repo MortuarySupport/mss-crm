@@ -3280,10 +3280,10 @@ function AdminDashboard({cases,calendarBookings}){
   const now=new Date();
   const past24=new Date(now.getTime()-24*60*60*1000);
 
-  // Cases checked in last 24hrs
-  const recentCheckIns=cases.filter(c=>c.checkedInAt&&new Date(c.checkedInAt)>=past24);
+  // All active check ins
+  const recentCheckIns=cases.filter(c=>c.status==="active"&&!c.checkedOut);
   
-  // Collections due today or overdue (collection date = today)
+  // Collections due today
   const todayStr=now.toISOString().slice(0,10);
   const collections=cases.filter(c=>c.status==="active"&&c.prep?.collectionDate===todayStr&&!c.checkedOut);
   
@@ -3342,7 +3342,7 @@ function AdminDashboard({cases,calendarBookings}){
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <StatCard value={recentCheckIns.length} label="Check Ins" color="green"/>
+          <StatCard value={recentCheckIns.length} label="Active Cases" color="green"/>
           <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue"/>
           <StatCard value={collections.length} label="Collections Today" color="amber"
             sub={collections.length>0?collections.map(c=>`${(c.lastName||"").toUpperCase()}, ${c.firstName}`).join(" · "):null}/>
