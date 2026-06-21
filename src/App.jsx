@@ -2186,35 +2186,56 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const byFH={};
   cases.filter(c=>c.status==="active").forEach(c=>{if(!byFH[c.funeralHomeId])byFH[c.funeralHomeId]=[];byFH[c.funeralHomeId].push(c);});
 
-  function describeChanges(updates){
+  function describeChanges(updates,existingCase){
     const labels={
       prep:"Preparation details",last_name:"Last name",first_name:"First name",
       dob:"Date of birth",dod:"Date of death",sex:"Sex",paperwork:"Paperwork",
       funeral_home_name:"Funeral director",billable:"Services & items",
-      statusItems:"Checklist",viewing:"Viewing",viewingSlot:"Viewing slot",
-      viewingDate:"Viewing date",viewingLocation:"Viewing location",viewingHost:"Viewing host",
-      viewingDuration:"Viewing duration",collectionDate:"Collection date",
-      collectionTime:"Collection time",funeralDate:"Funeral date",funeralTime:"Funeral time",
+      statusItems:"Checklist",
+    };
+    const prepLabels={
+      viewing:"Viewing",viewingSlot:"Viewing slot",viewingDate:"Viewing date",
+      viewingLocation:"Viewing location",viewingHost:"Viewing host",viewingDuration:"Viewing duration",
+      collectionDate:"Collection date",collectionTime:"Collection time",
+      funeralDate:"Funeral date",funeralTime:"Funeral time",sameDates:"Same day",
       disposition:"Disposition",weight:"Weight",coffinType:"Coffin type",
       coffinSize:"Coffin size",coffinColour:"Coffin colour",notes:"Notes",
+      prepOptions:"Preparation type",pacemakerRemoved:"Pacemaker",
+      mortuaryValuables:"Valuables",viewingSlot:"Viewing slot",
     };
+    function fmt(d){if(!d)return"—";if(d.match&&d.match(/^\d{4}-\d{2}-\d{2}$/)){const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}return String(d);}
     const changes=[];
     Object.keys(updates).forEach(k=>{
       if(k==="prep"){
+        const oldPrep=existingCase?.prep||{};
         Object.keys(updates.prep||{}).forEach(pk=>{
-          changes.push(labels[pk]||pk);
+          const oldVal=oldPrep[pk];
+          const newVal=updates.prep[pk];
+          if(JSON.stringify(oldVal)===JSON.stringify(newVal)) return;
+          const label=prepLabels[pk]||pk;
+          if(Array.isArray(newVal)){
+            changes.push(`${label} updated to: ${newVal.join(", ")||"—"}`);
+          } else if(newVal===undefined||newVal===null||newVal===""){
+            changes.push(`${label} cleared`);
+          } else {
+            changes.push(`${label} changed to: ${fmt(newVal)}`);
+          }
         });
-      } else {
-        changes.push(labels[k]||k);
+      } else if(!["pendingChanges","acceptedAt","prepStatus"].includes(k)){
+        const oldVal=existingCase?.[k];
+        const newVal=updates[k];
+        if(JSON.stringify(oldVal)===JSON.stringify(newVal)) return;
+        const label=labels[k]||k;
+        changes.push(`${label} changed to: ${fmt(newVal)}`);
       }
     });
-    return [...new Set(changes)];
+    return changes.length>0?changes:["Case updated"];
   }
 
   async function upd(id,updates){
     try{
       const existingCase=cases.find(x=>x.id===id);
-      const changeDescs=describeChanges(updates);
+      const changeDescs=describeChanges(updates,existingCase);
       const newChange={
         at:new Date().toISOString(),
         by:user?.name||"Unknown",
