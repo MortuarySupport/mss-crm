@@ -2280,17 +2280,25 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}><ViewingSection prep={prep} updPrepMulti={updPrepMulti} bookedSlots={bookedSlots}/></div>
       <div className={s.card}>
         <p className={s.section}>Dates</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
           <Field label="Collection Date">
-            <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrep("collectionDate",e.target.value)}/>
-            {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-3 sm:grid-cols-4 gap-1 mt-1">{["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
+            <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrepMulti({collectionDate:e.target.value,funeralDate:prep.sameDates?e.target.value:prep.funeralDate})}/>
+            {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
           </Field>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={()=>updPrepMulti({sameDates:!prep.sameDates,funeralDate:!prep.sameDates?prep.collectionDate:prep.funeralDate,funeralTime:!prep.sameDates?prep.collectionTime:prep.funeralTime})} className={`px-4 py-2 rounded-xl border-2 text-xs font-black uppercase transition ${prep.sameDates?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700"}`}>
+              {prep.sameDates?"✓ Same Day":"Same Day as Collection"}
+            </button>
+            {prep.sameDates&&<span className="text-xs text-gray-500">Funeral date matches collection</span>}
+          </div>
+          {!prep.sameDates&&(
           <Field label="Funeral Date">
             <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)}/>
-            {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-3 sm:grid-cols-4 gap-1 mt-1">{["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
+            {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
           </Field>
+          )}
         </div>
       </div>
       <div className={s.card}><p className={s.section}>Disposition</p><div className="flex gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
