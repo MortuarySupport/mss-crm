@@ -1028,7 +1028,7 @@ function getAttempts(){try{return parseInt(localStorage.getItem(ATTEMPTS_KEY)||"
 function recordFailedAttempt(){const a=getAttempts()+1;localStorage.setItem(ATTEMPTS_KEY,a);if(a>=MAX_ATTEMPTS){const until=new Date(Date.now()+LOCKOUT_MINS*60*1000);localStorage.setItem(LOCKOUT_KEY,JSON.stringify({until:until.toISOString()}));localStorage.setItem(ATTEMPTS_KEY,"0");}return a;}
 function clearAttempts(){localStorage.removeItem(ATTEMPTS_KEY);localStorage.removeItem(LOCKOUT_KEY);}
 
-function LoginScreen({onLogin,users,maintenanceMode}) {
+function LoginScreen({onLogin,users}) {
   const [pin,setPin]=useState("");
   const [lockout,setLockout]=useState(getLockout);
   const [attempts,setAttempts]=useState(getAttempts);
@@ -1044,8 +1044,6 @@ function LoginScreen({onLogin,users,maintenanceMode}) {
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
         clearAttempts();setAttempts(0);
-        if(maintenanceMode===null&&u.role!=="admin"){setError("System being upgraded, please try again shortly or contact the administrator.");return;}
-        if(maintenanceMode===true&&u.role!=="admin"){setError("System being upgraded, please try again shortly or contact the administrator.");return;}
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
       }
@@ -1081,7 +1079,7 @@ function LoginScreen({onLogin,users,maintenanceMode}) {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomeScreen({user,onAction,maintenanceOn,onMaintenance}) {
+function HomeScreen({user,onAction}) {
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
   const isTransfer=user?.role==="transfer";
@@ -1119,7 +1117,6 @@ function HomeScreen({user,onAction,maintenanceOn,onMaintenance}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
-      {isAdmin&&<button onClick={onMaintenance} className={"w-full mt-3 py-3 rounded-2xl border-2 font-black text-sm uppercase tracking-widest transition "+(maintenanceOn?"bg-red-600 text-white border-red-600 hover:bg-red-700":"border-orange-400 text-orange-600 hover:border-orange-600")}>{maintenanceOn?"🔧 MAINTENANCE MODE ON — TAP TO DISABLE":"🔧 ENABLE MAINTENANCE MODE"}</button>}
     </div>
   );
 }
@@ -4477,7 +4474,7 @@ export default function App() {
 
   return wrap(
     <main>
-      {tab==="home"&&<HomeScreen user={user} onAction={a=>setAction(a)} maintenanceOn={maintenanceMode} onMaintenance={toggleMaintenance}/>}
+      {tab==="home"&&<HomeScreen user={user} onAction={a=>setAction(a)}/>}
       {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={cases}/>}
       {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking}/>}
