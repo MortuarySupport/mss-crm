@@ -4254,7 +4254,7 @@ export default function App() {
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={cases}/>}
       {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
-      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>}
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={cases} calendarBookings={calendarBookings}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
