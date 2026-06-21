@@ -186,6 +186,9 @@ function genCaseRef(cases) { return `MSL_${(cases.length+1).toString().padStart(
 function getFHContacts(fhId) { return FUNERAL_HOMES.find(f=>f.id===fhId)?.contacts||[]; }
 function sexShort(s) { return s==="Male"?"M":s==="Female"?"F":"O"; }
 function sortAlpha(arr,key="name") { return [...arr].sort((a,b)=>a[key].localeCompare(b[key])); }
+const TZ="Australia/Sydney";
+function todaySydney(){const d=new Date();return d.toLocaleDateString("en-CA",{timeZone:TZ});}
+function nowSydney(){return new Date(new Date().toLocaleString("en-AU",{timeZone:TZ}));}
 function today() { return todaySydney(); }
 function minDOB() { const d=new Date(); d.setFullYear(d.getFullYear()-110); return d.toISOString().slice(0,10); }
 function next4WeekDates() {
