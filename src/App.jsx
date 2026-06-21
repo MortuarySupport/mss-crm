@@ -611,7 +611,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
           <button onClick={onSignOut} className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:border-gray-800 text-xs font-semibold transition">Sign Out</button>
         </div>
       </div>
-      {tabs.length>1&&(
+      {tabs.length>=1&&(
         <div style={{overflowX:"auto",display:"flex",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
           {tabs.map(([id,label])=>(
             <button key={id} onClick={()=>onNav(id)}
@@ -1100,7 +1100,7 @@ function HomeScreen({user,onAction}) {
         <p className="text-sm" style={{color:"#9ca3af"}}>Welcome, <span className="font-bold" style={{color:"#e5e7eb"}}>{user?.name}</span></p>
         <p className="text-xs mt-1" style={{color:"#6b7280"}}>{user?.roleLabel} · Baulkham Hills</p>
       </div>
-      {isAdmin&&<button onClick={()=>onAction("dashboard")} className="w-full mb-4 py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-sm uppercase tracking-widest hover:border-gray-300 transition">📊 DASHBOARD</button>}
+      {isAdmin&&<button onClick={()=>onAction("dashboard")} className={s.btnLg+" w-full mb-3"}>📊 DASHBOARD</button>}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
       </div>
@@ -1111,9 +1111,9 @@ function HomeScreen({user,onAction}) {
         {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
       </div>}
       {isAdmin&&<div className="grid grid-cols-3 gap-3 mt-3">
-        <button onClick={()=>onAction("pins")} className="py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-xs uppercase tracking-widest hover:border-gray-300 transition">PINS</button>
-        <button onClick={()=>onAction("activitylog")} className="py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-xs uppercase tracking-widest hover:border-gray-300 transition">ACTIVITY</button>
-        <button onClick={()=>onAction("invoicing")} className="py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-xs uppercase tracking-widest hover:border-gray-300 transition">INVOICING</button>
+        <button onClick={()=>onAction("pins")} className={s.btnLg}>PINS</button>
+        <button onClick={()=>onAction("activitylog")} className={s.btnLg}>ACTIVITY</button>
+        <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
       </div>}
     </div>
   );
