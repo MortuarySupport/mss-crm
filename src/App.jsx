@@ -1079,7 +1079,7 @@ function LoginScreen({onLogin,users}) {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomeScreen({user,onAction}) {
+function HomeScreen({user,onAction,maintenanceOn,onMaintenance}) {
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
   const isTransfer=user?.role==="transfer";
@@ -1117,6 +1117,7 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
+      {isAdmin&&<button onClick={onMaintenance} className={"w-full mt-3 py-3 rounded-2xl border-2 font-black text-sm uppercase tracking-widest transition "+(maintenanceOn?"bg-red-600 text-white border-red-600 hover:bg-red-700":"border-orange-400 text-orange-600 hover:border-orange-600")}>{maintenanceOn?"🔧 MAINTENANCE MODE ON — TAP TO DISABLE":"🔧 ENABLE MAINTENANCE MODE"}</button>}
     </div>
   );
 }
@@ -4329,6 +4330,29 @@ const deleteCalendarBooking=id=>sb(`calendar_bookings?id=eq.${id}`,{method:"DELE
 
 export default function App() {
   const [users,setUsers]=useState([]);
+  const [maintenanceMode,setMaintenanceMode]=useState(false);
+
+  useEffect(()=>{
+    async function checkMaintenance(){
+      try{
+        const res=await sb("app_settings?key=eq.maintenance_mode&select=value");
+        const data=await res.json();
+        if(data?.[0]?.value==="true") setMaintenanceMode(true);
+        else setMaintenanceMode(false);
+      }catch(e){}
+    }
+    checkMaintenance();
+    const interval=setInterval(checkMaintenance,30000);
+    return()=>clearInterval(interval);
+  },[]);
+
+  async function toggleMaintenance(){
+    const newVal=(!maintenanceMode).toString();
+    try{
+      await sb("app_settings?key=eq.maintenance_mode",{method:"PATCH",body:JSON.stringify({value:newVal,updated_at:new Date().toISOString()}),prefer:"return=representation"});
+      setMaintenanceMode(!maintenanceMode);
+    }catch(e){alert("Error: "+e.message);}
+  }
   const [cases,setCases]=useState([]);
   const [calendarBookings,setCalendarBookings]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -4394,7 +4418,25 @@ export default function App() {
     </div>
   );
 
-  if(!user) return <LoginScreen onLogin={handleLogin} users={users}/>;
+  if(!user){
+    if(maintenanceMode) return(
+      <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px",textAlign:"center"}}>
+        <div style={{fontSize:"48px",marginBottom:"16px"}}>🔧</div>
+        <h1 style={{color:"#fff",fontSize:"24px",fontWeight:"900",marginBottom:"8px",letterSpacing:"2px",textTransform:"uppercase"}}>System Upgrade in Progress</h1>
+        <p style={{color:"#9ca3af",fontSize:"14px",maxWidth:"320px",lineHeight:"1.6"}}>We are currently making improvements to the system. Please check back shortly.</p>
+        <p style={{color:"#6b7280",fontSize:"11px",marginTop:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Mortuary Support | Lumēn</p>
+      </div>
+    );
+    return <LoginScreen onLogin={handleLogin} users={users}/>;
+  }
+  if(maintenanceMode&&user?.role!=="admin") return(
+    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px",textAlign:"center"}}>
+      <div style={{fontSize:"48px",marginBottom:"16px"}}>🔧</div>
+      <h1 style={{color:"#fff",fontSize:"24px",fontWeight:"900",marginBottom:"8px",letterSpacing:"2px",textTransform:"uppercase"}}>System Upgrade in Progress</h1>
+      <p style={{color:"#9ca3af",fontSize:"14px",maxWidth:"320px",lineHeight:"1.6"}}>We are currently making improvements to the system. Please check back shortly.</p>
+      <button onClick={handleLogout} style={{marginTop:"24px",padding:"10px 24px",background:"#333",color:"#fff",border:"none",borderRadius:"10px",cursor:"pointer",fontSize:"12px",fontWeight:"700",textTransform:"uppercase",letterSpacing:"1px"}}>Sign Out</button>
+    </div>
+  );
 
   const isAdmin=user.role==="admin";
   const isMSS=user.role==="mss"||isAdmin;
