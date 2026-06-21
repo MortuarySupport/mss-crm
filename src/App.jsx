@@ -4359,7 +4359,7 @@ export default function App() {
       clearTimeout(timer);
       timer=setTimeout(()=>{
         handleLogout();
-        setShowTimeoutModal(true);
+        handleLogout();
       }, 5 * 60 * 1000);
     }
     const events=["mousedown","mousemove","keydown","scroll","touchstart","click"];
