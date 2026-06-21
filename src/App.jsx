@@ -4328,6 +4328,7 @@ export default function App() {
   const [loading,setLoading]=useState(true);
   const [user,setUser]=useState(null);
   const [tab,setTab]=useState("home");
+  const [showTimeoutModal,setShowTimeoutModal]=useState(false);
   const [action,setAction]=useState(null);
 
   useEffect(()=>{
@@ -4358,7 +4359,7 @@ export default function App() {
       clearTimeout(timer);
       timer=setTimeout(()=>{
         handleLogout();
-        alert("You have been logged out. Please click OK to log back in.");
+        setShowTimeoutModal(true);
       }, 5 * 60 * 1000);
     }
     const events=["mousedown","mousemove","keydown","scroll","touchstart","click"];
@@ -4395,6 +4396,16 @@ export default function App() {
 
   const wrap=(children)=>(
     <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch",overflowX:"hidden",maxWidth:"100vw"}}>
+      {showTimeoutModal&&(
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+          <div style={{background:"#fff",borderRadius:"20px",padding:"32px",maxWidth:"340px",width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+            <div style={{fontSize:"40px",marginBottom:"12px"}}>⏱</div>
+            <h2 style={{fontSize:"20px",fontWeight:"900",color:"#111",marginBottom:"8px"}}>Timeout Has Occurred</h2>
+            <p style={{fontSize:"14px",color:"#6b7280",marginBottom:"24px"}}>You have been logged out. Please log back in to continue.</p>
+            <button onClick={()=>{setShowTimeoutModal(false);handleLogout();}} style={{width:"100%",padding:"14px",background:"#111",color:"#fff",border:"none",borderRadius:"12px",fontSize:"14px",fontWeight:"900",cursor:"pointer",textTransform:"uppercase",letterSpacing:"1px"}}>Log Back In</button>
+          </div>
+        </div>
+      )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
       {children}
       
