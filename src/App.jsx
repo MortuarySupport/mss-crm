@@ -1092,11 +1092,7 @@ function HomeScreen({user,onAction}) {
   const transfers=[{label:"MY TRANSFERS",action:"transfers",show:isTransfer}].filter(b=>b.show);
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
-      <div className="text-center mb-6">
-        {user?.funeralHomeName&&user?.funeralHomeName!==user?.name&&<p className="text-lg font-black text-gray-900">{user.funeralHomeName}</p>}
-        <p className="text-base font-black text-gray-900">{user?.name}</p>
-        <p className="text-xs text-gray-400 mt-1">{user?.roleLabel}</p>
-      </div>
+
       {isAdmin&&<button onClick={()=>onAction("dashboard")} className={s.btnLg+" w-full mb-3"}>📊 DASHBOARD</button>}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
