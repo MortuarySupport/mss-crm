@@ -622,7 +622,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
         <div style={{overflowX:"auto",display:"flex",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
           {tabs.map(([id,label])=>(
             <button key={id} onClick={()=>onNav(id)}
-              style={{flexShrink:0,padding:"4px 12px",fontSize:"11px",fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",color:activeTab===id?"#111":"#9ca3af",whiteSpace:"nowrap",background:"none",border:"none",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",cursor:"pointer"}}>
+              style={{flexShrink:0,padding:"6px 16px",fontSize:"12px",fontWeight:"900",textTransform:"uppercase",letterSpacing:"0.1em",borderRadius:"8px",background:activeTab===id?"#111":"transparent",color:activeTab===id?"#fff":"#9ca3af",whiteSpace:"nowrap",border:"none",cursor:"pointer",margin:"4px 2px"}}>
               {label}
             </button>
           ))}
