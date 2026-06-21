@@ -1105,10 +1105,11 @@ function HomeScreen({user,onAction}) {
       {transfers.length>0&&<div className="grid grid-cols-1 gap-3 mt-3">
         {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
       </div>}
-      {isAdmin&&<div className="grid grid-cols-3 gap-3 mt-3">
+      {isAdmin&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
         <button onClick={()=>onAction("pins")} className={s.btnLg}>PINS</button>
         <button onClick={()=>onAction("activitylog")} className={s.btnLg}>ACTIVITY</button>
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
+        <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
     </div>
   );
@@ -3228,6 +3229,57 @@ function InvoicingView({cases,onUpdateCase}){
 }
 
 
+// ─── CHANGES VIEW ─────────────────────────────────────────────────────────────
+function ChangesView({cases}){
+  const past24=new Date(Date.now()-24*60*60*1000);
+  const changedCases=cases.filter(c=>{
+    if(!c.pendingChanges?.length) return false;
+    const latest=new Date(c.pendingChanges[c.pendingChanges.length-1]?.at);
+    return latest>=past24;
+  }).sort((a,b)=>{
+    const aLast=new Date(a.pendingChanges?.slice(-1)[0]?.at||0);
+    const bLast=new Date(b.pendingChanges?.slice(-1)[0]?.at||0);
+    return bLast-aLast;
+  });
+
+  async function acceptChanges(c){
+    try{
+      await updateCase(c.id,{pending_changes:[]});
+    }catch(err){alert("Error: "+err.message);}
+  }
+
+  return(
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <h2 className="text-2xl font-black text-gray-900 mb-1">Changes — Last 24 Hours</h2>
+      <p className="text-sm text-gray-400 mb-6">{changedCases.length} case{changedCases.length!==1?"s":""} with pending changes</p>
+      {changedCases.length===0&&<div className="bg-gray-50 border border-gray-200 rounded-2xl p-8 text-center text-gray-400">No changes in the last 24 hours</div>}
+      <div className="space-y-4">
+        {changedCases.map(c=>(
+          <div key={c.id} className="bg-orange-50 border-2 border-orange-400 rounded-2xl p-5">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                <div className="text-sm text-gray-500">{c.caseRef} · {c.funeralHomeName}</div>
+              </div>
+              <button onClick={()=>acceptChanges(c)} className="shrink-0 px-4 py-2 rounded-xl bg-orange-500 text-white font-black text-xs uppercase hover:bg-orange-600 transition">ACCEPT</button>
+            </div>
+            <div className="space-y-2">
+              {c.pendingChanges.map((ch,i)=>(
+                <div key={i} className="bg-white border border-orange-200 rounded-xl px-4 py-2">
+                  <div className="text-xs font-black text-orange-700 mb-1">{ch.by} · {new Date(ch.at).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                  <ul className="space-y-0.5">
+                    {(ch.changes||[]).map((chg,j)=><li key={j} className="text-sm text-gray-700">· {chg}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
 function AdminDashboard({cases,calendarBookings}){
   const now=new Date();
@@ -4361,6 +4413,7 @@ Please click OK to log back in.");
   if(action==="lockview") return wrap(<LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings}/>);
+  if(action==="changes") return wrap(<ChangesView cases={cases}/>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>);
