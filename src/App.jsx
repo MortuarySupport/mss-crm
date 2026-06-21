@@ -602,18 +602,24 @@ function Header({user,onSignOut,onNav,activeTab}) {
   const tabs=[["home","HOME"]];
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50" style={{position:"sticky",top:0}}>
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <MSSLogo size="sm"/>
-        <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg width="20" height="25" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 75 Q30 60 32 45" stroke="#111" strokeWidth="1.4" fill="none" strokeLinecap="round"/><path d="M32 62 Q20 55 16 46 Q25 52 32 58" stroke="#111" strokeWidth="1" fill="none"/><path d="M32 57 Q44 51 48 42 Q39 49 32 55" stroke="#111" strokeWidth="1" fill="none"/><path d="M32 44 Q16 34 12 16 Q20 30 28 40 Q30 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/><path d="M32 44 Q48 34 52 16 Q44 30 36 40 Q34 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/><path d="M32 44 Q25 26 32 6 Q39 26 32 44" stroke="#111" strokeWidth="1" fill="none"/></svg>
+          <div style={{borderLeft:"1px solid #ddd",paddingLeft:"8px"}}>
+            <div style={{fontSize:"10px",fontWeight:"900",letterSpacing:"3px",textTransform:"uppercase",color:"#111"}}>MORTUARY SUPPORT</div>
+            <div style={{fontSize:"7px",fontWeight:"300",letterSpacing:"5px",textTransform:"uppercase",color:"#777"}}>LUMĒN</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 hidden sm:block">{user?.name} · <span className="font-bold text-gray-800">{user?.roleLabel}</span></span>
-          <button onClick={onSignOut} className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:border-gray-800 text-xs font-semibold transition">Sign Out</button>
+          <button onClick={onSignOut} className="px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-gray-800 text-xs font-semibold transition">Sign Out</button>
         </div>
       </div>
       {tabs.length>=1&&(
         <div style={{overflowX:"auto",display:"flex",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
           {tabs.map(([id,label])=>(
             <button key={id} onClick={()=>onNav(id)}
-              style={{flexShrink:0,padding:"8px 12px",fontSize:"11px",fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",color:activeTab===id?"#111":"#9ca3af",whiteSpace:"nowrap",background:"none",border:"none",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",cursor:"pointer"}}>
+              style={{flexShrink:0,padding:"4px 12px",fontSize:"11px",fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",color:activeTab===id?"#111":"#9ca3af",whiteSpace:"nowrap",background:"none",border:"none",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",cursor:"pointer"}}>
               {label}
             </button>
           ))}
