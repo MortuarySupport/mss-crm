@@ -1044,8 +1044,8 @@ function LoginScreen({onLogin,users,maintenanceMode}) {
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
         clearAttempts();setAttempts(0);
-        if(maintenanceMode===null){setError("System being upgraded, please try again shortly or contact the administrator.");return;}
-        if(maintenanceMode&&u.role!=="admin"){setError("System upgrade in progress. Please try again later.");return;}
+        if(maintenanceMode===null&&u.role!=="admin"){setError("System being upgraded, please try again shortly or contact the administrator.");return;}
+        if(maintenanceMode===true&&u.role!=="admin"){setError("System being upgraded, please try again shortly or contact the administrator.");return;}
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
       }
