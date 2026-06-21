@@ -3329,15 +3329,15 @@ function AdminDashboard({cases,calendarBookings,onAction}){
   function StatCard({value,label,color="gray",sub,onClick}){
     const Wrap=onClick?"button":"div";
     const clickProps=onClick?{onClick,style:{cursor:"pointer",textAlign:"left",width:"100%"}}:{};
-    return <Wrap {...clickProps}>
     const colors={green:"bg-green-50 border-green-200 text-green-800",amber:"bg-amber-50 border-amber-200 text-amber-800",red:"bg-red-50 border-red-200 text-red-800",blue:"bg-blue-50 border-blue-200 text-blue-800",gray:"bg-gray-50 border-gray-200 text-gray-800",black:"bg-gray-900 border-gray-900 text-white"};
     return(
+      <Wrap {...clickProps}>
       <div className={`border-2 rounded-2xl p-4 ${colors[color]}${onClick?" hover:opacity-80 transition":""}`}>
         <div className="text-3xl font-black">{value}</div>
         <div className="text-xs font-black uppercase tracking-widest mt-1 opacity-70">{label}</div>
         {sub&&<div className="text-xs mt-2 opacity-60">{sub}</div>}
       </div>
-    </Wrap>
+      </Wrap>
     );
   }
 
