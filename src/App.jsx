@@ -1093,9 +1093,9 @@ function HomeScreen({user,onAction}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
       <div className="text-center mb-6">
-        <p className="text-lg font-black text-gray-900">{user?.funeralHomeName||user?.name}</p>
-        <p className="text-sm font-bold text-gray-700 mt-0.5">{user?.name}</p>
-        <p className="text-xs text-gray-400 mt-1">{user?.roleLabel} · Baulkham Hills</p>
+        {user?.funeralHomeName&&user?.funeralHomeName!==user?.name&&<p className="text-lg font-black text-gray-900">{user.funeralHomeName}</p>}
+        <p className="text-base font-black text-gray-900">{user?.name}</p>
+        <p className="text-xs text-gray-400 mt-1">{user?.roleLabel}</p>
       </div>
       {isAdmin&&<button onClick={()=>onAction("dashboard")} className={s.btnLg+" w-full mb-3"}>📊 DASHBOARD</button>}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
