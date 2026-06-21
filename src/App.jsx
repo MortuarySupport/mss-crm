@@ -3282,7 +3282,7 @@ function ChangesView({cases,onUpdateCase}){
 }
 
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
-function AdminDashboard({cases,calendarBookings}){
+function AdminDashboard({cases,calendarBookings,onAction}){
   const now=new Date();
   const past24=new Date(now.getTime()-24*60*60*1000);
 
@@ -3326,14 +3326,18 @@ function AdminDashboard({cases,calendarBookings}){
     return b.type==="Family Meeting Room"&&slotDate===todayStr;
   });
 
-  function StatCard({value,label,color="gray",sub}){
+  function StatCard({value,label,color="gray",sub,onClick}){
+    const Wrap=onClick?"button":"div";
+    const clickProps=onClick?{onClick,style:{cursor:"pointer",textAlign:"left",width:"100%"}}:{};
+    return <Wrap {...clickProps}>
     const colors={green:"bg-green-50 border-green-200 text-green-800",amber:"bg-amber-50 border-amber-200 text-amber-800",red:"bg-red-50 border-red-200 text-red-800",blue:"bg-blue-50 border-blue-200 text-blue-800",gray:"bg-gray-50 border-gray-200 text-gray-800",black:"bg-gray-900 border-gray-900 text-white"};
     return(
-      <div className={`border-2 rounded-2xl p-4 ${colors[color]}`}>
+      <div className={`border-2 rounded-2xl p-4 ${colors[color]}${onClick?" hover:opacity-80 transition":""}`}>
         <div className="text-3xl font-black">{value}</div>
         <div className="text-xs font-black uppercase tracking-widest mt-1 opacity-70">{label}</div>
         {sub&&<div className="text-xs mt-2 opacity-60">{sub}</div>}
       </div>
+    </Wrap>
     );
   }
 
@@ -3348,9 +3352,9 @@ function AdminDashboard({cases,calendarBookings}){
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <StatCard value={recentCheckIns.length} label="Active Cases" color="green"/>
-          <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue"/>
-          <StatCard value={collections.length} label="Collections Today" color="amber"
+          <StatCard value={recentCheckIns.length} label="Active Cases" color="green" onClick={()=>onAction("mortuary")}/>
+          <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue" onClick={()=>onAction("mycases")}/>
+          <StatCard value={collections.length} label="Collections Today" color="amber" onClick={()=>onAction("mortuary")}
             sub={collections.length>0?collections.map(c=>`${(c.lastName||"").toUpperCase()}, ${c.firstName}`).join(" · "):null}/>
         </div>
       </div>
@@ -3370,9 +3374,9 @@ function AdminDashboard({cases,calendarBookings}){
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Workflow</p>
         <div className="grid grid-cols-3 gap-3">
-          <StatCard value={toApprove} label="To Approve" color={toApprove>0?"amber":"gray"}/>
-          <StatCard value={toLock} label="To Lock" color={toLock>0?"amber":"gray"}/>
-          <StatCard value={toInvoice} label="To Invoice" color={toInvoice>0?"red":"gray"}/>
+          <StatCard value={toApprove} label="To Approve" color={toApprove>0?"amber":"gray"} onClick={()=>onAction("approvals")}/>
+          <StatCard value={toLock} label="To Lock" color={toLock>0?"amber":"gray"} onClick={()=>onAction("lockview")}/>
+          <StatCard value={toInvoice} label="To Invoice" color={toInvoice>0?"red":"gray"} onClick={()=>onAction("invoicing")}/>
         </div>
       </div>
 
@@ -4464,7 +4468,7 @@ export default function App() {
   if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="lockview") return wrap(<LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
-  if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings}/>);
+  if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={onUpdateCase}/>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
@@ -4482,7 +4486,7 @@ export default function App() {
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={cases}/>}
       {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
-      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={cases} calendarBookings={calendarBookings}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>}
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
