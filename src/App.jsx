@@ -597,8 +597,8 @@ function BottomNav({onAction,onNav,activeTab,action}){
 function Header({user,onSignOut,onNav,activeTab}) {
   const isAdmin=user?.role==="admin",isMSS=user?.role==="mss"||isAdmin;
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
-  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"],["activitylog","ACTIVITY"],["invoicing","INVOICING"],["dashboard","DASHBOARD"]]
-    :isMSS?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["mypin","MY PIN"]]
+  const tabs=isAdmin?[["home","HOME"]]
+    :isMSS?[["home","HOME"]]
     :isFD?[["home","Home"],["records","My Cases"],["calendar","Calendar"]]
     :isTransfer?[["home","Home"],["transfers","My Transfers"]]
     :[["home","Home"]];
@@ -1109,6 +1109,11 @@ function HomeScreen({user,onAction}) {
       </div>}
       {transfers.length>0&&<div className="grid grid-cols-1 gap-3 mt-3">
         {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+      </div>}
+      {isAdmin&&<div className="grid grid-cols-3 gap-3 mt-3">
+        <button onClick={()=>onAction("pins")} className="py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-xs uppercase tracking-widest hover:border-gray-300 transition">PINS</button>
+        <button onClick={()=>onAction("activitylog")} className="py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-xs uppercase tracking-widest hover:border-gray-300 transition">ACTIVITY</button>
+        <button onClick={()=>onAction("invoicing")} className="py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-xs uppercase tracking-widest hover:border-gray-300 transition">INVOICING</button>
       </div>}
     </div>
   );
