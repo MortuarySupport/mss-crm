@@ -1081,30 +1081,35 @@ function HomeScreen({user,onAction}) {
   const isTransfer=user?.role==="transfer";
   const isFD=user?.role==="fd";
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
-  const btns=[
+  const row1=[
     {label:"CHECK IN",action:"checkin",show:true},
     {label:"MORTUARY",action:"mortuary",show:isMSS},
     {label:"CHECK OUT",action:"checkout",show:true},
-    {label:"MY CASES",action:"mycases",show:isMSS||isFD},
     {label:"CALENDAR",action:"calendar",show:isMSS||isFD},
-    {label:"DASHBOARD",action:"dashboard",show:isAdmin},
+  ].filter(b=>b.show);
+  const row2=[
+    {label:"MY CASES",action:"mycases",show:isMSS||isFD},
     {label:"REPORTS",action:"reports",show:isMSS},
     {label:"APPROVALS",action:"approvals",show:isMSS},
     {label:"LOCK CASES",action:"lockview",show:isAdmin},
-    {label:"MY TRANSFERS",action:"transfers",show:isTransfer},
   ].filter(b=>b.show);
-  const cols=btns.length<=4?"grid-cols-2":"grid-cols-2 sm:grid-cols-3";
+  const transfers=[{label:"MY TRANSFERS",action:"transfers",show:isTransfer}].filter(b=>b.show);
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
-      <div className="text-center mb-8">
-        <p className="text-gray-600 text-sm">Welcome, <span className="font-bold text-gray-900">{user?.name}</span></p>
-        <p className="text-gray-400 text-xs mt-1">{user?.roleLabel} · Baulkham Hills</p>
+      <div className="text-center mb-6">
+        <p className="text-sm" style={{color:"#9ca3af"}}>Welcome, <span className="font-bold" style={{color:"#e5e7eb"}}>{user?.name}</span></p>
+        <p className="text-xs mt-1" style={{color:"#6b7280"}}>{user?.roleLabel} · Baulkham Hills</p>
       </div>
-      <div className={`grid ${cols} gap-3 max-w-lg mx-auto`}>
-        {btns.map(b=>(
-          <button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>
-        ))}
+      {isAdmin&&<button onClick={()=>onAction("dashboard")} className="w-full mb-4 py-3 rounded-2xl border-2 border-gray-500 text-gray-300 font-black text-sm uppercase tracking-widest hover:border-gray-300 transition">📊 DASHBOARD</button>}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
       </div>
+      {row2.length>0&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {row2.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+      </div>}
+      {transfers.length>0&&<div className="grid grid-cols-1 gap-3 mt-3">
+        {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+      </div>}
     </div>
   );
 }
