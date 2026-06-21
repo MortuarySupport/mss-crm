@@ -2221,6 +2221,24 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
             changes.push(`${label} changed to: ${fmt(newVal)}`);
           }
         });
+      } else if(k==="statusItems"){
+        const oldSI=existingCase?.statusItems||{};
+        const newSI=updates.statusItems||{};
+        const siLabels={secondNote:"2nd Note",clothes:"Clothes",coffin:"Coffin",mccd:"MCCD/BO",photo:"Photo"};
+        Object.keys(newSI).forEach(sk=>{
+          if(JSON.stringify(oldSI[sk])!==JSON.stringify(newSI[sk])){
+            const oldV=oldSI[sk]||"not set";
+            const newV=newSI[sk]||"cleared";
+            changes.push(`${siLabels[sk]||sk}: ${oldV} → ${newV}`);
+          }
+        });
+      } else if(k==="billable"){
+        const oldB=existingCase?.billable||{};
+        const newB=updates.billable||{};
+        const added=Object.keys(newB).filter(bk=>newB[bk]&&!oldB[bk]);
+        const removed=Object.keys(oldB).filter(bk=>oldB[bk]&&!newB[bk]);
+        if(added.length) changes.push(`Services added: ${added.join(", ")}`);
+        if(removed.length) changes.push(`Services removed: ${removed.join(", ")}`);
       } else if(!["pendingChanges","acceptedAt","prepStatus"].includes(k)){
         const oldVal=existingCase?.[k];
         const newVal=updates[k];
