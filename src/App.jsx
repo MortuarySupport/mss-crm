@@ -798,10 +798,10 @@ function CaseViewCard({c,isAdmin,onSave}) {
       {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
         <div style={{width:"100%",minWidth:0}}>
-          <div className="text-lg font-black text-gray-900 mb-1" style={{wordBreak:"break-word",overflowWrap:"break-word"}}>
+          <div className="font-black text-gray-900 mb-1" style={{fontSize:"clamp(14px,4vw,22px)",wordBreak:"break-all",overflowWrap:"anywhere"}}>
             {isAdmin?<><InlineEdit isAdmin value={c.lastName?.toUpperCase()} onSave={v=>save("last_name",v)}/>, <InlineEdit isAdmin value={c.firstName} onSave={v=>save("first_name",v)}/></>
               :<>{(c.lastName||"").toUpperCase()}, {c.firstName}</>}
-            {" — "}<span className="text-lg font-bold text-gray-500">{sexShort(c.sex)}</span>
+            {" — "}<span className="font-bold text-gray-500">{sexShort(c.sex)}</span>
           </div>
           <div className="text-sm text-gray-600" style={{wordBreak:"break-word"}}>
             {isAdmin?<><InlineEdit isAdmin value={c.dob} onSave={v=>save("dob",v)} type="date" display={fmt(c.dob)}/><span>–</span><InlineEdit isAdmin value={c.dod} onSave={v=>save("dod",v)} type="date" display={fmt(c.dod)}/></>
