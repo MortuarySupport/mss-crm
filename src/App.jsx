@@ -230,6 +230,7 @@ function dbToCase(row) {
     invoicedAt: row.invoiced_at,
     step: row.step,
     checkedOut: row.checked_out,
+    pendingChanges: row.pending_changes||[],
     checkout: row.checkout_data,
     prep: row.prep||{},
     billable: row.billable||{},
@@ -268,6 +269,7 @@ function caseToDb(c) {
     invoiced_at: c.invoicedAt||null,
     step: c.step||1,
     checked_out: c.checkedOut||false,
+    pending_changes: c.pendingChanges||[],
     checkout_data: c.checkout||null,
     prep: c.prep||{},
     billable: c.billable||{},
@@ -2184,12 +2186,48 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const byFH={};
   cases.filter(c=>c.status==="active").forEach(c=>{if(!byFH[c.funeralHomeId])byFH[c.funeralHomeId]=[];byFH[c.funeralHomeId].push(c);});
 
+  function describeChanges(updates){
+    const labels={
+      prep:"Preparation details",last_name:"Last name",first_name:"First name",
+      dob:"Date of birth",dod:"Date of death",sex:"Sex",paperwork:"Paperwork",
+      funeral_home_name:"Funeral director",billable:"Services & items",
+      statusItems:"Checklist",viewing:"Viewing",viewingSlot:"Viewing slot",
+      viewingDate:"Viewing date",viewingLocation:"Viewing location",viewingHost:"Viewing host",
+      viewingDuration:"Viewing duration",collectionDate:"Collection date",
+      collectionTime:"Collection time",funeralDate:"Funeral date",funeralTime:"Funeral time",
+      disposition:"Disposition",weight:"Weight",coffinType:"Coffin type",
+      coffinSize:"Coffin size",coffinColour:"Coffin colour",notes:"Notes",
+    };
+    const changes=[];
+    Object.keys(updates).forEach(k=>{
+      if(k==="prep"){
+        Object.keys(updates.prep||{}).forEach(pk=>{
+          changes.push(labels[pk]||pk);
+        });
+      } else {
+        changes.push(labels[k]||k);
+      }
+    });
+    return [...new Set(changes)];
+  }
+
   async function upd(id,updates){
     try{
-      await updateCase(id,caseToDb({...cases.find(c=>c.id===id),...updates}));
-      onUpdateCase(id,updates);
-      setSelCase(p=>p?.id===id?{...p,...updates}:p);
-      logActivity(user,"MORTUARY UPDATE","Updated case "+c.caseRef,c.caseRef,c.id);
+      const existingCase=cases.find(x=>x.id===id);
+      const changeDescs=describeChanges(updates);
+      const newChange={
+        at:new Date().toISOString(),
+        by:user?.name||"Unknown",
+        role:user?.role||"",
+        changes:changeDescs
+      };
+      const existingChanges=existingCase?.pendingChanges||[];
+      const pendingChanges=[...existingChanges,newChange];
+      const fullUpdates={...updates,pendingChanges};
+      await updateCase(id,caseToDb({...existingCase,...fullUpdates}));
+      onUpdateCase(id,fullUpdates);
+      setSelCase(p=>p?.id===id?{...p,...fullUpdates}:p);
+      logActivity(user,"MORTUARY UPDATE","Updated case "+(existingCase?.caseRef||id),existingCase?.caseRef,id);
     }catch(err){alert("Save error: "+err.message);}
   }
 
@@ -2207,7 +2245,8 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         {sortAlpha(FUNERAL_HOMES,"name").map(fh=>{
           const has=!!(byFH[fh.id]?.length);
           const hasNew=byFH[fh.id]?.some(x=>!x.acceptedAt);
-          return <button key={fh.id} disabled={!has} onClick={()=>setSelFH(fh)} className={`relative py-4 px-2 rounded-2xl border-2 text-xs sm:text-sm font-bold text-center transition ${has?"border-gray-200 hover:border-gray-900 bg-white text-gray-900":"border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"}`}>{hasNew&&<span className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"/>}{fh.name}{has&&<div className="text-xs font-normal text-gray-400 mt-1">{byFH[fh.id].length} case{byFH[fh.id].length>1?"s":""}</div>}</button>;
+          const hasChanges=byFH[fh.id]?.some(x=>x.pendingChanges?.length>0);
+      return <button key={fh.id} disabled={!has} onClick={()=>setSelFH(fh)} className={`relative py-4 px-2 rounded-2xl border-2 text-xs sm:text-sm font-bold text-center transition ${has?(hasChanges?"border-orange-400 bg-orange-50 text-gray-900 hover:border-orange-600":"border-gray-200 hover:border-gray-900 bg-white text-gray-900"):"border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed"}`}>{hasNew&&<span className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"/>}{hasChanges&&<span className="absolute top-2 left-2 w-3 h-3 bg-orange-500 rounded-full border-2 border-white animate-pulse"/>}{fh.name}{has&&<div className="text-xs font-normal text-gray-400 mt-1">{byFH[fh.id].length} case{byFH[fh.id].length>1?"s":""}</div>}</button>;
         })}
       </div>
       </div>
@@ -2230,9 +2269,14 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className="space-y-3">
       {fhCasesRaw.some(x=>!x.acceptedAt)&&<div className="mb-2 px-1"><span className="text-xs font-black uppercase tracking-widest text-green-600">New Cases</span></div>}
         {fhCases.map(c=>(
-          <button key={c.id} onClick={()=>setSelCase(c)} className="w-full bg-white border-2 border-gray-200 hover:border-gray-900 rounded-2xl p-5 text-left transition">
+          <button key={c.id} onClick={()=>setSelCase(c)} className={`w-full rounded-2xl p-5 text-left transition border-2 ${c.pendingChanges?.length>0?"bg-orange-50 border-orange-400 hover:border-orange-600":"bg-white border-gray-200 hover:border-gray-900"}`}>
             <div className="flex items-center justify-between">
-              <div><div className="text-xl font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName} — <span className="text-base font-bold text-gray-500">{sexShort(c.sex)}</span></div><div className="text-sm text-gray-500 mt-1">{c.caseRef} · DOD: {fmt(c.dod)}</div></div>
+              <div>
+                <div className="text-xl font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName} — <span className="text-base font-bold text-gray-500">{sexShort(c.sex)}</span></div>
+                <div className="text-sm text-gray-500 mt-1">{c.caseRef} · DOD: {fmt(c.dod)}</div>
+                {c.pendingChanges?.length>0&&<div className="mt-2 text-xs font-black text-orange-600 uppercase">⚠ Changes made:</div>}
+                {c.pendingChanges?.length>0&&<ul className="mt-1 space-y-0.5">{c.pendingChanges.slice(-5).map((ch,i)=><li key={i} className="text-xs text-orange-700">· {ch.by} ({new Date(ch.at).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}): {ch.changes.join(", ")}</li>)}</ul>}
+              </div>
               <StatusDot status={c.prepStatus||"not-started"}/>
             </div>
           </button>
@@ -2270,6 +2314,15 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
+      )}
+      {c.pendingChanges?.length>0&&(
+        <button onClick={async()=>{
+          try{
+            await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));
+            onUpdateCase(c.id,{pendingChanges:[]});
+            setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);
+          }catch(err){alert("Error: "+err.message);}
+        }} className="w-full py-4 rounded-2xl bg-orange-500 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>
       )}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
