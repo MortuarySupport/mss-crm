@@ -612,10 +612,10 @@ function Header({user,onSignOut,onNav,activeTab}) {
         </div>
       </div>
       {tabs.length>1&&(
-        <div className="max-w-7xl mx-auto px-4 flex">
+        <div style={{overflowX:"auto",display:"flex",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
           {tabs.map(([id,label])=>(
             <button key={id} onClick={()=>onNav(id)}
-              className={`px-5 py-2 text-xs font-bold uppercase tracking-widest border-b-2 transition ${activeTab===id?"border-gray-900 text-gray-900":"border-transparent text-gray-400 hover:text-gray-700"}`}>
+              style={{flexShrink:0,padding:"8px 12px",fontSize:"11px",fontWeight:"700",textTransform:"uppercase",letterSpacing:"0.05em",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",color:activeTab===id?"#111":"#9ca3af",whiteSpace:"nowrap",background:"none",border:"none",borderBottom:activeTab===id?"2px solid #111":"2px solid transparent",cursor:"pointer"}}>
               {label}
             </button>
           ))}
