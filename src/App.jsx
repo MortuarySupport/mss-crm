@@ -186,7 +186,7 @@ function genCaseRef(cases) { return `MSL_${(cases.length+1).toString().padStart(
 function getFHContacts(fhId) { return FUNERAL_HOMES.find(f=>f.id===fhId)?.contacts||[]; }
 function sexShort(s) { return s==="Male"?"M":s==="Female"?"F":"O"; }
 function sortAlpha(arr,key="name") { return [...arr].sort((a,b)=>a[key].localeCompare(b[key])); }
-function today() { return new Date().toISOString().slice(0,10); }
+function today() { return todaySydney(); }
 function minDOB() { const d=new Date(); d.setFullYear(d.getFullYear()-110); return d.toISOString().slice(0,10); }
 function next4WeekDates() {
   const dates=[],d=new Date();
@@ -3063,7 +3063,7 @@ function exportXeroCSV(cases,qtys){
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
   a.href=url;
-  a.download=`MSS_Xero_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download=`MSS_Xero_${todaySydney()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -3290,7 +3290,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
   const recentCheckIns=cases.filter(c=>c.status==="active"&&!c.checkedOut);
   
   // Collections due today
-  const todayStr=now.toLocaleDateString("en-CA"); // YYYY-MM-DD in local timezone
+  const todayStr=now.todaySydney(); // YYYY-MM-DD in local timezone
   const collections=cases.filter(c=>c.status==="active"&&c.prep?.collectionDate===todayStr&&!c.checkedOut);
   
   // Checked out in last 24hrs
