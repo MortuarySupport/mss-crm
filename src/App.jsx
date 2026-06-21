@@ -4349,7 +4349,7 @@ export default function App() {
     .finally(()=>setLoading(false));
   },[]);
 
-  function handleLogin(u){setUser(u);setTab("home");setAction(null);}
+  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});}
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
   // Auto-logout after 2 minutes of inactivity
