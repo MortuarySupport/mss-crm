@@ -1093,8 +1093,9 @@ function HomeScreen({user,onAction}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
       <div className="text-center mb-6">
-        <p className="text-sm" style={{color:"#9ca3af"}}>Welcome, <span className="font-bold" style={{color:"#e5e7eb"}}>{user?.name}</span></p>
-        <p className="text-xs mt-1" style={{color:"#6b7280"}}>{user?.roleLabel} · Baulkham Hills</p>
+        <p className="text-base font-black" style={{color:"#ffffff"}}>{user?.funeralHomeName||user?.name}</p>
+        <p className="text-sm font-bold mt-0.5" style={{color:"#e5e7eb"}}>{user?.name}</p>
+        <p className="text-xs mt-1" style={{color:"#9ca3af"}}>{user?.roleLabel} · Baulkham Hills</p>
       </div>
       {isAdmin&&<button onClick={()=>onAction("dashboard")} className={s.btnLg+" w-full mb-3"}>📊 DASHBOARD</button>}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
