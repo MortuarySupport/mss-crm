@@ -1044,6 +1044,7 @@ function LoginScreen({onLogin,users,maintenanceMode}) {
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
         clearAttempts();setAttempts(0);
+        if(maintenanceMode===null){setError("Checking system status, please try again.");return;}
         if(maintenanceMode&&u.role!=="admin"){setError("System upgrade in progress. Please try again later.");return;}
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
@@ -4331,7 +4332,7 @@ const deleteCalendarBooking=id=>sb(`calendar_bookings?id=eq.${id}`,{method:"DELE
 
 export default function App() {
   const [users,setUsers]=useState([]);
-  const [maintenanceMode,setMaintenanceMode]=useState(false);
+  const [maintenanceMode,setMaintenanceMode]=useState(null);
 
   useEffect(()=>{
     async function checkMaintenance(){
@@ -4420,7 +4421,7 @@ export default function App() {
   );
 
   if(!user){
-    if(maintenanceMode) return(
+    if(maintenanceMode===true) return(
       <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px",textAlign:"center"}}>
         <div style={{fontSize:"48px",marginBottom:"16px"}}>🔧</div>
         <h1 style={{color:"#fff",fontSize:"24px",fontWeight:"900",marginBottom:"8px",letterSpacing:"2px",textTransform:"uppercase"}}>System Upgrade in Progress</h1>
