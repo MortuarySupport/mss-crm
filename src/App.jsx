@@ -4363,9 +4363,7 @@ export default function App() {
       clearTimeout(timer);
       timer=setTimeout(()=>{
         handleLogout();
-        alert("You have been logged out.
-
-Please click OK to log back in.");
+        alert("You have been logged out. Please click OK to log back in.");
       }, 5 * 60 * 1000);
     }
     const events=["mousedown","mousemove","keydown","scroll","touchstart","click"];
