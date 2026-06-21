@@ -1549,7 +1549,7 @@ function PacemakerCertificateView({cert, onClose}){
     pw.document.close();pw.focus();setTimeout(()=>pw.print(),400);
   }
   return(
-    <div style={{position:"fixed",top:0,left:0,width:"100vw",height:"100vh",zIndex:2147483647,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
+    <div style={{position:"fixed",top:0,left:0,width:"100vw",height:"100vh",zIndex:2147483647,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"40px 16px 16px"}}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="bg-amber-600 text-white rounded-t-2xl p-5 flex items-center justify-between">
           <div>
