@@ -4328,9 +4328,9 @@ export default function App() {
   const [loading,setLoading]=useState(true);
   const [user,setUser]=useState(null);
   const [tab,setTab]=useState("home");
-  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab,action]);
   const [showTimeoutModal,setShowTimeoutModal]=useState(false);
   const [action,setAction]=useState(null);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab,action]);
 
   useEffect(()=>{
     function preventTabScroll(e){
