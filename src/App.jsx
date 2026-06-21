@@ -988,7 +988,7 @@ function ViewingSection({prep,updPrepMulti,bookedSlots}) {
                       {vSlot&&(
                         <div>
                           <div className={s.label}>Duration</div>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {["1 HR","2 HR"].map(d=>(
                               <button key={d} type="button" onClick={()=>updPrepMulti({viewingDuration:d})}
                                 className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${(prep.viewingDuration||"1 HR")===d?"bg-green-600 text-white border-green-600":"bg-white text-gray-600 border-gray-200 hover:border-green-500"}`}>
@@ -1423,7 +1423,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           <div className={s.card}>
             <p className={s.section}>PHYSICAL DETAILS</p>
             <Field label="SIZE">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {["STD","OS1","OS2","OS3"].map(o=>(
                   <button key={o} type="button" onClick={()=>setF("size",form.size===o?"":o)}
                     className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${form.size===o?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>
@@ -1433,7 +1433,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               </div>
             </Field>
             <Field label="FRIDGE">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {["OLD","NEW"].map(o=>(
                   <button key={o} type="button" onClick={()=>setF("fridge",form.fridge===o?"":o)}
                     className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${form.fridge===o?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>
@@ -1961,7 +1961,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
   return(
     <div>
     <div>
-      <div className="grid grid-cols-5 gap-1 mb-3 text-xs">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 mb-3">
         <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>{si.secondNote==="received"?"2ND NOTE ✓":"2ND NOTE"}</button>
         <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>{si.clothes==="received"?"CLOTHES ✓":"CLOTHES"}</button>
         <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>{si.coffin==="received"?"COFFIN ✓":"COFFIN"}</button>
@@ -2301,13 +2301,13 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           )}
         </div>
       </div>
-      <div className={s.card}><p className={s.section}>Disposition</p><div className="flex gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
+      <div className={s.card}><p className={s.section}>Disposition</p><div className="flex flex-wrap gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
       <div className={s.card}>
         <p className={s.section}>Physical Details</p>
         <div className="space-y-4">
-          <div><div className={s.label}>Weight</div><div className="flex gap-2">{["Over 100kg","Under 100kg","TBA"].map(w=><button key={w} type="button" onClick={()=>updPrep("weight",w)} className={s.tb(prep.weight===w)}>{w}</button>)}</div></div>
+          <div><div className={s.label}>Weight</div><div className="flex flex-wrap gap-2">{["Over 100kg","Under 100kg","TBA"].map(w=><button key={w} type="button" onClick={()=>updPrep("weight",w)} className={s.tb(prep.weight===w)}>{w}</button>)}</div></div>
           {[["cleanShaven","Clean Shaven"],["hairLocks","Hair Locks"],["fingerPrints","Finger Prints"]].map(([k,l])=>(
-            <div key={k}><div className={s.label}>{l}</div><div className="flex gap-2">{["Yes","No","TBA"].map(v=><button key={v} type="button" onClick={()=>updPrep(k,v)} className={s.tb(prep[k]===v)}>{v}</button>)}</div></div>
+            <div key={k}><div className={s.label}>{l}</div><div className="flex flex-wrap gap-2">{["Yes","No","TBA"].map(v=><button key={v} type="button" onClick={()=>updPrep(k,v)} className={s.tb(prep[k]===v)}>{v}</button>)}</div></div>
           ))}
           <div>
             <div className={s.label}>Pacemaker Removed</div>
@@ -2684,7 +2684,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
           <div className={s.card}>
             <p className={s.section}>DISPOSITION & DESTINATION</p>
             <Field label={`Disposition${errors.disposition?" — "+errors.disposition:""}`} required>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {availableDispositions.map(d=>(
                   <button key={d} onClick={()=>{setDisposition(d);setErrors(e=>({...e,disposition:""}));}}
                     className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${disposition===d?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>{d}</button>
@@ -3137,7 +3137,7 @@ function ActivityLogView(){
       <h2 className="text-2xl font-black text-gray-900 mb-3">Activity Log</h2>
       <div className="flex gap-3 mb-5 flex-wrap">
         <input type="text" value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Search name, action, case..." className="flex-1 min-w-48 px-4 py-2 border-2 border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-gray-800"/>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-2">
           {roles.map(r=>(
             <button key={r} onClick={()=>setRoleFilter(r)} className={"px-3 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(roleFilter===r?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700")}>{r}</button>
           ))}
@@ -3907,7 +3907,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
             {/* Duration */}
             <div className="mb-4">
               <label className={s.label}>DURATION</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {["1 HOUR","2 HOURS"].map(d=>(
                   <button key={d} type="button" onClick={()=>setBookDuration(d)}
                     className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${bookDuration===d?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>
@@ -3926,7 +3926,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
             {/* Room type */}
             <div className="mb-4">
               <label className={s.label}>ROOM TYPE</label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button onClick={()=>setBookType("Viewing Room")} className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${bookType==="Viewing Room"?"bg-green-600 text-white border-green-600":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>VIEWING ROOM</button>
                 <button onClick={()=>setBookType("Family Meeting Room")} className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${bookType==="Family Meeting Room"?"bg-blue-600 text-white border-blue-600":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>FAMILY MEETING</button>
               </div>
