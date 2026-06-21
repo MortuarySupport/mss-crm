@@ -939,7 +939,7 @@ function TransferPersonPicker({user,value,onChange}) {
     </div>
   );
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       {presets.map(n=><button key={n} type="button" onClick={()=>onChange(n)} className={`py-4 rounded-xl border-2 font-bold text-base transition ${value===n?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-800 border-gray-200 hover:border-gray-700"}`}>{n}</button>)}
       <button type="button" onClick={()=>{setManual(true);onChange("");}} className="py-4 rounded-xl border-2 font-bold text-base text-gray-600 border-gray-200 hover:border-gray-700 bg-white transition">Other…</button>
     </div>
@@ -1961,7 +1961,7 @@ function ChecklistItems({c, prep, statusItems, updStatus, updPrep}){
   return(
     <div>
     <div>
-      <div className="grid grid-cols-5 gap-1 mb-3">
+      <div className="grid grid-cols-5 gap-1 mb-3 text-xs">
         <button onClick={()=>updStatus("secondNote",si.secondNote==="received"?null:"received")} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.secondNote==="received"?green:alert5d?pulse:neutral)}>{si.secondNote==="received"?"2ND NOTE ✓":"2ND NOTE"}</button>
         <button onClick={()=>updStatus("clothes",si.clothes===undefined?null:undefined)} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.clothes==="received"?green:alert36&&si.clothes!=="received"?red:neutral)}>{si.clothes==="received"?"CLOTHES ✓":"CLOTHES"}</button>
         <button onClick={()=>updStatus("coffin",si.coffin===undefined?null:undefined)} className={"py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(si.coffin==="received"?green:alert36&&si.coffin!=="received"?red:neutral)}>{si.coffin==="received"?"COFFIN ✓":"COFFIN"}</button>
