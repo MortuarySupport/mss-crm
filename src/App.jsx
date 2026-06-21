@@ -1028,7 +1028,7 @@ function getAttempts(){try{return parseInt(localStorage.getItem(ATTEMPTS_KEY)||"
 function recordFailedAttempt(){const a=getAttempts()+1;localStorage.setItem(ATTEMPTS_KEY,a);if(a>=MAX_ATTEMPTS){const until=new Date(Date.now()+LOCKOUT_MINS*60*1000);localStorage.setItem(LOCKOUT_KEY,JSON.stringify({until:until.toISOString()}));localStorage.setItem(ATTEMPTS_KEY,"0");}return a;}
 function clearAttempts(){localStorage.removeItem(ATTEMPTS_KEY);localStorage.removeItem(LOCKOUT_KEY);}
 
-function LoginScreen({onLogin,users}) {
+function LoginScreen({onLogin,users,maintenanceMode}) {
   const [pin,setPin]=useState("");
   const [lockout,setLockout]=useState(getLockout);
   const [attempts,setAttempts]=useState(getAttempts);
@@ -1044,6 +1044,7 @@ function LoginScreen({onLogin,users}) {
       if(u){
         const roleLabel=u.role==="admin"?"Admin":u.role==="mss"?"MSS Staff":u.role==="transfer"?"Transfer Team":"Funeral Director";
         clearAttempts();setAttempts(0);
+        if(maintenanceMode&&u.role!=="admin"){setError("System upgrade in progress. Please try again later.");return;}
         onLogin({...u,roleLabel,funeralHomeId:u.funeral_home_id,presetNames:u.preset_names||[]});
         return;
       }
@@ -4427,7 +4428,7 @@ export default function App() {
         <p style={{color:"#6b7280",fontSize:"11px",marginTop:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Mortuary Support | Lumēn</p>
       </div>
     );
-    return <LoginScreen onLogin={handleLogin} users={users}/>;
+    return <LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>;
   }
   if(maintenanceMode&&user?.role!=="admin") return(
     <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px",textAlign:"center"}}>
