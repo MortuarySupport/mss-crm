@@ -597,7 +597,7 @@ function BottomNav({onAction,onNav,activeTab,action}){
 function Header({user,onSignOut,onNav,activeTab}) {
   const isAdmin=user?.role==="admin",isMSS=user?.role==="mss"||isAdmin;
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
-  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"],["activitylog","ACTIVITY"],["invoicing","INVOICING"]]
+  const tabs=isAdmin?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["pins","PINS"],["activitylog","ACTIVITY"],["invoicing","INVOICING"],["dashboard","DASHBOARD"]]
     :isMSS?[["home","HOME"],["records","RECORDS"],["reports","REPORTS"],["calendar","CALENDAR"],["mypin","MY PIN"]]
     :isFD?[["home","Home"],["records","My Cases"],["calendar","Calendar"]]
     :isTransfer?[["home","Home"],["transfers","My Transfers"]]
@@ -3107,6 +3107,144 @@ function InvoicingView({cases,onUpdateCase}){
   );
 }
 
+
+// ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
+function AdminDashboard({cases,calendarBookings}){
+  const now=new Date();
+  const past24=new Date(now.getTime()-24*60*60*1000);
+
+  // Cases checked in last 24hrs
+  const recentCheckIns=cases.filter(c=>c.checkedInAt&&new Date(c.checkedInAt)>=past24);
+  
+  // Collections due today or overdue (collection date = today)
+  const todayStr=now.toISOString().slice(0,10);
+  const collections=cases.filter(c=>c.status==="active"&&c.prep?.collectionDate===todayStr&&!c.checkedOut);
+  
+  // Checked out in last 24hrs
+  const recentCheckOuts=cases.filter(c=>c.checkout?.checkedOutAt&&new Date(c.checkout.checkedOutAt)>=past24);
+  
+  // Prep types (active cases)
+  const activeCases=cases.filter(c=>c.status==="active"&&!c.checkedOut);
+  const prepCounts={BP:0,TP:0,FE:0,RSF:0};
+  activeCases.forEach(c=>{
+    const b=c.billable||{};
+    if(b.BP||b.BP1)prepCounts.BP++;
+    if(b.TP||b.TP1||b.TPC||b.TPC1)prepCounts.TP++;
+    if(b.FE||b.FE1||b.FEC||b.FEC1)prepCounts.FE++;
+    if(b.RSF)prepCounts.RSF++;
+  });
+
+  // Workflow counts
+  const toApprove=cases.filter(c=>c.checkedOut&&c.status==="pending-lock").length;
+  const toLock=cases.filter(c=>c.checkedOut&&c.status==="approved").length;
+  const toInvoice=cases.filter(c=>c.status==="locked"&&!c.invoicedAt).length;
+
+  // Viewings at MSS today
+  const mssViewings=cases.filter(c=>{
+    if(!c.prep?.viewingSlot||!c.prep?.viewing||c.prep.viewing!=="Yes") return false;
+    if(c.prep?.viewingLocation!=="MSS") return false;
+    const slotDate=c.prep.viewingSlot.split("_")[0];
+    return slotDate===todayStr;
+  });
+
+  // Family meetings today (from calendar bookings)
+  const familyMeetings=(calendarBookings||[]).filter(b=>{
+    const slotDate=b.slot?.split("_")[0];
+    return b.type==="Family Meeting Room"&&slotDate===todayStr;
+  });
+
+  function StatCard({value,label,color="gray",sub}){
+    const colors={green:"bg-green-50 border-green-200 text-green-800",amber:"bg-amber-50 border-amber-200 text-amber-800",red:"bg-red-50 border-red-200 text-red-800",blue:"bg-blue-50 border-blue-200 text-blue-800",gray:"bg-gray-50 border-gray-200 text-gray-800",black:"bg-gray-900 border-gray-900 text-white"};
+    return(
+      <div className={`border-2 rounded-2xl p-4 ${colors[color]}`}>
+        <div className="text-3xl font-black">{value}</div>
+        <div className="text-xs font-black uppercase tracking-widest mt-1 opacity-70">{label}</div>
+        {sub&&<div className="text-xs mt-2 opacity-60">{sub}</div>}
+      </div>
+    );
+  }
+
+  return(
+    <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-black text-gray-900">Dashboard</h2>
+        <div className="text-xs text-gray-400 font-bold uppercase">{new Date().toLocaleDateString("en-AU",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+      </div>
+
+      {/* Last 24 Hours */}
+      <div className="mb-6">
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <StatCard value={recentCheckIns.length} label="Check Ins" color="green"/>
+          <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue"/>
+          <StatCard value={collections.length} label="Collections Today" color="amber"
+            sub={collections.length>0?collections.map(c=>`${(c.lastName||"").toUpperCase()}, ${c.firstName}`).join(" · "):null}/>
+        </div>
+      </div>
+
+      {/* Prep Types */}
+      <div className="mb-6">
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Active Preparation Types</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard value={prepCounts.BP} label="Basic Prep" color="gray"/>
+          <StatCard value={prepCounts.TP} label="Temp Preservation" color="gray"/>
+          <StatCard value={prepCounts.FE} label="Full Embalm" color="gray"/>
+          <StatCard value={prepCounts.RSF} label="Repatriation" color="gray"/>
+        </div>
+      </div>
+
+      {/* Workflow */}
+      <div className="mb-6">
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Workflow</p>
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard value={toApprove} label="To Approve" color={toApprove>0?"amber":"gray"}/>
+          <StatCard value={toLock} label="To Lock" color={toLock>0?"amber":"gray"}/>
+          <StatCard value={toInvoice} label="To Invoice" color={toInvoice>0?"red":"gray"}/>
+        </div>
+      </div>
+
+      {/* Today's Viewings */}
+      <div className="mb-6">
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">MSS Viewings Today</p>
+        {mssViewings.length===0?(
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-gray-400 text-center">No MSS viewings today</div>
+        ):(
+          <div className="space-y-2">
+            {mssViewings.map(c=>(
+              <div key={c.id} className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <div className="font-black text-gray-900 text-sm">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                  <div className="text-xs text-gray-500">{c.funeralHomeName} · {c.prep?.viewingSlot?.split("_")[1]||""}{c.prep?.viewingDuration?" ("+c.prep.viewingDuration+")":""}</div>
+                </div>
+                <span className="text-xs font-black text-green-700 bg-green-100 border border-green-300 rounded-full px-2 py-0.5">VIEWING</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Family Meetings */}
+      <div className="mb-6">
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Family Meetings Today</p>
+        {familyMeetings.length===0?(
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-gray-400 text-center">No family meetings today</div>
+        ):(
+          <div className="space-y-2">
+            {familyMeetings.map(b=>(
+              <div key={b.id} className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <div className="font-black text-gray-900 text-sm">{b.deceased_label||b.not_in_care_ref||"—"}</div>
+                  <div className="text-xs text-gray-500">{b.slot?.split("_")[1]||""} {b.duration?"("+b.duration+")":""}</div>
+                </div>
+                <span className="text-xs font-black text-blue-700 bg-blue-100 border border-blue-300 rounded-full px-2 py-0.5">MEETING</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ─── ACTIVITY LOG VIEW ────────────────────────────────────────────────────────
 function ActivityLogView(){
