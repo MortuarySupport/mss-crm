@@ -597,11 +597,7 @@ function BottomNav({onAction,onNav,activeTab,action}){
 function Header({user,onSignOut,onNav,activeTab}) {
   const isAdmin=user?.role==="admin",isMSS=user?.role==="mss"||isAdmin;
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
-  const tabs=isAdmin?[["home","HOME"]]
-    :isMSS?[["home","HOME"]]
-    :isFD?[["home","Home"],["records","My Cases"],["calendar","Calendar"]]
-    :isTransfer?[["home","Home"],["transfers","My Transfers"]]
-    :[["home","Home"]];
+  const tabs=[["home","HOME"]];
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50" style={{position:"sticky",top:0}}>
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
