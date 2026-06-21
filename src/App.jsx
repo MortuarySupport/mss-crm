@@ -4475,7 +4475,7 @@ export default function App() {
 
   return wrap(
     <main>
-      {tab==="home"&&<HomeScreen user={user} onAction={a=>setAction(a)}/>}
+      {tab==="home"&&<HomeScreen user={user} onAction={a=>setAction(a)} maintenanceOn={maintenanceMode} onMaintenance={toggleMaintenance}/>}
       {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={cases}/>}
       {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking}/>}
