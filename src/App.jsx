@@ -1087,6 +1087,7 @@ function HomeScreen({user,onAction}) {
     {label:"CHECK OUT",action:"checkout",show:true},
     {label:"MY CASES",action:"mycases",show:isMSS||isFD},
     {label:"CALENDAR",action:"calendar",show:isMSS||isFD},
+    {label:"DASHBOARD",action:"dashboard",show:isAdmin},
     {label:"REPORTS",action:"reports",show:isMSS},
     {label:"APPROVALS",action:"approvals",show:isMSS},
     {label:"LOCK CASES",action:"lockview",show:isAdmin},
@@ -4238,6 +4239,7 @@ export default function App() {
   if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="lockview") return wrap(<LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
+  if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings}/>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>);
