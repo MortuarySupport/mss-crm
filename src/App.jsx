@@ -205,7 +205,7 @@ const FUEL_LEVELS=["E","1/4","1/2","3/4","F"];
 const CLEANLINESS=["Clean","Dusty","Dirty"];
 
 function nowSydney(){return new Date(new Date().toLocaleString("en-AU",{timeZone:TZ}));}
-function todaySydney(){ return nowSydney().toISOString().slice(0,10); }
+function todaySydney(){ return new Date().toLocaleDateString("en-CA",{timeZone:"Australia/Sydney"}); }
 function today() { return todaySydney(); }
 function minDOB() { const d=new Date(); d.setFullYear(d.getFullYear()-110); return d.toISOString().slice(0,10); }
 function next4WeekDates() {
