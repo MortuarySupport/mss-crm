@@ -607,6 +607,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
     <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50" style={{position:"sticky",top:0}}>
       <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <button onClick={()=>onNav("home")} style={{background:"#111",color:"#fff",border:"none",borderRadius:"6px",width:"36px",height:"36px",fontWeight:"900",fontSize:"10px",textTransform:"uppercase",letterSpacing:"1px",cursor:"pointer",flexShrink:0}}>HOME</button>
           <svg width="20" height="25" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 75 Q30 60 32 45" stroke="#111" strokeWidth="1.4" fill="none" strokeLinecap="round"/><path d="M32 62 Q20 55 16 46 Q25 52 32 58" stroke="#111" strokeWidth="1" fill="none"/><path d="M32 57 Q44 51 48 42 Q39 49 32 55" stroke="#111" strokeWidth="1" fill="none"/><path d="M32 44 Q16 34 12 16 Q20 30 28 40 Q30 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/><path d="M32 44 Q48 34 52 16 Q44 30 36 40 Q34 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/><path d="M32 44 Q25 26 32 6 Q39 26 32 44" stroke="#111" strokeWidth="1" fill="none"/></svg>
           <div style={{borderLeft:"1px solid #ddd",paddingLeft:"8px"}}>
             <div style={{fontSize:"10px",fontWeight:"900",letterSpacing:"3px",textTransform:"uppercase",color:"#111"}}>MORTUARY SUPPORT</div>
@@ -618,16 +619,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
           <button onClick={onSignOut} className="px-2 py-1 rounded-lg border border-gray-300 text-gray-600 hover:border-gray-800 text-xs font-semibold transition">Sign Out</button>
         </div>
       </div>
-      {tabs.length>=1&&(
-        <div style={{overflowX:"auto",display:"flex",WebkitOverflowScrolling:"touch",scrollbarWidth:"none"}}>
-          {tabs.map(([id,label])=>(
-            <button key={id} onClick={()=>onNav(id)}
-              style={{flexShrink:0,padding:"6px 16px",fontSize:"12px",fontWeight:"900",textTransform:"uppercase",letterSpacing:"0.1em",borderRadius:"8px",background:activeTab===id?"#111":"transparent",color:activeTab===id?"#fff":"#9ca3af",whiteSpace:"nowrap",border:"none",cursor:"pointer",margin:"4px 2px"}}>
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      
     </header>
   );
 }
