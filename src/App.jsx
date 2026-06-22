@@ -4551,6 +4551,21 @@ const getCalendarBookings=()=>sb("calendar_bookings?select=*").catch(()=>[]);
 const insertCalendarBooking=b=>sb("calendar_bookings",{method:"POST",body:JSON.stringify(b),prefer:"return=representation"});
 const deleteCalendarBooking=id=>sb(`calendar_bookings?id=eq.${id}`,{method:"DELETE"});
 
+class ErrorBoundary extends React.Component{
+  constructor(p){super(p);this.state={error:null};}
+  static getDerivedStateFromError(e){return{error:e};}
+  render(){
+    if(this.state.error)return(
+      <div style={{padding:"40px",textAlign:"center"}}>
+        <h2 style={{color:"#dc2626",fontWeight:"900"}}>Something went wrong</h2>
+        <p style={{color:"#6b7280",marginTop:"8px",fontSize:"14px"}}>{this.state.error.message}</p>
+        <button onClick={()=>this.setState({error:null})} style={{marginTop:"16px",padding:"10px 24px",background:"#111",color:"#fff",border:"none",borderRadius:"8px",cursor:"pointer",fontWeight:"700"}}>Go Back</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [users,setUsers]=useState([]);
   const [maintenanceMode,setMaintenanceMode]=useState(null);
@@ -4694,12 +4709,12 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={onUpdateCase}/>);
-  if(action==="vehicles") return wrap(<VehicleCalendarView user={user} cases={cases} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>);
+  if(action==="vehicles") return wrap(<ErrorBoundary><VehicleCalendarView user={user} cases={cases} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/></ErrorBoundary>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>);
   if(action==="transfers") return wrap(<MyTransfers user={user} cases={cases}/>);
-  if(action==="calendar") return wrap(<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking}/>);
+  if(action==="calendar") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking}/></ErrorBoundary>);
 
   return wrap(
     <main>
