@@ -1112,8 +1112,11 @@ function HomeScreen({user,onAction}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
 
-      {isAdmin&&<button onClick={()=>onAction("dashboard")} className={s.btnLg+" w-full mb-3"}>📊 DASHBOARD</button>}
-      {(isAdmin||isMSS)&&<button onClick={()=>onAction("vehicles")} className={s.btnLg+" w-full mb-3"}>🚗 VEHICLE & STAFF</button>}
+      {isAdmin&&<div className="grid grid-cols-2 gap-3 mb-3">
+        <button onClick={()=>onAction("dashboard")} className={s.btnLg}>📊 DASHBOARD</button>
+        <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
+      </div>}
+      {!isAdmin&&isMSS&&<button onClick={()=>onAction("vehicles")} className={s.btnLg+" w-full mb-3"}>🚗 VEHICLE & STAFF</button>}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
