@@ -4325,13 +4325,13 @@ function getWeekDates(base){
   return dates;
 }
 
-function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,onDeleteBooking,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking}){
+function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,onDeleteBooking,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking,defaultTab}){
   const[weekBase,setWeekBase]=useState(today());
   const[showBookModal,setShowBookModal]=useState(false);
   const[editingBooking,setEditingBooking]=useState(null); // booking being viewed/edited
   const[bookSlot,setBookSlot]=useState(null);
   const[bookDuration,setBookDuration]=useState("1 HOUR");
-  const[activeRoom,setActiveRoom]=useState("ViewingRoom");
+  const[activeRoom,setActiveRoom]=useState(defaultTab||"ViewingRoom");
   const[bookType,setBookType]=useState("Viewing Room");
   const[careType,setCareType]=useState("");
   const[selFHId,setSelFHId]=useState("");
@@ -4877,7 +4877,7 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={onUpdateCase}/>);
-  if(action==="vehicles") return wrap(<ErrorBoundary><VehicleCalendarView user={user} cases={cases} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/></ErrorBoundary>);
+  if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>);
