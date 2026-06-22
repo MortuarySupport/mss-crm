@@ -205,6 +205,7 @@ const FUEL_LEVELS=["E","1/4","1/2","3/4","F"];
 const CLEANLINESS=["Clean","Dusty","Dirty"];
 
 function nowSydney(){return new Date(new Date().toLocaleString("en-AU",{timeZone:TZ}));}
+function todaySydney(){ return nowSydney().toISOString().slice(0,10); }
 function today() { return todaySydney(); }
 function minDOB() { const d=new Date(); d.setFullYear(d.getFullYear()-110); return d.toISOString().slice(0,10); }
 function next4WeekDates() {
@@ -4628,9 +4629,6 @@ export default function App() {
   function handleUpdateCase(id,updates){setCases(prev=>prev.map(c=>c.id===id?{...c,...updates}:c));}
   function handlePinUpdate(uid,pin){setUsers(prev=>prev.map(u=>u.id===uid?{...u,pin}:u));}
   function handleAddBooking(b){setCalendarBookings(prev=>[...prev,b]);}
-  function handleAddVehicleBooking(b){setVehicleBookings(prev=>[...prev,b]);}
-  function handleUpdateVehicleBooking(b){setVehicleBookings(prev=>prev.map(x=>x.id===b.id?b:x));}
-  function handleDeleteVehicleBooking(id){setVehicleBookings(prev=>prev.filter(x=>x.id!==id));}
   function handleAddVehicleBooking(b){setVehicleBookings(prev=>[...prev,b]);}
   function handleUpdateVehicleBooking(b){setVehicleBookings(prev=>prev.map(x=>x.id===b.id?b:x));}
   function handleDeleteVehicleBooking(id){setVehicleBookings(prev=>prev.filter(x=>x.id!==id));}
