@@ -4567,8 +4567,8 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
           })()}
           </tbody>
         </table>
-      </div>
-
+      </div>}
+      {activeRoom==="VehicleStaff"&&<VehicleWeekView weekDates={weekDates} vehicleBookings={vehicleBookings} onAddVehicleBooking={onAddVehicleBooking} onUpdateVehicleBooking={onUpdateVehicleBooking} onDeleteVehicleBooking={onDeleteVehicleBooking} user={user} cases={cases}/>}
 
       {/* Book / Edit Modal */}
       {showBookModal&&(canEdit||isFD)&&(
