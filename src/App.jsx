@@ -204,22 +204,6 @@ const VEHICLE_STAFF=["Peter","Angus","Scott","Steve","Lydia","All Hours","Other"
 const FUEL_LEVELS=["E","1/4","1/2","3/4","F"];
 const CLEANLINESS=["Clean","Dusty","Dirty"];
 
-// ─── VEHICLE & STAFF CONSTANTS ────────────────────────────────────────────────
-const VEHICLE_JOB_TYPES=[
-  {label:"Transfer - Morty",defaultHours:1,vehicle:"Morty"},
-  {label:"ED (Early Delivery) - Morty",defaultHours:1,vehicle:"Morty"},
-  {label:"ED (Early Delivery) - Harry",defaultHours:1,vehicle:"Harry"},
-  {label:"Hearse Driver Only",defaultHours:4,vehicle:"Hearse"},
-  {label:"Hearse Driver and Betty",defaultHours:4,vehicle:"Betty"},
-  {label:"Hearse Driver and Mercy",defaultHours:4,vehicle:"Mercy"},
-  {label:"Hearse Driver and Harry",defaultHours:4,vehicle:"Harry"},
-  {label:"Mourning Vehicle Black Mercedes",defaultHours:4,vehicle:"Black Mercedes"},
-  {label:"Mourning Vehicle Blue Mercedes",defaultHours:4,vehicle:"Blue Mercedes"},
-];
-const VEHICLE_STAFF=["Peter","Angus","Scott","Steve","Lydia","All Hours","Other"];
-const FUEL_LEVELS=["E","1/4","1/2","3/4","F"];
-const CLEANLINESS=["Clean","Dusty","Dirty"];
-function todaySydney(){const d=new Date();return d.toLocaleDateString("en-CA",{timeZone:TZ});}
 function nowSydney(){return new Date(new Date().toLocaleString("en-AU",{timeZone:TZ}));}
 function today() { return todaySydney(); }
 function minDOB() { const d=new Date(); d.setFullYear(d.getFullYear()-110); return d.toISOString().slice(0,10); }
@@ -4931,7 +4915,6 @@ export default function App() {
   }
   const [cases,setCases]=useState([]);
   const [calendarBookings,setCalendarBookings]=useState([]);
-  const [vehicleBookings,setVehicleBookings]=useState([]);
   const [vehicleBookings,setVehicleBookings]=useState([]);
   const [loading,setLoading]=useState(true);
   const [user,setUser]=useState(null);
