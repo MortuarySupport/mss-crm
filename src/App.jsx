@@ -4150,7 +4150,8 @@ for(let h=8;h<=20;h++){
 
 function getWeekDates(base){
   const dates=[];
-  const d=new Date(base);
+  const d=new Date(base+"T12:00:00");
+  if(isNaN(d.getTime())) return [todaySydney(),todaySydney(),todaySydney(),todaySydney(),todaySydney(),todaySydney(),todaySydney()];
   const day=d.getDay();
   d.setDate(d.getDate()-day);
   for(let i=0;i<7;i++){const dd=new Date(d);dd.setDate(d.getDate()+i);dates.push(dd.toISOString().slice(0,10));}
