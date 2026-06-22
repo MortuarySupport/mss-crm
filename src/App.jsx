@@ -341,7 +341,7 @@ function MSSLogo({ size="md" }) {
       </svg>
       <div style={{borderLeft:"1px solid #222",paddingLeft:12}}>
         <div style={{fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif",fontWeight:400,fontSize:mainSize,color:"#111",letterSpacing:3,textTransform:"uppercase",lineHeight:1}}>Mortuary Support</div>
-        <div style={{fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif",fontWeight:300,fontSize:subSize,color:"#333",letterSpacing:7,textTransform:"uppercase",marginTop:6}}>Lum&#x113;n</div>
+        <div style={{fontFamily:"'Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif",fontWeight:300,fontSize:subSize,color:"#333",letterSpacing:7,textTransform:"uppercase",marginTop:6}}>Lumi&#xe8;re</div>
         {tagSize>0&&<div style={{fontFamily:"Arial,sans-serif",fontSize:tagSize,color:"#999",letterSpacing:2,marginTop:4,fontStyle:"italic"}}>the light that guides</div>}
       </div>
     </div>
