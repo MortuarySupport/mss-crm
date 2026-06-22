@@ -611,7 +611,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
           <svg width="20" height="25" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 75 Q30 60 32 45" stroke="#111" strokeWidth="1.4" fill="none" strokeLinecap="round"/><path d="M32 62 Q20 55 16 46 Q25 52 32 58" stroke="#111" strokeWidth="1" fill="none"/><path d="M32 57 Q44 51 48 42 Q39 49 32 55" stroke="#111" strokeWidth="1" fill="none"/><path d="M32 44 Q16 34 12 16 Q20 30 28 40 Q30 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/><path d="M32 44 Q48 34 52 16 Q44 30 36 40 Q34 42 32 44" stroke="#111" strokeWidth="1.2" fill="none"/><path d="M32 44 Q25 26 32 6 Q39 26 32 44" stroke="#111" strokeWidth="1" fill="none"/></svg>
           <div style={{borderLeft:"1px solid #ddd",paddingLeft:"8px"}}>
             <div style={{fontSize:"10px",fontWeight:"900",letterSpacing:"3px",textTransform:"uppercase",color:"#111"}}>MORTUARY SUPPORT</div>
-            <div style={{fontSize:"7px",fontWeight:"300",letterSpacing:"5px",textTransform:"uppercase",color:"#777"}}>LUMĒN</div>
+            <div style={{fontSize:"7px",fontWeight:"300",letterSpacing:"5px",textTransform:"uppercase",color:"#777"}}>LUMIÈRE</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -1121,7 +1121,7 @@ const MSS_FOOTER = `
 
 Any questions please don't hesitate to contact us.
 
-The Team at Mortuary Support | Lumēn
+The Team at Mortuary Support | Lumière
 Phone: 02 8814 5500
 Email: info@mortuarysupport.com.au`;
 
@@ -1751,7 +1751,7 @@ async function saveAndEmail(){
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
     const to="info@mortuarysupport.com.au";
     const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-    const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumēn\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
+    const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
     window.open("mailto:"+to+"?subject="+subj+"&body="+body);
     alert("Certificate saved to case documents.");
     closeOverlay();
@@ -1878,7 +1878,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
       // Email
       const to="info@mortuarysupport.com.au";
       const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumēn\nPh: 02 8814 5500");
+      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
       window.open("mailto:"+to+"?subject="+subj+"&body="+body);
       alert("Certificate saved to case documents.");
       onSaved&&onSaved();
@@ -1891,7 +1891,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
     <div style={{position:"fixed",top:0,left:0,width:"100vw",height:"100vh",zIndex:2147483647,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
       <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:580,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 4px 24px rgba(0,0,0,0.2)"}}>
         <div style={{background:"#111",color:"white",padding:"18px 22px",borderRadius:"16px 16px 0 0"}}>
-          <div style={{fontSize:11,letterSpacing:3,textTransform:"uppercase",opacity:0.6,marginBottom:4}}>Mortuary Support | Lumēn</div>
+          <div style={{fontSize:11,letterSpacing:3,textTransform:"uppercase",opacity:0.6,marginBottom:4}}>Mortuary Support | Lumière</div>
           <div style={{fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase"}}>Pacemaker Removal Certificate</div>
         </div>
         <div style={{padding:22}}>
@@ -4422,7 +4422,7 @@ export default function App() {
         <div style={{fontSize:"48px",marginBottom:"16px"}}>🔧</div>
         <h1 style={{color:"#fff",fontSize:"24px",fontWeight:"900",marginBottom:"8px",letterSpacing:"2px",textTransform:"uppercase"}}>System Upgrade in Progress</h1>
         <p style={{color:"#9ca3af",fontSize:"14px",maxWidth:"320px",lineHeight:"1.6"}}>We are currently making improvements to the system. Please check back shortly.</p>
-        <p style={{color:"#6b7280",fontSize:"11px",marginTop:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Mortuary Support | Lumēn</p>
+        <p style={{color:"#6b7280",fontSize:"11px",marginTop:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Mortuary Support | Lumière</p>
       </div>
     );
     return <LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>;
