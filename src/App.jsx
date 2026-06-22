@@ -4141,6 +4141,173 @@ function printWeek(weekDates,slotMap,slots){
   setTimeout(()=>pw.print(),400);
 }
 
+// ─── VEHICLE WEEK VIEW (embedded in Calendar) ────────────────────────────────
+function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking,user,cases}){
+  const[showModal,setShowModal]=useState(false);
+  const[editingBooking,setEditingBooking]=useState(null);
+  const[showCompleteModal,setShowCompleteModal]=useState(null);
+  const[saving,setSaving]=useState(false);
+  const[jobType,setJobType]=useState(VEHICLE_JOB_TYPES[0].label);
+  const[jobDate,setJobDate]=useState(weekDates[0]);
+  const[jobTime,setJobTime]=useState("08:00");
+  const[jobHours,setJobHours]=useState(1);
+  const[assignedStaff,setAssignedStaff]=useState([]);
+  const[caseId,setCaseId]=useState("");
+  const[tbc,setTbc]=useState(false);
+  const[notes,setNotes]=useState("");
+  const[timeIn,setTimeIn]=useState("");
+  const[timeOut,setTimeOut]=useState("");
+  const[fuelLevel,setFuelLevel]=useState("F");
+  const[cleanliness,setCleanliness]=useState("Clean");
+  const[completionNotes,setCompletionNotes]=useState("");
+
+  const activeCases=cases.filter(c=>c.status==="active"&&!c.checkedOut);
+  const bookingsByDate={};
+  weekDates.forEach(d=>bookingsByDate[d]=[]);
+  (vehicleBookings||[]).forEach(b=>{if(bookingsByDate[b.date])bookingsByDate[b.date].push(b);});
+  weekDates.forEach(d=>bookingsByDate[d].sort((a,b2)=>a.time.localeCompare(b2.time)));
+
+  const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmtD(d){const x=new Date(d+"T12:00:00");return`${dayNames[x.getDay()]} ${x.getDate()} ${months[x.getMonth()]}`;}
+
+  function resetModal(){setShowModal(false);setEditingBooking(null);setJobType(VEHICLE_JOB_TYPES[0].label);setJobDate(weekDates[0]);setJobTime("08:00");setJobHours(1);setAssignedStaff([]);setCaseId("");setTbc(false);setNotes("");}
+  function openEdit(b){setEditingBooking(b);setJobType(b.jobType);setJobDate(b.date);setJobTime(b.time);setJobHours(b.hours);setAssignedStaff(b.staff||[]);setCaseId(b.caseId||"");setTbc(b.tbc||false);setNotes(b.notes||"");setShowModal(true);}
+  function toggleStaff(s){setAssignedStaff(prev=>prev.includes(s)?prev.filter(x=>x!==s):[...prev,s]);}
+
+  async function saveBooking(){
+    if(!jobDate||!jobTime||assignedStaff.length===0){alert("Please select date, time and at least one staff member.");return;}
+    setSaving(true);
+    try{
+      const selCase=activeCases.find(x=>x.id===caseId);
+      const data={jobType,date:jobDate,time:jobTime,hours:jobHours,staff:assignedStaff,caseId:tbc?"":caseId,tbc,caseLabel:tbc?"TBC":selCase?`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`:"",funeralHome:selCase?.funeralHomeName||"",notes,completed:false,createdBy:user?.name||"",createdAt:new Date().toISOString()};
+      if(editingBooking){
+        await sb(`vehicle_bookings?id=eq.${editingBooking.id}`,{method:"PATCH",body:JSON.stringify(data),prefer:"return=representation"});
+        onUpdateVehicleBooking({...editingBooking,...data});
+      } else {
+        const booking={id:genId(),...data};
+        await sb("vehicle_bookings",{method:"POST",body:JSON.stringify(booking),prefer:"return=representation"});
+        onAddVehicleBooking(booking);
+      }
+      resetModal();
+    }catch(err){alert("Error: "+err.message);}
+    setSaving(false);
+  }
+
+  async function completeJob(b){
+    if(!timeIn||!timeOut){alert("Please enter time in and time out.");return;}
+    setSaving(true);
+    try{
+      const data={completed:true,completedAt:new Date().toISOString(),timeIn,timeOut,fuelLevel,cleanliness,completionNotes};
+      await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"PATCH",body:JSON.stringify(data)});
+      onUpdateVehicleBooking({...b,...data});
+      setShowCompleteModal(null);setTimeIn("");setTimeOut("");setFuelLevel("F");setCleanliness("Clean");setCompletionNotes("");
+    }catch(err){alert("Error: "+err.message);}
+    setSaving(false);
+  }
+
+  async function deleteBooking(b){if(!window.confirm("Delete this booking?"))return;await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"DELETE"});onDeleteVehicleBooking(b.id);resetModal();}
+
+  return(
+    <div>
+      <button onClick={()=>setShowModal(true)} className="mb-4 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">+ ADD JOB</button>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {weekDates.map(d=>{const isToday=d===todaySydney();return<div key={d} className={`text-center text-xs font-black uppercase py-1.5 rounded-lg ${isToday?"bg-gray-900 text-white":"bg-gray-100 text-gray-600"}`}>{fmtD(d)}</div>;})}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {weekDates.map(d=>(
+          <div key={d} className="min-h-[100px] space-y-1">
+            {(bookingsByDate[d]||[]).map(b=>(
+              <div key={b.id} className={`rounded-xl p-2 cursor-pointer text-xs border-2 ${b.completed?"bg-green-50 border-green-300":"bg-gray-50 border-gray-300"}`}>
+                <div className="font-black text-gray-900">{b.time}</div>
+                <div className="font-bold truncate" style={{fontSize:"10px"}}>{b.jobType}</div>
+                <div className="text-gray-500 truncate" style={{fontSize:"10px"}}>{b.caseLabel||"TBC"}</div>
+                <div className="text-gray-400 truncate" style={{fontSize:"9px"}}>{(b.staff||[]).join(", ")}</div>
+                {b.completed&&<div className="text-green-600 font-black" style={{fontSize:"9px"}}>✓ DONE</div>}
+                <div className="flex gap-1 mt-1">
+                  <button onClick={()=>openEdit(b)} className="flex-1 py-0.5 rounded bg-gray-200 text-gray-700 font-black" style={{fontSize:"9px"}}>EDIT</button>
+                  {!b.completed&&<button onClick={()=>setShowCompleteModal(b)} className="flex-1 py-0.5 rounded bg-gray-900 text-white font-black" style={{fontSize:"9px"}}>DONE</button>}
+                </div>
+              </div>
+            ))}
+            <button onClick={()=>{setJobDate(d);setShowModal(true);}} className="w-full py-1 rounded-lg border border-gray-100 hover:border-gray-400 text-gray-200 font-black text-xs text-center hover:bg-gray-50 transition">+</button>
+          </div>
+        ))}
+      </div>
+
+      {showModal&&(
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",overflowY:"auto"}}>
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black text-gray-900 uppercase">{editingBooking?"EDIT JOB":"ADD JOB"}</h3>
+              <button onClick={resetModal} className="text-gray-400 hover:text-gray-700 font-black text-xl">✕</button>
+            </div>
+            <div className="space-y-4">
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Job Type</div>
+                <select className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm font-bold" value={jobType} onChange={e=>{setJobType(e.target.value);const jt=VEHICLE_JOB_TYPES.find(x=>x.label===e.target.value);if(jt)setJobHours(jt.defaultHours);}}>
+                  {VEHICLE_JOB_TYPES.map(j=><option key={j.label}>{j.label}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Date</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobDate} onChange={e=>setJobDate(e.target.value)}/></div>
+                <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Start Time</div><input type="time" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobTime} onChange={e=>setJobTime(e.target.value)}/></div>
+              </div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Duration (hours)</div><input type="number" min="0.5" max="12" step="0.5" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobHours} onChange={e=>setJobHours(parseFloat(e.target.value))}/></div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-2">Assign Staff</div>
+                <div className="flex flex-wrap gap-2">{VEHICLE_STAFF.map(s=><button key={s} type="button" onClick={()=>toggleStaff(s)} className={`px-3 py-1.5 rounded-xl border-2 text-xs font-black transition ${assignedStaff.includes(s)?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700"}`}>{s}</button>)}</div>
+              </div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Case</div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={()=>setTbc(!tbc)} className={`px-3 py-1.5 rounded-xl border-2 text-xs font-black transition ${tbc?"bg-amber-500 text-white border-amber-500":"border-gray-200 text-gray-600"}`}>TBC</button>
+                  {!tbc&&<select className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={caseId} onChange={e=>setCaseId(e.target.value)}>
+                    <option value="">— Select Case —</option>
+                    {activeCases.sort((a,b2)=>a.lastName.localeCompare(b2.lastName)).map(x=><option key={x.id} value={x.id}>{(x.lastName||"").toUpperCase()}, {x.firstName} — {x.funeralHomeName}</option>)}
+                  </select>}
+                </div>
+              </div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Notes</div><textarea className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" rows={2} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Additional notes..."/></div>
+              <div className="flex gap-3">
+                <button onClick={saveBooking} disabled={saving} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase">{saving?"SAVING...":"SAVE"}</button>
+                {editingBooking&&<button onClick={()=>deleteBooking(editingBooking)} className="px-4 py-3 rounded-xl border-2 border-red-300 text-red-500 font-black text-sm">DELETE</button>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCompleteModal&&(
+        <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"20px",overflowY:"auto"}}>
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black text-gray-900 uppercase">Complete Job</h3>
+              <button onClick={()=>setShowCompleteModal(null)} className="text-gray-400 hover:text-gray-700 font-black text-xl">✕</button>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
+              <div className="font-black">{showCompleteModal.jobType}</div>
+              <div className="text-gray-500">{showCompleteModal.caseLabel||"TBC"} · {showCompleteModal.date} {showCompleteModal.time}</div>
+              <div className="text-gray-400">{(showCompleteModal.staff||[]).join(", ")}</div>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Time In</div><input type="time" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={timeIn} onChange={e=>setTimeIn(e.target.value)}/></div>
+                <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Time Out</div><input type="time" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={timeOut} onChange={e=>setTimeOut(e.target.value)}/></div>
+              </div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-2">Fuel Level</div>
+                <div className="flex gap-2">{FUEL_LEVELS.map(f=><button key={f} type="button" onClick={()=>setFuelLevel(f)} className={`flex-1 py-2 rounded-xl border-2 text-xs font-black transition ${fuelLevel===f?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600"}`}>{f}</button>)}</div>
+              </div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-2">Cleanliness</div>
+                <div className="flex gap-2">{CLEANLINESS.map(cl=><button key={cl} type="button" onClick={()=>setCleanliness(cl)} className={`flex-1 py-2 rounded-xl border-2 text-xs font-black transition ${cleanliness===cl?(cl==="Clean"?"bg-green-600 text-white border-green-600":cl==="Dusty"?"bg-amber-500 text-white border-amber-500":"bg-red-500 text-white border-red-500"):"border-gray-200 text-gray-600"}`}>{cl}</button>)}</div>
+              </div>
+              <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Comments</div><textarea className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" rows={3} value={completionNotes} onChange={e=>setCompletionNotes(e.target.value)} placeholder="Notes about job or vehicle..."/></div>
+              <button onClick={()=>completeJob(showCompleteModal)} disabled={saving} className="w-full py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase">{saving?"SAVING...":"✓ MARK COMPLETE"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── CALENDAR ─────────────────────────────────────────────────────────────────
 const CALENDAR_SLOTS=[];
 for(let h=8;h<=20;h++){
@@ -4158,7 +4325,7 @@ function getWeekDates(base){
   return dates;
 }
 
-function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,onDeleteBooking}){
+function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,onDeleteBooking,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking}){
   const[weekBase,setWeekBase]=useState(today());
   const[showBookModal,setShowBookModal]=useState(false);
   const[editingBooking,setEditingBooking]=useState(null); // booking being viewed/edited
@@ -4335,10 +4502,10 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
       </div>
 
       {/* Room Tabs */}
-      <div className="flex gap-2 mb-4">
-        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"]].map(([key,label,color])=>(
+      <div className="flex flex-wrap gap-2 mb-4">
+        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"],["VehicleStaff","Vehicle & Staff","gray"]].map(([key,label,color])=>(
           <button key={key} onClick={()=>setActiveRoom(key)}
-            className={"px-5 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(activeRoom===key?(color==="green"?"bg-green-600 text-white border-green-600":"bg-blue-600 text-white border-blue-600"):"border-gray-200 text-gray-600 hover:border-gray-700")}>
+            className={"px-4 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(activeRoom===key?(color==="green"?"bg-green-600 text-white border-green-600":color==="blue"?"bg-blue-600 text-white border-blue-600":"bg-gray-900 text-white border-gray-900"):"border-gray-200 text-gray-600 hover:border-gray-700")}>
             {label}
           </button>
         ))}
@@ -4715,14 +4882,14 @@ export default function App() {
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>);
   if(action==="transfers") return wrap(<MyTransfers user={user} cases={cases}/>);
-  if(action==="calendar") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking}/></ErrorBoundary>);
+  if(action==="calendar") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/></ErrorBoundary>);
 
   return wrap(
     <main>
       {tab==="home"&&<HomeScreen user={user} onAction={a=>setAction(a)}/>}
       {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={cases}/>}
-      {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking}/>}
+      {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>}
       {tab==="records"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={cases}/>}
