@@ -4511,7 +4511,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
         ))}
       </div>
 
-      <div className="overflow-x-auto">
+      {activeRoom!=="VehicleStaff"&&<div className="overflow-x-auto">
         <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
           <thead>
             <tr>
