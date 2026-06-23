@@ -4962,6 +4962,8 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 const getCalendarBookings=()=>sb("calendar_bookings?select=*").catch(()=>[]);
+const getVehicleBookings=()=>sb("vehicle_bookings?select=*&order=date.asc,time.asc").catch(()=>[]);
+const getVehicleBookings=()=>sb("vehicle_bookings?select=*&order=date.asc,time.asc").catch(()=>[]);
 const insertCalendarBooking=b=>sb("calendar_bookings",{method:"POST",body:JSON.stringify(b),prefer:"return=representation"});
 const deleteCalendarBooking=id=>sb(`calendar_bookings?id=eq.${id}`,{method:"DELETE"});
 
@@ -5024,10 +5026,11 @@ export default function App() {
   },[]);
 
   useEffect(()=>{
-    Promise.all([getUsers(),getCases(),getCalendarBookings()]).then(([u,c,b])=>{
+    Promise.all([getUsers(),getCases(),getCalendarBookings(),getVehicleBookings()]).then(([u,c,b,vb])=>{
       setUsers(u);
       setCases(c.map(dbToCase));
       setCalendarBookings(b||[]);
+      setVehicleBookings(Array.isArray(vb)?vb:[]);
     }).catch(err=>console.error("Load error:",err))
     .finally(()=>setLoading(false));
   },[]);
