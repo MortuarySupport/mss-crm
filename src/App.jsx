@@ -5164,7 +5164,7 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
-  if(action==="pins"&&isAdmin) return wrap(<PinsView users={users} onUpdatePin={handlePinUpdate}/>);
+  if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
   if(action==="invoicing"&&isAdmin) return wrap(<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={handleUpdateCase}/>);
