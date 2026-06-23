@@ -4963,7 +4963,6 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 // ─── APP ──────────────────────────────────────────────────────────────────────
 const getCalendarBookings=()=>sb("calendar_bookings?select=*").catch(()=>[]);
 const getVehicleBookings=()=>sb("vehicle_bookings?select=*&order=date.asc,time.asc").catch(()=>[]);
-const getVehicleBookings=()=>sb("vehicle_bookings?select=*&order=date.asc,time.asc").catch(()=>[]);
 const insertCalendarBooking=b=>sb("calendar_bookings",{method:"POST",body:JSON.stringify(b),prefer:"return=representation"});
 const deleteCalendarBooking=id=>sb(`calendar_bookings?id=eq.${id}`,{method:"DELETE"});
 
