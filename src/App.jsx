@@ -2446,7 +2446,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}>
         <p className={s.section}>Physical Details</p>
         <div className="space-y-4">
-          <div><div className={s.label}>Weight</div><div className="flex flex-wrap gap-2">{["Over 100kg","Under 100kg","TBA"].map(w=><button key={w} type="button" onClick={()=>updPrep("weight",w)} className={s.tb(prep.weight===w)}>{w}</button>)}</div></div>
+          <div><div className={s.label}>Weight</div><div className="flex flex-wrap gap-2">{["Under 100kg","Over 100kg","TBA"].map(w=><button key={w} type="button" onClick={()=>updPrep("weight",w)} className={s.tb(prep.weight===w)}>{w}</button>)}</div></div>
           {[["cleanShaven","Clean Shaven"],["hairLocks","Hair Locks"],["fingerPrints","Finger Prints"]].map(([k,l])=>(
             <div key={k}><div className={s.label}>{l}</div><div className="flex flex-wrap gap-2">{["Yes","No","TBA"].map(v=><button key={v} type="button" onClick={()=>updPrep(k,v)} className={s.tb(prep[k]===v)}>{v}</button>)}</div></div>
           ))}
