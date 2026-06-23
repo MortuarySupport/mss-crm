@@ -309,7 +309,7 @@ const s = {
   card:"bg-white border border-gray-200 rounded-2xl p-6 mb-4",
   section:"text-xs font-bold text-gray-500 uppercase tracking-widest mb-3",
   label:"block text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2",
-  tb:(a)=>`px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition ${a?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`,
+  tb:(a)=>`px-3 py-2 rounded-xl border-2 text-xs font-bold transition min-h-[48px] flex items-center justify-center text-center leading-tight ${a?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`,
   tbGreen:(a)=>`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${a?"bg-green-600 text-white border-green-600":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`,
   tbRed:(a)=>`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${a?"bg-red-500 text-white border-red-500":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`,
   tbYellow:(a)=>`px-3 py-2 rounded-xl border-2 text-xs font-bold transition ${a?"bg-amber-400 text-white border-amber-400":"bg-white text-gray-600 border-gray-300 hover:border-gray-700"}`,
