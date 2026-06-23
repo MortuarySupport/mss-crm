@@ -4307,7 +4307,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
     setSaving(true);
     try{
       const selCase=activeCases.find(x=>x.id===caseId);
-      const data={jobType,date:jobDate,time:jobTime,hours:jobHours,staff:assignedStaff,case_id:tbc?"":caseId,tbc,case_label:tbc?"TBC":selCase?`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`:"",funeral_home:selCase?.funeralHomeName||"",notes,completed:false,created_by:user?.name||"",created_at:new Date().toISOString()};
+      const data=  {job_type:jobType,date:jobDate,time:jobTime,hours:jobHours,staff:assignedStaff,case_id:tbc?"":caseId,tbc,case_label:tbc?"TBC":selCase?`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`:"",funeral_home:selCase?.funeralHomeName||"",notes,completed:false,created_by:user?.name||"",created_at:new Date().toISOString()};
       if(editingBooking){
         await sb(`vehicle_bookings?id=eq.${editingBooking.id}`,{method:"PATCH",body:JSON.stringify(data),prefer:"return=representation"});
         onUpdateVehicleBooking({...editingBooking,...data});
