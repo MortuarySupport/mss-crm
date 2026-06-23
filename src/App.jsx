@@ -1134,7 +1134,7 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
-      {(isAdmin||isMSS)&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg+" w-full mt-3"}>📅 MASTER CALENDAR</button>}
+      {(isAdmin||isMSS)&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CALENDAR</button>}
     </div>
   );
 }
