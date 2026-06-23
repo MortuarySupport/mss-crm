@@ -2497,7 +2497,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}>
         <p className={s.section}>SERVICES & ITEMS</p>
         {[
-          {cat:"Preparation",items:[{code:"BP",label:"Basic Preparation"},{code:"TP",label:"Temporary Preservation"},{code:"FE",label:"Full Embalm"},{code:"BP1",label:"Basic Preparation (OS)"},{code:"TP1",label:"Temp Preservation (OS)"},{code:"FE1",label:"Full Embalm (OS)"},{code:"TPC",label:"Temp Preservation - Coroner"},{code:"FEC",label:"Full Embalm - Coroner"},{code:"TPC1",label:"Temp Preservation - Coroner (OS)"},{code:"FEC1",label:"Full Embalm - Coroner (OS)"}]},
+          {cat:"Preparation",items:[{code:"BP",label:"Basic Preparation"},{code:"TP",label:"Temporary Preservation"},{code:"FE",label:"Full Embalm"},{code:"BP1",label:"Basic Preparation (OS)"},{code:"TP1",label:"Temp Preservation (OS)"},{code:"FE1",label:"Full Embalm (OS)"},{code:"TPC",label:"Temp Preservation - Coroner"},{code:"FEC",label:"Full Embalm - Coroner"},{code:"TPC1",label:"Temp Preservation - Coroner (OS)"},{code:"FEC1",label:"Full Embalm - Coroner (OS)"},{code:"NSNA",label:"NSNA"}]},
           {cat:"Cosmetics",items:[{code:"DRS",label:"Dressing/Make Up"},{code:"FP",label:"Finger Prints/Hair Locks"},{code:"PR",label:"Pacemaker Removal"}]},
           {cat:"Supplementary Care",items:[{code:"ASP",label:"Aspiration/Cavity Treatment"},{code:"BSI",label:"Bio-Seal"},{code:"INF",label:"List A | Covid | Infectious"},{code:"REC",label:"Reconstruction"}]},
           {cat:"Storage",items:[{code:"ACC",label:"Accommodation (per night)"}]},
