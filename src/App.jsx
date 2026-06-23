@@ -2536,6 +2536,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <div className="mb-3"><label className={s.label}>Name Plate Colour</label><div className="flex flex-wrap gap-2">{["Silver","Gold"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinPlateColour",prep.coffinPlateColour===v?"":v)} className={s.tb(prep.coffinPlateColour===v)}>{v}</button>)}</div></div>
         <div className="mb-2"><label className={s.label}>Number of Name Plates</label><div className="flex flex-wrap gap-2">{["1","2","3","4"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinPlateQty",prep.coffinPlateQty===v?"":v)} className={s.tb(prep.coffinPlateQty===v)}>{v}</button>)}</div></div>
       </div>
+        <div className="mb-3"><label className="text-xs font-black uppercase text-gray-500 tracking-widest">Any Other Instructions</label><textarea className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm mt-1" rows={3} placeholder="Enter any other instructions..." value={prep.otherInstructions||""} onChange={e=>updPrep("otherInstructions",e.target.value)}/></div>
       <Divider/>
       <div id="docsSection"><DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
       <div className="grid grid-cols-3 gap-3 mb-4">
