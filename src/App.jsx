@@ -1134,6 +1134,8 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
+      {isAdmin&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg+" w-full mt-3"}>📅 MASTER CALENDAR</button>
+      </div>}
     </div>
   );
 }
@@ -3298,6 +3300,132 @@ function ChangesView({cases,onUpdateCase}){
   );
 }
 
+// ─── MASTER CALENDAR ──────────────────────────────────────────────────────────
+function MasterCalendar({cases,calendarBookings,vehicleBookings}){
+  const[weekBase,setWeekBase]=useState(todaySydney());
+  const weekDates=getWeekDates(weekBase);
+  function prevWeek(){const d=new Date(weekDates[0]);d.setDate(d.getDate()-7);setWeekBase(d.toISOString().slice(0,10));}
+  function nextWeek(){const d=new Date(weekDates[0]);d.setDate(d.getDate()+7);setWeekBase(d.toISOString().slice(0,10));}
+
+  const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const months=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmtD(d){const x=new Date(d+"T12:00:00");return`${dayNames[x.getDay()]} ${x.getDate()} ${months[x.getMonth()]}`;}
+
+  // Build slotMaps for all 3 rooms
+  const slotMap={ViewingRoom:{},FamilyRoom:{},Vehicle:{}};
+
+  // Case-derived viewings
+  cases.filter(c=>c.prep?.viewingSlot&&c.prep?.viewing==="Yes").forEach(c=>{
+    const slot=c.prep.viewingSlot;
+    const[date,time]=slot.split("_");
+    if(!weekDates.includes(date)) return;
+    const isHalf=time.includes(":30");
+    const hour=parseInt(time.split(":")[0]);
+    const vDurRaw=c.prep?.viewingDuration||"1 HR";
+    const vSlots=vDurRaw==="2 HR"?4:2;
+    const fhName=c.funeralHomeName||"";
+    let h=hour,half=isHalf;
+    for(let i=0;i<vSlots;i++){
+      const key=`${date}_${h}_${half?"half":"full"}`;
+      slotMap.ViewingRoom[key]={label:i===0?fhName:"",label2:i===0?(c.lastName||"").toUpperCase():"",color:"green",isFirst:i===0,isContinuation:i>0,spanOf:vSlots};
+      if(half){half=false;h++;}else{half=true;}
+    }
+  });
+
+  // Calendar bookings
+  (calendarBookings||[]).forEach(b=>{
+    const[date,time]=b.slot.split("_");
+    if(!weekDates.includes(date)) return;
+    const isHalf=time.includes(":30");
+    const hour=parseInt(time.split(":")[0]);
+    const dur=b.duration||"1 HOUR";
+    const slots=dur==="2 HOURS"?4:2;
+    const room=b.type==="Viewing Room"?"ViewingRoom":"FamilyRoom";
+    const color=b.type==="Viewing Room"?"green":"blue";
+    const parts=(b.deceased_label||"").split(" — ");
+    let h=hour,half=isHalf;
+    for(let i=0;i<slots;i++){
+      const key=`${date}_${h}_${half?"half":"full"}`;
+      slotMap[room][key]={label:i===0?(parts[0]||b.type):"",label2:i===0?(parts[1]||""):"",color,isFirst:i===0,isContinuation:i>0,spanOf:slots};
+      if(half){half=false;h++;}else{half=true;}
+    }
+  });
+
+  // Vehicle bookings
+  (vehicleBookings||[]).forEach(b=>{
+    if(!weekDates.includes(b.date)) return;
+    const[hStr,mStr]=(b.time||"08:00").split(":");
+    const hour=parseInt(hStr);
+    const isHalf=parseInt(mStr||0)>=30;
+    const totalSlots=Math.ceil((b.hours||1)*2);
+    let h=hour,half=isHalf;
+    for(let i=0;i<totalSlots;i++){
+      const key=`${b.date}_${h}_${half?"half":"full"}`;
+      slotMap.Vehicle[key]={label:i===0?b.jobType:"",label2:i===0?(b.caseLabel||"TBC"):"",label3:i===0?(b.staff||[]).join(", "):"",color:"gray",isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,completed:b.completed};
+      if(half){half=false;h++;}else{half=true;}
+    }
+  });
+
+  function RoomTable({roomKey,title,color}){
+    const colors={green:{bg:"#dcfce7",border:"#16a34a",text:"#166534",header:"#15803d"},blue:{bg:"#dbeafe",border:"#2563eb",text:"#1e40af",header:"#1d4ed8"},gray:{bg:"#f3f4f6",border:"#6b7280",text:"#1f2937",header:"#374151"}};
+    const col=colors[color]||colors.gray;
+    return(
+      <div className="mb-6">
+        <div style={{background:col.header,color:"#fff",padding:"8px 12px",borderRadius:"8px",fontWeight:"900",fontSize:"12px",textTransform:"uppercase",letterSpacing:"2px",marginBottom:"6px"}}>{title}</div>
+        <div className="overflow-x-auto">
+          <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
+            <thead>
+              <tr>
+                <th style={{width:"48px",padding:"3px",fontSize:"9px",color:"#9ca3af",textAlign:"left",fontWeight:"900"}}>TIME</th>
+                {weekDates.map(d=>{const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();return<th key={d} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#111":"#f3f4f6",color:isToday?"#fff":"#374151",borderRadius:"4px",fontSize:"10px",fontWeight:"900",textTransform:"uppercase"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})}<br/><span style={{fontSize:"9px"}}>{dd.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></th>;})}
+              </tr>
+            </thead>
+            <tbody>
+            {CALENDAR_SLOTS.map(({hour,half,label})=>(
+              <tr key={label}>
+                <td style={{fontSize:"9px",fontWeight:"900",color:half?"#d1d5db":"#6b7280",padding:"1px 3px",verticalAlign:"top",whiteSpace:"nowrap"}}>{label}</td>
+                {weekDates.map(date=>{
+                  const key=`${date}_${hour}_${half?"half":"full"}`;
+                  const slot=slotMap[roomKey][key];
+                  if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
+                  if(slot){
+                    return(
+                      <td key={date} rowSpan={slot.spanOf||1} style={{padding:"2px",backgroundColor:col.bg,border:`2px solid ${col.border}`,borderRadius:"3px",verticalAlign:"top"}}>
+                        <div style={{fontSize:"9px",fontWeight:"900",color:col.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</div>
+                        <div style={{fontSize:"8px",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label2}</div>
+                        {slot.label3&&<div style={{fontSize:"8px",color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label3}</div>}
+                        {slot.completed&&<div style={{fontSize:"8px",color:"#16a34a",fontWeight:"900"}}>✓</div>}
+                      </td>
+                    );
+                  }
+                  return <td key={date} style={{padding:"1px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f3f4f6",minHeight:"20px"}}/>;
+                })}
+              </tr>
+            ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-black text-gray-900">Master Calendar</h2>
+        <div className="flex items-center gap-2">
+          <button onClick={prevWeek} className="px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-black hover:border-gray-700 transition">← PREV</button>
+          <span className="text-xs font-black text-gray-500">{fmtD(weekDates[0])} – {fmtD(weekDates[6])}</span>
+          <button onClick={nextWeek} className="px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-black hover:bg-gray-700 transition">NEXT →</button>
+        </div>
+      </div>
+      <RoomTable roomKey="ViewingRoom" title="Viewing Room" color="green"/>
+      <RoomTable roomKey="FamilyRoom" title="Family Meeting Room" color="blue"/>
+      <RoomTable roomKey="Vehicle" title="Vehicle & Staff" color="gray"/>
+    </div>
+  );
+}
+
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
 function AdminDashboard({cases,calendarBookings,onAction}){
   const now=new Date();
@@ -4915,6 +5043,7 @@ export default function App() {
   if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="lockview") return wrap(<LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
+  if(action==="mastercalendar") return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={onUpdateCase}/>);
   if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
