@@ -1165,7 +1165,7 @@ function buildCompletedEmail(c, prep, billable, otherUsed) {
   const viewingDetail = prep.viewing === "Yes"
     ? `Yes${prep.viewingLocation ? " — " + prep.viewingLocation : ""}${prep.viewingHost ? " (Hosted by " + prep.viewingHost + ")" : ""}${prep.viewingSlot ? " @ " + prep.viewingSlot.split("_")[1] : ""}`
     : prep.viewing || "—";
-  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection Date: ${fmt(prep.collectionDate) || "—"}\nFuneral Date: ${fmt(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\n─────────────────────────────\nITEMS USED\n─────────────────────────────\n${otherList}\n\n─────────────────────────────\nBILLABLE ITEMS\n─────────────────────────────\n${billableList}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
+  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection/Delivery Date: ${fmt(prep.collectionDate) || "—"}\nFuneral Date: ${fmt(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\n─────────────────────────────\nITEMS USED\n─────────────────────────────\n${otherList}\n\n─────────────────────────────\nBILLABLE ITEMS\n─────────────────────────────\n${billableList}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
 }
 
 function buildCheckOutEmail(c, coData) {
@@ -1206,7 +1206,7 @@ PREPARATION
 Preparation: ${prepList}
 Disposition: ${prep.disposition || "—"}
 Viewing: ${prep.viewing || "—"}${prep.viewingLocation ? " — " + prep.viewingLocation : ""}
-Collection Date: ${fmt(prep.collectionDate) || "—"}
+Collection/Delivery Date: ${fmt(prep.collectionDate) || "—"}
 Funeral Date: ${fmt(prep.funeralDate) || "—"}
 Comments: ${prep.comments || "None"}
 
@@ -2225,7 +2225,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     const prepLabels={
       viewing:"Viewing",viewingSlot:"Viewing slot",viewingDate:"Viewing date",
       viewingLocation:"Viewing location",viewingHost:"Viewing host",viewingDuration:"Viewing duration",
-      collectionDate:"Collection date",collectionTime:"Collection time",
+      collectionDate:"Collection/Delivery date",collectionTime:"Collection time",
       funeralDate:"Funeral date",funeralTime:"Funeral time",sameDates:"Same day",
       disposition:"Disposition",weight:"Weight",coffinType:"Coffin type",
       coffinSize:"Coffin size",coffinColour:"Coffin colour",notes:"Notes",
@@ -2422,7 +2422,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}>
         <p className={s.section}>Dates</p>
         <div className="space-y-4">
-          <Field label="Collection Date">
+          <Field label="Collection/Delivery Date">
             <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrepMulti({collectionDate:e.target.value,funeralDate:prep.sameDates?e.target.value:prep.funeralDate})}/>
             {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
             {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
