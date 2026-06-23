@@ -2407,16 +2407,8 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
       )}
-      {c.pendingChanges?.length>0&&(
-        <button onClick={async()=>{
-          try{
-            await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));
-            onUpdateCase(c.id,{pendingChanges:[]});
-            setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);
-          }catch(err){alert("Error: "+err.message);}
-        }} className="w-full py-4 rounded-2xl bg-orange-500 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>
-      )}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        {c.pendingChanges?.length>0&&<button onClick={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>}
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],true)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">🖨️ PRINT JOB CARD</button>
       </div>
