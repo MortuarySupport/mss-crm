@@ -4208,31 +4208,71 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
 
   async function deleteBooking(b){if(!window.confirm("Delete this booking?"))return;await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"DELETE"});onDeleteVehicleBooking(b.id);resetModal();}
 
+  // Build vehicle slot map (by hour slots like room calendar)
+  const vSlotMap={};
+  (vehicleBookings||[]).forEach(b=>{
+    if(!weekDates.includes(b.date)) return;
+    const[hStr,mStr]=(b.time||"08:00").split(":");
+    const hour=parseInt(hStr);
+    const isHalf=parseInt(mStr||0)>=30;
+    const totalSlots=Math.ceil((b.hours||1)*2);
+    let h=hour,half=isHalf;
+    for(let i=0;i<totalSlots;i++){
+      const key=`${b.date}_${h}_${half?"half":"full"}`;
+      vSlotMap[key]={booking:b,isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,
+        label:i===0?b.jobType:"",label2:i===0?(b.caseLabel||"TBC"):"",
+        staff:i===0?(b.staff||[]).join(", "):"",completed:b.completed};
+      if(half){half=false;h++;}else{half=true;}
+    }
+  });
+
   return(
     <div>
       <button onClick={()=>setShowModal(true)} className="mb-4 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">+ ADD JOB</button>
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {weekDates.map(d=>{const isToday=d===todaySydney();return<div key={d} className={`text-center text-xs font-black uppercase py-1.5 rounded-lg ${isToday?"bg-gray-900 text-white":"bg-gray-100 text-gray-600"}`}>{fmtD(d)}</div>;})}
-      </div>
-      <div className="grid grid-cols-7 gap-1">
-        {weekDates.map(d=>(
-          <div key={d} className="min-h-[100px] space-y-1">
-            {(bookingsByDate[d]||[]).map(b=>(
-              <div key={b.id} className={`rounded-xl p-2 cursor-pointer text-xs border-2 ${b.completed?"bg-green-50 border-green-300":"bg-gray-50 border-gray-300"}`}>
-                <div className="font-black text-gray-900">{b.time}</div>
-                <div className="font-bold truncate" style={{fontSize:"10px"}}>{b.jobType}</div>
-                <div className="text-gray-500 truncate" style={{fontSize:"10px"}}>{b.caseLabel||"TBC"}</div>
-                <div className="text-gray-400 truncate" style={{fontSize:"9px"}}>{(b.staff||[]).join(", ")}</div>
-                {b.completed&&<div className="text-green-600 font-black" style={{fontSize:"9px"}}>✓ DONE</div>}
-                <div className="flex gap-1 mt-1">
-                  <button onClick={()=>openEdit(b)} className="flex-1 py-0.5 rounded bg-gray-200 text-gray-700 font-black" style={{fontSize:"9px"}}>EDIT</button>
-                  {!b.completed&&<button onClick={()=>setShowCompleteModal(b)} className="flex-1 py-0.5 rounded bg-gray-900 text-white font-black" style={{fontSize:"9px"}}>DONE</button>}
-                </div>
-              </div>
-            ))}
-            <button onClick={()=>{setJobDate(d);setShowModal(true);}} className="w-full py-1 rounded-lg border border-gray-100 hover:border-gray-400 text-gray-200 font-black text-xs text-center hover:bg-gray-50 transition">+</button>
-          </div>
-        ))}
+      <div className="overflow-x-auto">
+        <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
+          <thead>
+            <tr>
+              <th style={{width:"56px",padding:"4px",fontSize:"10px",color:"#9ca3af",textAlign:"left",fontWeight:"900",textTransform:"uppercase"}}>TIME</th>
+              {weekDates.map(d=>{const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();return<th key={d} style={{padding:"4px",textAlign:"center",backgroundColor:isToday?"#111":"#f3f4f6",color:isToday?"#fff":"#374151",borderRadius:"6px",fontSize:"11px",fontWeight:"900",textTransform:"uppercase"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})}<br/><span style={{fontSize:"10px"}}>{dd.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span></th>;})}
+            </tr>
+          </thead>
+          <tbody>
+          {(()=>{
+            return CALENDAR_SLOTS.map(({hour,half,label})=>(
+              <tr key={label}>
+                <td style={{fontSize:"10px",fontWeight:"900",color:half?"#d1d5db":"#6b7280",padding:"2px 4px",verticalAlign:"top",whiteSpace:"nowrap"}}>{label}</td>
+                {weekDates.map(date=>{
+                  const key=`${date}_${hour}_${half?"half":"full"}`;
+                  const slot=vSlotMap[key];
+                  if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
+                  if(slot){
+                    const rowSpan=slot.spanOf||1;
+                    const bg=slot.completed?"#dcfce7":"#f8fafc";
+                    const border=slot.completed?"#16a34a":"#6b7280";
+                    const textColor=slot.completed?"#166534":"#1f2937";
+                    return(
+                      <td key={date} rowSpan={rowSpan} style={{padding:"2px",backgroundColor:bg,border:`2px solid ${border}`,borderRadius:"4px",verticalAlign:"top"}}>
+                        <div style={{padding:"2px 4px"}}>
+                          <div style={{fontSize:"10px",fontWeight:"900",textTransform:"uppercase",color:textColor,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</div>
+                          <div style={{fontSize:"9px",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label2}</div>
+                          <div style={{fontSize:"9px",color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.staff}</div>
+                          {slot.completed&&<div style={{fontSize:"9px",color:"#16a34a",fontWeight:"900"}}>✓ DONE</div>}
+                          <div style={{display:"flex",gap:"2px",marginTop:"2px"}}>
+                            <button onClick={()=>openEdit(slot.booking)} style={{flex:1,fontSize:"8px",padding:"1px",background:"#e5e7eb",border:"none",borderRadius:"3px",cursor:"pointer",fontWeight:"700"}}>EDIT</button>
+                            {!slot.completed&&<button onClick={()=>setShowCompleteModal(slot.booking)} style={{flex:1,fontSize:"8px",padding:"1px",background:"#111",color:"#fff",border:"none",borderRadius:"3px",cursor:"pointer",fontWeight:"700"}}>DONE</button>}
+                          </div>
+                        </div>
+                      </td>
+                    );
+                  }
+                  return <td key={date} style={{padding:"2px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f3f4f6",cursor:"pointer"}} onClick={()=>{setJobDate(date);setJobTime(label);setShowModal(true);}}><div style={{minHeight:"24px",textAlign:"center",color:"#e5e7eb",fontSize:"11px",fontWeight:"900"}}>+</div></td>;
+                })}
+              </tr>
+            ));
+          })()}
+          </tbody>
+        </table>
       </div>
 
       {showModal&&(
