@@ -2510,9 +2510,9 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         ].map(({cat,items})=>(
           <div key={cat} className="mb-5">
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{cat}</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {items.map(({code,label})=>(
-                <div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={s.tb(!!billable[code])}>{label}</button>{code==="ACC"&&billable["ACC"]&&(()=>{const nights=c.checkedInAt&&prep.collectionDate?Math.max(1,Math.ceil((new Date(prep.collectionDate+"T12:00:00")-new Date(c.checkedInAt))/(1000*60*60*24))):null;return nights?<span className="text-xs font-black text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">{nights} night{nights!==1?"s":""}</span>:null;})()}{["CL","CS","NPL","NPS","CL4"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>
+                <div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={"w-full py-2 px-2 rounded-xl border-2 text-xs font-bold text-center transition "+(billable[code]?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-700")}>{label}</button>{code==="ACC"&&billable["ACC"]&&(()=>{const nights=c.checkedInAt&&prep.collectionDate?Math.max(1,Math.ceil((new Date(prep.collectionDate+"T12:00:00")-new Date(c.checkedInAt))/(1000*60*60*24))):null;return nights?<span className="text-xs font-black text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">{nights} night{nights!==1?"s":""}</span>:null;})()}{["CL","CS","NPL","NPS","CL4"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>
               ))}
             </div>
           </div>
