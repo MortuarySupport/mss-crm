@@ -2417,8 +2417,6 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
       </div>
       <Divider/>
-      <div className={s.card}><p className={s.section}>Preparation Required</p><MultiToggle options={PREP_OPTIONS.map(p=>p.label)} selected={prep.prepOptions||[]} onToggle={o=>{const cur=prep.prepOptions||[];updPrep("prepOptions",cur.includes(o)?cur.filter(x=>x!==o):[...cur,o]);}}/></div>
-      <div className={s.card}><ViewingSection prep={prep} updPrepMulti={updPrepMulti} bookedSlots={bookedSlots}/></div>
       <div className={s.card}>
         <p className={s.section}>Dates</p>
         <div className="space-y-4">
@@ -2442,27 +2440,18 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           )}
         </div>
       </div>
-      <div className={s.card}><p className={s.section}>Disposition</p><div className="flex flex-wrap gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
-      <div className={s.card}>
-        <p className={s.section}>Physical Details</p>
-        <div className="space-y-4">
-          <div><div className={s.label}>Weight</div><div className="flex flex-wrap gap-2">{["Under 100kg","Over 100kg","TBA"].map(w=><button key={w} type="button" onClick={()=>updPrep("weight",w)} className={s.tb(prep.weight===w)}>{w}</button>)}</div></div>
-          {[["cleanShaven","Clean Shaven"],["hairLocks","Hair Locks"],["fingerPrints","Finger Prints"]].map(([k,l])=>(
-            <div key={k}><div className={s.label}>{l}</div><div className="flex flex-wrap gap-2">{["Yes","No","TBA"].map(v=><button key={v} type="button" onClick={()=>updPrep(k,v)} className={s.tb(prep[k]===v)}>{v}</button>)}</div></div>
-          ))}
-          <div>
-            <div className={s.label}>Pacemaker Removed</div>
-            <div className="flex gap-2 mb-2">{["Yes","No","NA","TBA"].map(v=><button key={v} type="button" onClick={()=>updPrep("pacemakerRemoved",v)} className={s.tb(prep.pacemakerRemoved===v)}>{v}</button>)}</div>
-            {prep.disposition==="Cremation"&&(
-              <button type="button" onClick={()=>setShowPacemakerCert(true)}
-                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-sm uppercase tracking-wide transition">
-                📋 GENERATE PACEMAKER REMOVAL CERTIFICATE
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
       <div className={s.card}><p className={s.section}>Comments</p><textarea className={`${s.inp} min-h-[80px]`} value={prep.comments||""} onChange={e=>updPrep("comments",e.target.value)} placeholder="Add mortuary comments…"/></div>
+      <div className={s.card}><p className={s.section}>Preparation Required</p><MultiToggle options={PREP_OPTIONS.map(p=>p.label)} selected={prep.prepOptions||[]} onToggle={o=>{const cur=prep.prepOptions||[];updPrep("prepOptions",cur.includes(o)?cur.filter(x=>x!==o):[...cur,o]);}}/></div>
+      <div className={s.card}><p className={s.section}>Disposition</p><div className="flex flex-wrap gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
+      <div id="coffinDetails" className={s.card}>
+        <p className={s.section}>COFFIN DETAILS</p>
+        <div className="mb-4"><label className={s.label}>Coffin Name</label><input type="text" className={s.inp} value={prep.coffinName||""} onChange={e=>updPrep("coffinName",e.target.value)} placeholder="Enter coffin name"/></div>
+        <div className="mb-3"><label className={s.label}>Size</label><div className="flex flex-wrap gap-2">{["Under","Std","OS1","OS2","OS3","OS4","OS5","Baby","Infant"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinSize",prep.coffinSize===v?"":v)} className={s.tb(prep.coffinSize===v)}>{v}</button>)}</div></div>
+        <div className="mb-3"><label className={s.label}>Colour</label><div className="flex flex-wrap gap-2">{["Maple","Teak","Rosewood","White","Black","Timber","Cardboard","NSNA"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinColour",prep.coffinColour===v?"":v)} className={s.tb(prep.coffinColour===v)}>{v}</button>)}</div></div>
+      </div>
+        <div className="mb-3"><div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Coffin Extras</div><div className="flex flex-wrap gap-2">{[{code:"CL",label:"Crucifix - Large"},{code:"CS",label:"Crucifix - Small"},{code:"NPL",label:"Name Plate - Large"},{code:"NPS",label:"Name Plate - Small"},{code:"GA",label:"Gravemarker Assembly"},{code:"NPE",label:"Name Plate Etching"}].map(({code,label})=><div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={s.tb(!!billable[code])}>{label}</button>{["CL","CS","NPL","NPS"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>)}</div></div>
+      <Divider/>
+      <div className={s.card}><ViewingSection prep={prep} updPrepMulti={updPrepMulti} bookedSlots={bookedSlots}/></div>
 
       <div className={s.card}>
         <p className={s.section}>VALUABLES</p>
@@ -2519,14 +2508,6 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           </div>
         ))}
       </div>
-      <div id="coffinDetails" className={s.card}>
-        <p className={s.section}>COFFIN DETAILS</p>
-        <div className="mb-4"><label className={s.label}>Coffin Name</label><input type="text" className={s.inp} value={prep.coffinName||""} onChange={e=>updPrep("coffinName",e.target.value)} placeholder="Enter coffin name"/></div>
-        <div className="mb-3"><label className={s.label}>Size</label><div className="flex flex-wrap gap-2">{["Under","Std","OS1","OS2","OS3","OS4","OS5","Baby","Infant"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinSize",prep.coffinSize===v?"":v)} className={s.tb(prep.coffinSize===v)}>{v}</button>)}</div></div>
-        <div className="mb-3"><label className={s.label}>Colour</label><div className="flex flex-wrap gap-2">{["Maple","Teak","Rosewood","White","Black","Timber","Cardboard","NSNA"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinColour",prep.coffinColour===v?"":v)} className={s.tb(prep.coffinColour===v)}>{v}</button>)}</div></div>
-      </div>
-        <div className="mb-3"><div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Coffin Extras</div><div className="flex flex-wrap gap-2">{[{code:"CL",label:"Crucifix - Large"},{code:"CS",label:"Crucifix - Small"},{code:"NPL",label:"Name Plate - Large"},{code:"NPS",label:"Name Plate - Small"},{code:"GA",label:"Gravemarker Assembly"},{code:"NPE",label:"Name Plate Etching"}].map(({code,label})=><div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={s.tb(!!billable[code])}>{label}</button>{["CL","CS","NPL","NPS"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>)}</div></div>
-      <Divider/>
       <div id="docsSection"><DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
       <div className="grid grid-cols-3 gap-3 mb-4">
         {[["not-started","Not Started","bg-red-500"],["in-progress","In Progress","bg-amber-500"],["completed","Completed","bg-green-600"]].map(([val,label,col])=>(
