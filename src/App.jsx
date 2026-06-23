@@ -3253,6 +3253,43 @@ function InvoicingView({cases,onUpdateCase}){
 }
 
 
+// ─── ACTIVITY LOG VIEW ────────────────────────────────────────────────────────
+function ActivityLogView(){
+  const[logs,setLogs]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[filter,setFilter]=useState("");
+  useEffect(()=>{
+    fetch(SUPABASE_URL+"/rest/v1/activity_log?select=*&order=created_at.desc&limit=200",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}})
+    .then(r=>r.json()).then(d=>{setLogs(Array.isArray(d)?d:[]);setLoading(false);}).catch(()=>setLoading(false));
+  },[]);
+  const filtered=logs.filter(l=>!filter||(l.user_name||"").toLowerCase().includes(filter.toLowerCase())||(l.action||"").toLowerCase().includes(filter.toLowerCase())||(l.case_ref||"").toLowerCase().includes(filter.toLowerCase()));
+  return(
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <h2 className="text-2xl font-black text-gray-900 mb-4">Activity Log</h2>
+      <input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm mb-4" placeholder="Filter by name, action or case..." value={filter} onChange={e=>setFilter(e.target.value)}/>
+      {loading&&<p className="text-gray-400 text-center py-8">Loading...</p>}
+      <div className="space-y-2">
+        {filtered.map((l,i)=>(
+          <div key={i} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <span className="font-black text-gray-900 text-sm">{l.user_name}</span>
+                <span className="text-gray-400 text-xs ml-2">{l.user_role}</span>
+                {l.funeral_home_name&&<span className="text-gray-400 text-xs ml-2">· {l.funeral_home_name}</span>}
+              </div>
+              <span className="text-xs text-gray-400">{l.created_at?new Date(l.created_at).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""}</span>
+            </div>
+            <div className="text-sm font-bold text-gray-700 mt-0.5">{l.action}</div>
+            {l.detail&&<div className="text-xs text-gray-500 mt-0.5">{l.detail}</div>}
+            {l.case_ref&&<div className="text-xs text-blue-500 mt-0.5">{l.case_ref}</div>}
+          </div>
+        ))}
+        {!loading&&filtered.length===0&&<p className="text-gray-400 text-center py-8">No activity found.</p>}
+      </div>
+    </div>
+  );
+}
+
 // ─── CHANGES VIEW ─────────────────────────────────────────────────────────────
 function ChangesView({cases,onUpdateCase}){
   const past24=new Date(Date.now()-24*60*60*1000);
