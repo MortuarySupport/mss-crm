@@ -1118,7 +1118,10 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
         <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
       </div>}
-      {!isAdmin&&isMSS&&<button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>}
+      {!isAdmin&&isMSS&&<div className="grid grid-cols-2 gap-3 mb-3">
+        <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
+        <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
+      </div>}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
@@ -1135,7 +1138,7 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
-      {!isAdmin&&isMSS&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg+" w-full mt-3"}>📅 MASTER CALENDAR</button>}
+
     </div>
   );
 }
