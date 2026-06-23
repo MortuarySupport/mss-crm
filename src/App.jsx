@@ -3131,7 +3131,7 @@ function InvoicingView({cases,onUpdateCase}){
   };
 
   // Variable qty items
-  const varQty=["CL","CS","CL4","WD"];
+  const varQty=["CL","CS","CL4","WD","NPL","NPS"];
   const [qtys,setQtys]=useState({});
   const [selCase,setSelCase]=useState(null);
 
