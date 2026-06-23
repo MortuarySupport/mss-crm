@@ -3453,31 +3453,13 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
           <thead>
             <tr>
               <th style={{width:"48px",padding:"3px",fontSize:"9px",color:"#9ca3af",textAlign:"left",fontWeight:"900"}}>TIME</th>
-              <th style={{width:"80px",padding:"3px",fontSize:"9px",color:"#15803d",fontWeight:"900",textTransform:"uppercase"}}>Viewing Room</th>
-              <th style={{width:"80px",padding:"3px",fontSize:"9px",color:"#1d4ed8",fontWeight:"900",textTransform:"uppercase"}}>Family Mtg</th>
-              <th style={{width:"80px",padding:"3px",fontSize:"9px",color:"#374151",fontWeight:"900",textTransform:"uppercase"}}>Vehicle</th>
-              {weekDates.slice(1).map(d=>{
+              {weekDates.map(d=>{
                 const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();
+                const dayLabel=dd.toLocaleDateString("en-AU",{weekday:"short"})+" "+dd.getDate();
                 return[
-                  <th key={d+"vr"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dcfce7":"#f0fdf4",fontSize:"9px",fontWeight:"900",color:"#15803d"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
-                  <th key={d+"fm"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dbeafe":"#eff6ff",fontSize:"9px",fontWeight:"900",color:"#1d4ed8"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
-                  <th key={d+"vh"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#f3f4f6":"#f9fafb",fontSize:"9px",fontWeight:"900",color:"#374151"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
-                ];
-              })}
-            </tr>
-            <tr>
-              <th/>
-              {(()=>{const d=weekDates[0];const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();return[
-                <th key="d0vr" style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dcfce7":"#f0fdf4",fontSize:"10px",fontWeight:"900",color:isToday?"#15803d":"#15803d"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
-                <th key="d0fm" style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dbeafe":"#eff6ff",fontSize:"10px",fontWeight:"900",color:"#1d4ed8"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
-                <th key="d0vh" style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#f3f4f6":"#f9fafb",fontSize:"10px",fontWeight:"900",color:"#374151"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
-              ];})()}
-              {weekDates.slice(1).map(d=>{
-                const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();
-                return[
-                  <th key={d+"vr2"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dcfce7":"#f0fdf4",fontSize:"9px",color:"#15803d"}}></th>,
-                  <th key={d+"fm2"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dbeafe":"#eff6ff",fontSize:"9px",color:"#1d4ed8"}}></th>,
-                  <th key={d+"vh2"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#f3f4f6":"#f9fafb",fontSize:"9px",color:"#374151"}}></th>,
+                  <th key={d+"vr"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#bbf7d0":"#e5f5ec",fontSize:"9px",fontWeight:"900",color:"#15803d",borderRight:"1px solid #fff"}}>{dayLabel}<br/>Viewing</th>,
+                  <th key={d+"fm"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#bfdbfe":"#e8f0fe",fontSize:"9px",fontWeight:"900",color:"#1d4ed8",borderRight:"1px solid #fff"}}>{dayLabel}<br/>Family</th>,
+                  <th key={d+"vh"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#e5e7eb":"#f3f4f6",fontSize:"9px",fontWeight:"900",color:"#374151",borderRight:"2px solid #d1d5db"}}>{dayLabel}<br/>Veh/Stf</th>,
                 ];
               })}
             </tr>
@@ -3489,15 +3471,18 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
               {weekDates.map(date=>{
                 const key=`${date}_${hour}_${half?"half":"full"}`;
                 const isClash=clashes.has(key);
-                return["ViewingRoom","FamilyRoom","Vehicle"].map(roomKey=>{
-                  const colors2={ViewingRoom:{bg:"#dcfce7",border:"#16a34a",text:"#166534"},FamilyRoom:{bg:"#dbeafe",border:"#2563eb",text:"#1e40af"},Vehicle:{bg:"#f3f4f6",border:"#6b7280",text:"#1f2937"}};
+                return["ViewingRoom","FamilyRoom","Vehicle"].map((roomKey,ri)=>{
+                  const emptyBg=["#f0fdf4","#eff6ff","#f9fafb"][ri];
+                  const emptyBgHalf=["#e8faf0","#e8f0fe","#f3f4f6"][ri];
+                  const colors2={ViewingRoom:{bg:"#bbf7d0",border:"#16a34a",text:"#166534"},FamilyRoom:{bg:"#bfdbfe",border:"#2563eb",text:"#1e40af"},Vehicle:{bg:"#e5e7eb",border:"#6b7280",text:"#1f2937"}};
                   const col=colors2[roomKey];
                   const slot=slotMap[roomKey][key];
-                  if(slot?.isContinuation) return <td key={`${date}_${roomKey}`} style={{padding:0,border:"none"}}/>;
+                  const borderRight=ri===2?"2px solid #d1d5db":"1px solid #fff";
+                  if(slot?.isContinuation) return <td key={`${date}_${roomKey}`} style={{padding:0,border:"none",borderRight}}/>;
                   if(slot){
                     const clash=isClash&&roomKey==="Vehicle";
                     return(
-                      <td key={`${date}_${roomKey}`} rowSpan={slot.spanOf||1} style={{padding:"1px",backgroundColor:clash?"#fef2f2":col.bg,border:`2px solid ${clash?"#dc2626":col.border}`,borderRadius:"3px",verticalAlign:"top"}}>
+                      <td key={`${date}_${roomKey}`} rowSpan={slot.spanOf||1} style={{padding:"1px",backgroundColor:clash?"#fef2f2":col.bg,border:`2px solid ${clash?"#dc2626":col.border}`,borderRadius:"3px",verticalAlign:"top",borderRight}}>
                         {clash&&<div style={{fontSize:"8px",color:"#dc2626",fontWeight:"900"}}>⚠ CLASH</div>}
                         <div style={{fontSize:"9px",fontWeight:"900",color:clash?"#dc2626":col.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</div>
                         <div style={{fontSize:"8px",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label2}</div>
@@ -3505,7 +3490,7 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
                       </td>
                     );
                   }
-                  return <td key={`${date}_${roomKey}`} style={{padding:"1px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f8f8f8",minHeight:"18px"}}/>;
+                  return <td key={`${date}_${roomKey}`} style={{padding:"1px",backgroundColor:half?emptyBgHalf:emptyBg,borderRight,borderBottom:"1px solid #f0f0f0",minHeight:"18px"}}/>;
                 });
               })}
             </tr>
