@@ -2520,8 +2520,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{cat}</p>
             <div className="flex flex-wrap gap-2">
               {items.map(({code,label})=>(
-                <button key={code} type="button" onClick={()=>updBill(code,!billable[code])}
-                  className={s.tb(!!billable[code])}>{label}</button>
+                <div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={s.tb(!!billable[code])}>{label}</button>{code==="ACC"&&billable["ACC"]&&(()=>{const nights=c.checkedInAt&&prep.collectionDate?Math.max(1,Math.ceil((new Date(prep.collectionDate+"T12:00:00")-new Date(c.checkedInAt))/(1000*60*60*24))):null;return nights?<span className="text-xs font-black text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">{nights} night{nights!==1?"s":""}</span>:null;})()}</div>
               ))}
             </div>
           </div>
