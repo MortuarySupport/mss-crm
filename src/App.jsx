@@ -3478,7 +3478,7 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
                   const col=colors2[roomKey];
                   const slot=slotMap[roomKey][key];
                   const borderRight=ri===2?"2px solid #d1d5db":"1px solid #fff";
-                  if(slot?.isContinuation) return <td key={`${date}_${roomKey}`} style={{padding:0,border:"none",borderRight}}/>;
+                  if(slot?.isContinuation) return null;
                   if(slot){
                     const clash=isClash&&roomKey==="Vehicle";
                     return(
