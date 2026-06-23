@@ -1134,7 +1134,7 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
-      {isAdmin&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg+" w-full mt-3"}>📅 MASTER CALENDAR</button>}
+      {(isAdmin||isMSS)&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg+" w-full mt-3"}>📅 MASTER CALENDAR</button>}
     </div>
   );
 }
@@ -4577,9 +4577,10 @@ for(let h=8;h<=20;h++){
 function getWeekDates(base){
   const dates=[];
   const d=new Date(base+"T12:00:00");
-  if(isNaN(d.getTime())) return [todaySydney(),todaySydney(),todaySydney(),todaySydney(),todaySydney(),todaySydney(),todaySydney()];
+  if(isNaN(d.getTime())) return Array(7).fill(todaySydney());
   const day=d.getDay();
-  d.setDate(d.getDate()-day);
+  const diff=day===0?-6:1-day; // Start Monday
+  d.setDate(d.getDate()+diff);
   for(let i=0;i<7;i++){const dd=new Date(d);dd.setDate(d.getDate()+i);dates.push(dd.toISOString().slice(0,10));}
   return dates;
 }
@@ -4757,6 +4758,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
       <div className="flex gap-3 mb-5">
         {canEdit&&<button onClick={()=>{resetModal();setShowBookModal(true);}} className={`${s.btnDark} py-3`}>+ BOOK A ROOM</button>}
+        {(isAdmin||user?.role==="mss")&&<button onClick={()=>setActiveRoom("VehicleStaff")} className={`${s.btnGhost} py-3`}>+ ADD JOB</button>}
         <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
       </div>
 
@@ -5134,7 +5136,7 @@ export default function App() {
   if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="lockview") return wrap(<LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
-  if(action==="mastercalendar") return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
+  if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={onUpdateCase}/>);
   if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
