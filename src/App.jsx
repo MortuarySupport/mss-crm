@@ -3365,6 +3365,36 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
     }
   });
 
+  // Detect clashes - same staff member or vehicle booked twice at same time
+  function detectClashes(){
+    const clashes=new Set();
+    const staffBySlot={};
+    weekDates.forEach(date=>{
+      CALENDAR_SLOTS.forEach(({hour,half})=>{
+        const vKey=`${date}_${hour}_${half?"half":"full"}`;
+        const vSlot=slotMap.Vehicle[vKey];
+        if(vSlot?.isFirst&&vSlot.booking){
+          const staff=vSlot.booking.staff||[];
+          const jobType=vSlot.booking.job_type||"";
+          staff.forEach(s=>{
+            const slotKey=`${vKey}_${s}`;
+            if(staffBySlot[slotKey]) clashes.add(vKey);
+            staffBySlot[slotKey]=true;
+          });
+          // Check vehicle clash
+          const vehicle=VEHICLE_JOB_TYPES.find(j=>j.label===jobType)?.vehicle;
+          if(vehicle){
+            const vSlotKey=`${vKey}_vehicle_${vehicle}`;
+            if(staffBySlot[vSlotKey]) clashes.add(vKey);
+            staffBySlot[vSlotKey]=true;
+          }
+        }
+      });
+    });
+    return clashes;
+  }
+  const clashes=detectClashes();
+
   function RoomTable({roomKey,title,color}){
     const colors={green:{bg:"#dcfce7",border:"#16a34a",text:"#166534",header:"#15803d"},blue:{bg:"#dbeafe",border:"#2563eb",text:"#1e40af",header:"#1d4ed8"},gray:{bg:"#f3f4f6",border:"#6b7280",text:"#1f2937",header:"#374151"}};
     const col=colors[color]||colors.gray;
@@ -3418,9 +3448,71 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
           <button onClick={nextWeek} className="px-3 py-1.5 rounded-lg bg-gray-900 text-white text-xs font-black hover:bg-gray-700 transition">NEXT →</button>
         </div>
       </div>
-      <RoomTable roomKey="ViewingRoom" title="Viewing Room" color="green"/>
-      <RoomTable roomKey="FamilyRoom" title="Family Meeting Room" color="blue"/>
-      <RoomTable roomKey="Vehicle" title="Vehicle & Staff" color="gray"/>
+      <div className="overflow-x-auto">
+        <table style={{minWidth:"700px",width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
+          <thead>
+            <tr>
+              <th style={{width:"48px",padding:"3px",fontSize:"9px",color:"#9ca3af",textAlign:"left",fontWeight:"900"}}>TIME</th>
+              <th style={{width:"80px",padding:"3px",fontSize:"9px",color:"#15803d",fontWeight:"900",textTransform:"uppercase"}}>Viewing Room</th>
+              <th style={{width:"80px",padding:"3px",fontSize:"9px",color:"#1d4ed8",fontWeight:"900",textTransform:"uppercase"}}>Family Mtg</th>
+              <th style={{width:"80px",padding:"3px",fontSize:"9px",color:"#374151",fontWeight:"900",textTransform:"uppercase"}}>Vehicle</th>
+              {weekDates.slice(1).map(d=>{
+                const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();
+                return[
+                  <th key={d+"vr"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dcfce7":"#f0fdf4",fontSize:"9px",fontWeight:"900",color:"#15803d"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
+                  <th key={d+"fm"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dbeafe":"#eff6ff",fontSize:"9px",fontWeight:"900",color:"#1d4ed8"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
+                  <th key={d+"vh"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#f3f4f6":"#f9fafb",fontSize:"9px",fontWeight:"900",color:"#374151"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
+                ];
+              })}
+            </tr>
+            <tr>
+              <th/>
+              {(()=>{const d=weekDates[0];const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();return[
+                <th key="d0vr" style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dcfce7":"#f0fdf4",fontSize:"10px",fontWeight:"900",color:isToday?"#15803d":"#15803d"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
+                <th key="d0fm" style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dbeafe":"#eff6ff",fontSize:"10px",fontWeight:"900",color:"#1d4ed8"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
+                <th key="d0vh" style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#f3f4f6":"#f9fafb",fontSize:"10px",fontWeight:"900",color:"#374151"}}>{dd.toLocaleDateString("en-AU",{weekday:"short"})} {dd.getDate()}</th>,
+              ];})()}
+              {weekDates.slice(1).map(d=>{
+                const dd=new Date(d+"T12:00:00");const isToday=d===todaySydney();
+                return[
+                  <th key={d+"vr2"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dcfce7":"#f0fdf4",fontSize:"9px",color:"#15803d"}}></th>,
+                  <th key={d+"fm2"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#dbeafe":"#eff6ff",fontSize:"9px",color:"#1d4ed8"}}></th>,
+                  <th key={d+"vh2"} style={{padding:"3px",textAlign:"center",backgroundColor:isToday?"#f3f4f6":"#f9fafb",fontSize:"9px",color:"#374151"}}></th>,
+                ];
+              })}
+            </tr>
+          </thead>
+          <tbody>
+          {CALENDAR_SLOTS.map(({hour,half,label})=>(
+            <tr key={label} style={{borderBottom:"1px solid #f3f4f6"}}>
+              <td style={{fontSize:"9px",fontWeight:"900",color:half?"#d1d5db":"#6b7280",padding:"1px 3px",verticalAlign:"top",whiteSpace:"nowrap"}}>{label}</td>
+              {weekDates.map(date=>{
+                const key=`${date}_${hour}_${half?"half":"full"}`;
+                const isClash=clashes.has(key);
+                return["ViewingRoom","FamilyRoom","Vehicle"].map(roomKey=>{
+                  const colors2={ViewingRoom:{bg:"#dcfce7",border:"#16a34a",text:"#166534"},FamilyRoom:{bg:"#dbeafe",border:"#2563eb",text:"#1e40af"},Vehicle:{bg:"#f3f4f6",border:"#6b7280",text:"#1f2937"}};
+                  const col=colors2[roomKey];
+                  const slot=slotMap[roomKey][key];
+                  if(slot?.isContinuation) return <td key={`${date}_${roomKey}`} style={{padding:0,border:"none"}}/>;
+                  if(slot){
+                    const clash=isClash&&roomKey==="Vehicle";
+                    return(
+                      <td key={`${date}_${roomKey}`} rowSpan={slot.spanOf||1} style={{padding:"1px",backgroundColor:clash?"#fef2f2":col.bg,border:`2px solid ${clash?"#dc2626":col.border}`,borderRadius:"3px",verticalAlign:"top"}}>
+                        {clash&&<div style={{fontSize:"8px",color:"#dc2626",fontWeight:"900"}}>⚠ CLASH</div>}
+                        <div style={{fontSize:"9px",fontWeight:"900",color:clash?"#dc2626":col.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</div>
+                        <div style={{fontSize:"8px",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label2}</div>
+                        {slot.label3&&<div style={{fontSize:"8px",color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label3}</div>}
+                      </td>
+                    );
+                  }
+                  return <td key={`${date}_${roomKey}`} style={{padding:"1px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f8f8f8",minHeight:"18px"}}/>;
+                });
+              })}
+            </tr>
+          ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
