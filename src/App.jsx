@@ -2881,12 +2881,18 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 // ─── MY CASES ─────────────────────────────────────────────────────────────────
 function MyCases({user,cases,onUpdateCase}) {
   const [filter,setFilter]=useState("current");
+  const [sortBy,setSortBy]=useState("lastName");
   const isAdmin=user?.role==="admin",isFD=user?.role==="fd",isMSS=user?.role==="mss";
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[filter]);
   let myCases=isFD?cases.filter(c=>c.funeralHomeId===user.funeralHomeId):cases;
   const current=myCases.filter(c=>c.status==="active"&&!c.checkedOut);
   const past=myCases.filter(c=>c.checkedOut||["past","locked","pending-lock","approved"].includes(c.status));
-  const display=(filter==="current"?current:past).sort((a,b)=>a.lastName.localeCompare(b.lastName));
+  const display=(filter==="current"?current:past).sort((a,b)=>{
+    if(sortBy==="lastName") return (a.lastName||"").localeCompare(b.lastName||"");
+    if(sortBy==="funeralHome") return (a.funeralHomeName||"").localeCompare(b.funeralHomeName||"");
+    if(sortBy==="collection") return (a.prep?.collectionDate||"9999").localeCompare(b.prep?.collectionDate||"9999");
+    return 0;
+  });
 
   async function approveCase(c){
     try{
@@ -2945,6 +2951,7 @@ function MyCases({user,cases,onUpdateCase}) {
       <p className="text-gray-500 text-sm mb-5">{myCases.length} total</p>
       <div className="flex gap-2 mb-5">
         {[["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
+        {(isAdmin||isMSS)&&<div className="flex gap-2 ml-2">{[["lastName","Last Name"],["funeralHome","FD"],["collection","Collection"]].map(([v,l])=><button key={v} onClick={()=>setSortBy(v)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${sortBy===v?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}</div>}
       </div>
       {display.length===0&&<p className="text-gray-400 text-center py-12">No {filter} cases.</p>}
       <div className="space-y-4">
