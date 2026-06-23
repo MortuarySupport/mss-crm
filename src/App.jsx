@@ -4571,6 +4571,8 @@ function getWeekDates(base){
 }
 
 function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,onDeleteBooking,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking,defaultTab}){
+  const isAdmin=user?.role==="admin";
+  const isMSS=user?.role==="mss"||isAdmin;
   const[weekBase,setWeekBase]=useState(today());
   const[showBookModal,setShowBookModal]=useState(false);
   const[editingBooking,setEditingBooking]=useState(null); // booking being viewed/edited
