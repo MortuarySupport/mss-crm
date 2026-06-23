@@ -2503,7 +2503,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           {cat:"Storage",items:[{code:"ACC",label:"Accommodation (per night)"}]},
           {cat:"Additional Services",items:[{code:"AHB",label:"After Hours Body Prep Surcharge"},{code:"BB",label:"Body Bag"},{code:"CP",label:"Capri Pants"},{code:"CPT",label:"Coffin/Casket Packaging"},{code:"DRR",label:"Dr Cremation Referee"},{code:"DID",label:"Dr ID - Inperson"},{code:"DIV",label:"Dr ID - Virtual"},{code:"HCO",label:"Hair Colouring"},{code:"OPC",label:"Open/Close Mortuary A/H"},{code:"SHR",label:"Shroud"},{code:"TYV",label:"Tyvek Suits"}]},
           {cat:"Room Hire",items:[{code:"FMR",label:"Family Meeting Room (in care)"},{code:"FMR2",label:"Family Meeting Room (not in care)"},{code:"VR1",label:"Viewing Room"},{code:"VRH",label:"Viewing Room Host"},{code:"WD",label:"Witness Dressing - Per Person"},{code:"CPL",label:"Chapel (up to 12 guests)"}]},
-          {cat:"Labour",items:[{code:"CL4",label:"Casual Labour Hire - 4hrs min"}]},
+          {cat:"Labour",items:[{code:"CL4",label:"Casual Labour Hire - 4hrs min"},{code:"CL5",label:"Casual Labour Hire - 5hrs"}]},
           {cat:"Delivery & Hearse",items:[{code:"RSF",label:"Repatriation Service Fee"},{code:"ED1",label:"ED - Mac Park | North Sub | Pine | Castle"},{code:"ED2",label:"ED - Rookwood | Frenchs | Penrith"},{code:"ED3",label:"ED - Forest Lawn | L pool | Kemps Crk"},{code:"ED4",label:"ED - ESMP | WMP"},{code:"EDS",label:"ED - Weekend/AH Surcharge"},{code:"HH1",label:"Hearse - Single Location"},{code:"HH2",label:"Hearse - Dual Location"}]},
           {cat:"Audio Visual",items:[{code:"AV",label:"AV - Speakers/Mic/Projector/Screen"},{code:"LS1",label:"Livestream over 90mins"},{code:"LS2",label:"Livestream under 90mins"},{code:"SSO",label:"Slideshow Only"},{code:"SSM",label:"Slideshow | Music | Chapel Ready"}]},
           {cat:"Transfers - Hospital/Coroner",items:[{code:"TH1",label:"Mon-Fri 7am-4pm"},{code:"TH2",label:"Weekend 7am-4pm"},{code:"TH3",label:"Mon-Fri 4pm-12pm"},{code:"TH4",label:"Weekend 4pm-12pm"},{code:"TH5",label:"Mon-Fri 12am-7am"},{code:"TH6",label:"Weekend 12am-7am"}]},
@@ -2513,7 +2513,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{cat}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {items.map(({code,label})=>(
-                <div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={"w-full py-2 px-2 rounded-xl border-2 text-xs font-bold text-center transition "+(billable[code]?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-700")}>{label}</button>{code==="ACC"&&billable["ACC"]&&(()=>{const nights=c.checkedInAt&&prep.collectionDate?Math.max(1,Math.ceil((new Date(prep.collectionDate+"T12:00:00")-new Date(c.checkedInAt))/(1000*60*60*24))):null;return nights?<span className="text-xs font-black text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">{nights} night{nights!==1?"s":""}</span>:null;})()}{["CL","CS","NPL","NPS","CL4"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>
+                <div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={"w-full py-2 px-2 rounded-xl border-2 text-xs font-bold text-center transition "+(billable[code]?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-700")}>{label}</button>{code==="ACC"&&billable["ACC"]&&(()=>{const nights=c.checkedInAt&&prep.collectionDate?Math.max(1,Math.ceil((new Date(prep.collectionDate+"T12:00:00")-new Date(c.checkedInAt))/(1000*60*60*24))):null;return nights?<span className="text-xs font-black text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">{nights} night{nights!==1?"s":""}</span>:null;})()}{["CL","CS","NPL","NPS","CL4","CL5"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>
               ))}
             </div>
           </div>
@@ -3121,7 +3121,7 @@ function InvoicingView({cases,onUpdateCase}){
   };
 
   // Variable qty items
-  const varQty=["CL","CS","CL4","WD","NPL","NPS"];
+  const varQty=["CL","CS","CL4","CL5","WD","NPL","NPS"];
   const [qtys,setQtys]=useState({});
   const [selCase,setSelCase]=useState(null);
 
