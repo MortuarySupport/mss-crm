@@ -3360,7 +3360,7 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
     let h=hour,half=isHalf;
     for(let i=0;i<totalSlots;i++){
       const key=`${b.date}_${h}_${half?"half":"full"}`;
-      slotMap.Vehicle[key]={label:i===0?b.jobType:"",label2:i===0?(b.caseLabel||"TBC"):"",label3:i===0?(b.staff||[]).join(", "):"",color:"gray",isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,completed:b.completed};
+      slotMap.Vehicle[key]={label:i===0?b.job_type:"",label2:i===0?(b.case_label||"TBC"):"",label3:i===0?(b.staff||[]).join(", "):"",color:"gray",isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,completed:b.completed};
       if(half){half=false;h++;}else{half=true;}
     }
   });
@@ -3606,12 +3606,12 @@ function VehicleCalendarView({user,cases,vehicleBookings,onAddVehicleBooking,onU
 
   function openEdit(b){
     setEditingBooking(b);
-    setJobType(b.jobType||VEHICLE_JOB_TYPES[0].label);
+    setJobType(b.job_type||VEHICLE_JOB_TYPES[0].label);
     setJobDate(b.date||todaySydney());
     setJobTime(b.time||"08:00");
     setJobHours(b.hours||1);
     setAssignedStaff(b.staff||[]);
-    setCaseId(b.caseId||"");
+    setCaseId(b.case_id||"");
     setTbc(b.tbc||false);
     setNotes(b.notes||"");
     setShowModal(true);
@@ -3706,8 +3706,8 @@ function VehicleCalendarView({user,cases,vehicleBookings,onAddVehicleBooking,onU
             {(bookingsByDate[d]||[]).map(b=>(
               <div key={b.id} onClick={()=>openEdit(b)} className={`rounded-xl p-2 cursor-pointer text-xs border-2 ${b.completed?"bg-green-50 border-green-300":"bg-blue-50 border-blue-300"}`}>
                 <div className="font-black text-gray-900 truncate">{b.time}</div>
-                <div className="font-bold text-gray-700 truncate" style={{fontSize:"10px"}}>{b.jobType?.split(" - ")[0]}</div>
-                <div className="text-gray-500 truncate" style={{fontSize:"10px"}}>{b.caseLabel||"TBC"}</div>
+                <div className="font-bold text-gray-700 truncate" style={{fontSize:"10px"}}>{b.job_type?.split(" - ")[0]}</div>
+                <div className="text-gray-500 truncate" style={{fontSize:"10px"}}>{b.case_label||"TBC"}</div>
                 <div className="text-gray-400 truncate" style={{fontSize:"10px"}}>{(b.staff||[]).join(", ")}</div>
                 {b.completed&&<div className="text-green-600 font-black" style={{fontSize:"9px"}}>✓ COMPLETE</div>}
                 {!b.completed&&<button onClick={e=>{e.stopPropagation();setShowCompleteModal(b);}} className="mt-1 w-full py-0.5 rounded bg-gray-900 text-white font-black" style={{fontSize:"9px"}}>COMPLETE</button>}
@@ -4299,7 +4299,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
   function fmtD(d){const x=new Date(d+"T12:00:00");return`${dayNames[x.getDay()]} ${x.getDate()} ${months[x.getMonth()]}`;}
 
   function resetModal(){setShowModal(false);setEditingBooking(null);setJobType(VEHICLE_JOB_TYPES[0].label);setJobDate(weekDates[0]);setJobTime("08:00");setJobHours(1);setAssignedStaff([]);setCaseId("");setTbc(false);setNotes("");}
-  function openEdit(b){setEditingBooking(b);setJobType(b.jobType);setJobDate(b.date);setJobTime(b.time);setJobHours(b.hours);setAssignedStaff(b.staff||[]);setCaseId(b.caseId||"");setTbc(b.tbc||false);setNotes(b.notes||"");setShowModal(true);}
+  function openEdit(b){setEditingBooking(b);setJobType(b.job_type);setJobDate(b.date);setJobTime(b.time);setJobHours(b.hours);setAssignedStaff(b.staff||[]);setCaseId(b.case_id||"");setTbc(b.tbc||false);setNotes(b.notes||"");setShowModal(true);}
   function toggleStaff(s){setAssignedStaff(prev=>prev.includes(s)?prev.filter(x=>x!==s):[...prev,s]);}
 
   async function saveBooking(){
@@ -4347,7 +4347,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
     for(let i=0;i<totalSlots;i++){
       const key=`${b.date}_${h}_${half?"half":"full"}`;
       vSlotMap[key]={booking:b,isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,
-        label:i===0?b.jobType:"",label2:i===0?(b.caseLabel||"TBC"):"",
+        label:i===0?b.job_type:"",label2:i===0?(b.case_label||"TBC"):"",
         staff:i===0?(b.staff||[]).join(", "):"",completed:b.completed};
       if(half){half=false;h++;}else{half=true;}
     }
