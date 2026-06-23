@@ -3771,7 +3771,7 @@ function VehicleCalendarView({user,cases,vehicleBookings,onAddVehicleBooking,onU
     setSaving(true);
     try{
       const completionData={
-        completed:true,completed_at:new Date().toISOString(),
+        completed:true,completedAt:new Date().toISOString(),
         timeIn,timeOut,fuelLevel,cleanliness,completionNotes
       };
       await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"PATCH",body:JSON.stringify(completionData),prefer:"return=representation"});
@@ -4443,7 +4443,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
     if(!timeIn||!timeOut){alert("Please enter time in and time out.");return;}
     setSaving(true);
     try{
-      const data={completed:true,completed_at:new Date().toISOString(),timeIn,timeOut,fuelLevel,cleanliness,completionNotes};
+      const data={completed:true,completedAt:new Date().toISOString(),timeIn,timeOut,fuelLevel,cleanliness,completionNotes};
       await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"PATCH",body:JSON.stringify(data)});
       onUpdateVehicleBooking({...b,...data});
       setShowCompleteModal(null);setTimeIn("");setTimeOut("");setFuelLevel("F");setCleanliness("Clean");setCompletionNotes("");
