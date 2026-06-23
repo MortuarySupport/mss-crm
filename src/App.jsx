@@ -1135,7 +1135,6 @@ function HomeScreen({user,onAction}) {
         <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
       </div>}
       {isAdmin&&<button onClick={()=>onAction("mastercalendar")} className={s.btnLg+" w-full mt-3"}>📅 MASTER CALENDAR</button>}
-      </div>}
     </div>
   );
 }
