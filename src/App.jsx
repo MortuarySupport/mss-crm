@@ -269,7 +269,7 @@ function PresenceDotInCase({caseId,user}){
   if(others.length===0) return null;
   return(
     <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
-      <span style={{width:"10px",height:"10px",borderRadius:"50%",background:"#dc2626",display:"inline-block",flexShrink:0}}/>
+      <span style={{width:"14px",height:"14px",borderRadius:"50%",background:"#dc2626",display:"inline-block",flexShrink:0}}/>
       <span className="text-xs font-black text-red-600">Also viewing: {others.map(v=>v.user_name+" ("+v.user_role+")").join(", ")}</span>
     </div>
   );
