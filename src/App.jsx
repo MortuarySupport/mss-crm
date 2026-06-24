@@ -2799,7 +2799,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const displayCases=(showPast?pastCases:currentCases).filter(c=>selFH?c.funeralHomeId===selFH.id:true);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="max-w-7xl mx-auto px-4 py-4" style={{WebkitOverflowScrolling:"touch"}}>
       <BackBtn onClick={onBack} label="Back to Home"/>
       <h2 className="text-2xl font-black text-gray-900 mb-3">Check Out</h2>
 
