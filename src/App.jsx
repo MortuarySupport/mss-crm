@@ -188,6 +188,105 @@ function sexShort(s) { return s==="Male"?"M":s==="Female"?"F":"O"; }
 function sortAlpha(arr,key="name") { return [...arr].sort((a,b)=>a[key].localeCompare(b[key])); }
 const TZ="Australia/Sydney";
 
+// ─── PRESENCE ─────────────────────────────────────────────────────────────────
+function usePresence(caseId, user){
+  const [viewers,setViewers]=React.useState([]);
+
+  React.useEffect(()=>{
+    if(!caseId||!user) return;
+    const userId=user.id||user.name;
+    const roleLabel=user.roleLabel||user.role||"User";
+
+    // Register presence
+    async function register(){
+      await fetch(SUPABASE_URL+"/rest/v1/case_viewers",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"resolution=merge-duplicates"},
+        body:JSON.stringify({id:userId+"_"+caseId,user_id:userId,case_id:caseId,user_name:user.name,user_role:roleLabel,last_seen:new Date().toISOString()})
+      });
+    }
+
+    // Poll viewers
+    async function poll(){
+      const cutoff=new Date(Date.now()-30000).toISOString();
+      const res=await fetch(SUPABASE_URL+"/rest/v1/case_viewers?case_id=eq."+caseId+"&last_seen=gte."+cutoff+"&select=*",{
+        headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+      });
+      const data=await res.json();
+      setViewers(Array.isArray(data)?data:[]);
+    }
+
+    register();
+    poll();
+    const regInterval=setInterval(register,15000);
+    const pollInterval=setInterval(poll,5000);
+
+    // Cleanup on leave
+    return()=>{
+      clearInterval(regInterval);
+      clearInterval(pollInterval);
+      fetch(SUPABASE_URL+"/rest/v1/case_viewers?id=eq."+userId+"_"+caseId,{
+        method:"DELETE",
+        headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+      });
+    };
+  },[caseId,user?.id]);
+
+  return viewers;
+}
+
+// Global case viewers cache
+let _caseViewersCache={};
+async function refreshCaseViewers(){
+  try{
+    const cutoff=new Date(Date.now()-30000).toISOString();
+    const res=await fetch(SUPABASE_URL+"/rest/v1/case_viewers?last_seen=gte."+cutoff+"&select=case_id,user_name,user_role,user_id",{
+      headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+    });
+    const data=await res.json();
+    if(Array.isArray(data)){
+      _caseViewersCache={};
+      data.forEach(v=>{if(!_caseViewersCache[v.case_id])_caseViewersCache[v.case_id]=[];_caseViewersCache[v.case_id].push(v);});
+    }
+  }catch(e){}
+}
+
+function CasePresenceDot({caseId,currentUserId}){
+  const [viewers,setViewers]=React.useState([]);
+  React.useEffect(()=>{
+    function update(){setViewers((_caseViewersCache[caseId]||[]).filter(v=>v.user_id!==currentUserId));}
+    update();
+    const iv=setInterval(update,5000);
+    return()=>clearInterval(iv);
+  },[caseId,currentUserId]);
+  const isOccupied=viewers.length>0;
+  return<span title={isOccupied?viewers.map(v=>v.user_name+" ("+v.user_role+")").join(", "):"Available"} style={{width:"10px",height:"10px",borderRadius:"50%",background:isOccupied?"#dc2626":"#16a34a",display:"inline-block",flexShrink:0}}/>;
+}
+
+function PresenceDotInCase({caseId,user}){
+  const viewers=usePresence(caseId,user);
+  const others=viewers.filter(v=>v.user_id!==(user?.id||user?.name));
+  if(others.length===0) return null;
+  return(
+    <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
+      <span style={{width:"10px",height:"10px",borderRadius:"50%",background:"#dc2626",display:"inline-block",flexShrink:0}}/>
+      <span className="text-xs font-black text-red-600">Also viewing: {others.map(v=>v.user_name+" ("+v.user_role+")").join(", ")}</span>
+    </div>
+  );
+}
+
+function PresenceDot({viewers,currentUserId,size="sm"}){
+  const others=viewers.filter(v=>v.user_id!==currentUserId);
+  const isOccupied=others.length>0;
+  const dotSize=size==="lg"?"12px":"8px";
+  return(
+    <span title={isOccupied?others.map(v=>v.user_name+" ("+v.user_role+")").join(", "):"No one else viewing"} style={{display:"inline-flex",alignItems:"center",gap:"4px"}}>
+      <span style={{width:dotSize,height:dotSize,borderRadius:"50%",background:isOccupied?"#dc2626":"#16a34a",display:"inline-block",flexShrink:0}}/>
+      {size==="lg"&&isOccupied&&<span style={{fontSize:"10px",color:"#dc2626",fontWeight:"700"}}>{others.map(v=>v.user_role).join(", ")}</span>}
+    </span>
+  );
+}
+
 // ─── VEHICLE & STAFF CONSTANTS ────────────────────────────────────────────────
 const VEHICLE_JOB_TYPES=[
   {label:"Transfer - Morty",defaultHours:1,vehicle:"Morty"},
@@ -2407,6 +2506,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
       )}
+      <PresenceDotInCase caseId={c.id} user={user}/>
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         {c.pendingChanges?.length>0&&<button onClick={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>}
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
@@ -3204,7 +3304,7 @@ function InvoicingView({cases,onUpdateCase}){
             <button key={c.id} onClick={()=>setSelCase(c)} className="w-full bg-white border-2 border-gray-200 hover:border-gray-900 rounded-2xl p-5 text-left transition">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                  <div className="flex items-center gap-2"><div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/></div>
                   <div className="text-sm text-gray-500 mt-1">{c.caseRef} · {c.funeralHomeName} · Checked in: {fmtDT(c.checkedInAt)}</div>
                 </div>
                 <div className="text-xs font-black text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">READY TO INVOICE</div>
@@ -5054,7 +5154,7 @@ export default function App() {
     .finally(()=>setLoading(false));
   },[]);
 
-  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});}
+  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);}
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
   // Auto-logout after 2 minutes of inactivity
