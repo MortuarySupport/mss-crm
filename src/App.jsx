@@ -260,7 +260,7 @@ function CasePresenceDot({caseId,currentUserId}){
     return()=>clearInterval(iv);
   },[caseId,currentUserId]);
   const isOccupied=viewers.length>0;
-  return<span title={isOccupied?viewers.map(v=>v.user_name+" ("+v.user_role+")").join(", "):"Available"} style={{width:"10px",height:"10px",borderRadius:"50%",background:isOccupied?"#dc2626":"#16a34a",display:"inline-block",flexShrink:0}}/>;
+  return<span title={isOccupied?viewers.map(v=>v.user_name+" ("+v.user_role+")").join(", "):"Available"} style={{width:"14px",height:"14px",borderRadius:"50%",background:isOccupied?"#dc2626":"#16a34a",display:"inline-block",flexShrink:0,boxShadow:isOccupied?"0 0 6px #dc2626":"0 0 6px #16a34a"}}/>;
 }
 
 function PresenceDotInCase({caseId,user}){
