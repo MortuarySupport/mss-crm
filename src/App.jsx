@@ -5234,8 +5234,7 @@ export default function App() {
         </div>
       )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
-      {children}
-      
+      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{children}</div>
     </div>
   );
 
