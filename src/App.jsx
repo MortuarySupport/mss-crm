@@ -3620,6 +3620,32 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
   );
 }
 
+// ─── NEW CHECK INS VIEW ───────────────────────────────────────────────────────
+function NewCheckInsView({cases,user,onAction}){
+ const newCases=cases.filter(c=>c.status==="active"&&!c.checkedOut&&!c.acceptedAt)
+   .sort((a,b)=>new Date(b.checkedInAt||0)-new Date(a.checkedInAt||0));
+ return(
+   <div className="max-w-7xl mx-auto px-4 py-4">
+     <h2 className="text-2xl font-black text-gray-900 mb-4">New Check Ins</h2>
+     {newCases.length===0&&<p className="text-gray-400 text-center py-12">No new check ins.</p>}
+     <div className="space-y-3">
+       {newCases.map(c=>(
+         <div key={c.id} className="bg-white border-2 border-green-400 rounded-2xl p-5">
+           <div className="flex items-start justify-between gap-4">
+             <div>
+               <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+               <div className="text-sm text-gray-500 mt-0.5">{c.caseRef} · {c.funeralHomeName}</div>
+               <div className="text-xs text-gray-400 mt-0.5">{c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""} · by {c.checkedInBy||"—"}</div>
+             </div>
+             <button onClick={()=>onAction("mortuary")} className="shrink-0 px-4 py-2 rounded-xl bg-green-600 text-white font-black text-xs uppercase hover:bg-green-700 transition">VIEW</button>
+           </div>
+         </div>
+       ))}
+     </div>
+   </div>
+ );
+}
+
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
 function AdminDashboard({cases,calendarBookings,onAction}){
   const now=new Date();
@@ -3627,6 +3653,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
 
   // All active check ins
   const recentCheckIns=cases.filter(c=>c.status==="active"&&!c.checkedOut);
+  const newCheckIns=cases.filter(c=>c.status==="active"&&!c.checkedOut&&!c.acceptedAt);
   
   // Collections due today
   const todayStr=todaySydney();
@@ -3692,6 +3719,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatCard value={recentCheckIns.length} label="Active Cases" color="green" onClick={()=>onAction("mortuary")}/>
+          <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue" onClick={()=>onAction("mycases")}/>
           <StatCard value={collections.length} label="Collections Today" color="amber" onClick={()=>onAction("mortuary")}
             sub={collections.length>0?collections.map(c=>`${(c.lastName||"").toUpperCase()}, ${c.firstName}`).join(" · "):null}/>
@@ -5242,6 +5270,7 @@ export default function App() {
   if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="lockview") return wrap(<ErrorBoundary><LockView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/></ErrorBoundary>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
+  if(action==="newcheckins") return wrap(<NewCheckInsView cases={cases} onAction={a=>{setAction(a);}} user={user}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
