@@ -555,7 +555,7 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
           <div key={c.id} className="bg-white border border-gray-200 rounded-2xl p-5">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                <div className="flex items-center gap-2"><div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/></div>
                 <div className="text-xs font-bold text-gray-400 uppercase mt-1">{c.caseRef} · {c.funeralHomeName} · Checked Out: {fmtDT(c.checkout?.checkedOutAt)}</div>
               </div>
               <span className="text-xs bg-amber-100 text-amber-700 border border-amber-300 rounded-full px-2 py-0.5 font-black uppercase flex-shrink-0">Pending</span>
@@ -633,7 +633,7 @@ function LockView({cases,onUpdateCase,onBack}){
               <div key={c.id} className="bg-white border border-blue-200 rounded-2xl p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                    <div className="flex items-center gap-2"><div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/></div>
                     <div className="text-xs font-bold text-gray-400 uppercase mt-1">{c.caseRef} · {c.funeralHomeName}</div>
                   </div>
                   <span className="text-xs bg-blue-100 text-blue-700 border border-blue-300 rounded-full px-2 py-0.5 font-black uppercase flex-shrink-0">Approved</span>
@@ -656,7 +656,7 @@ function LockView({cases,onUpdateCase,onBack}){
               <div key={c.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                    <div className="flex items-center gap-2"><div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/></div>
                     <div className="text-xs font-bold text-gray-400 uppercase mt-1">{c.caseRef} · {c.funeralHomeName}</div>
                   </div>
                   <span className="text-xs bg-gray-900 text-white rounded-full px-2 py-0.5 font-black uppercase flex-shrink-0">Locked</span>
