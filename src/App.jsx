@@ -5240,7 +5240,7 @@ export default function App() {
 
   if(action==="reports") return wrap(<ReportsView cases={cases}/>);
   if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
-  if(action==="lockview") return wrap(<LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="lockview") return wrap(<ErrorBoundary><LockView cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/></ErrorBoundary>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
