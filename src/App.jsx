@@ -3168,7 +3168,7 @@ function exportXeroCSV(cases,qtys){
 }
 
 // ─── INVOICING VIEW ───────────────────────────────────────────────────────────
-function InvoicingView({cases,onUpdateCase}){
+function InvoicingView({user,cases,onUpdateCase}){
   const [tab,setTab]=useState("ready");
 
   const serviceMap={
@@ -5246,7 +5246,7 @@ export default function App() {
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
-  if(action==="invoicing"&&isAdmin) return wrap(<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>);
+  if(action==="invoicing"&&isAdmin) return wrap(<ErrorBoundary><InvoicingView user={user} cases={cases} onUpdateCase={handleUpdateCase}/></ErrorBoundary>);
   if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={handleUpdateCase}/>);
   if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
