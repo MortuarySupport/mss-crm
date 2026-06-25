@@ -3717,7 +3717,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
       {/* Last 24 Hours */}
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard value={recentCheckIns.length} label="Active Cases" color="green" onClick={()=>onAction("mortuary")}/>
           <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue" onClick={()=>onAction("mycases")}/>
