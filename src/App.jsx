@@ -720,7 +720,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
   const tabs=[["home","HOME"]];
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm z-50" style={{position:"sticky",top:0,WebkitBackfaceVisibility:"hidden",transform:"translateZ(0)"}}>
+    <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50" style={{position:"sticky",top:0}}>
       <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={()=>onNav("home")} style={{background:"#111",color:"#fff",border:"none",borderRadius:"8px",padding:"0 16px",height:"36px",fontWeight:"900",fontSize:"12px",textTransform:"uppercase",letterSpacing:"1px",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>HOME</button>
