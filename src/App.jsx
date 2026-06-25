@@ -1212,7 +1212,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
 
-      {isAdmin&&<div className="grid grid-cols-4 gap-3 mb-3">
+      {isAdmin&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
         <button onClick={()=>onAction("dashboard")} className={s.btnLg}>📊 DASHBOARD</button>
         <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
         <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
