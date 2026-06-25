@@ -1212,11 +1212,11 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
 
-      {isAdmin&&<button onClick={onToggleLock} className={"w-full mb-3 py-3 rounded-2xl border-2 font-black text-sm uppercase tracking-widest transition "+(lockOpen?"bg-green-600 text-white border-green-600":"border-gray-300 text-gray-600 hover:border-gray-700")}>{lockOpen?"🔓 SESSION LOCKED OPEN — TAP TO DISABLE":"🔒 LOCK SESSION OPEN"}</button>}
-      {isAdmin&&<div className="grid grid-cols-3 gap-3 mb-3">
+      {isAdmin&&<div className="grid grid-cols-4 gap-3 mb-3">
         <button onClick={()=>onAction("dashboard")} className={s.btnLg}>📊 DASHBOARD</button>
         <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
         <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
+        <button onClick={onToggleLock} className={s.btnLg+(lockOpen?" bg-green-600 text-white border-green-600 hover:bg-green-700":"")}>{lockOpen?"🔓 LOCKED":"🔒 LOCK"}</button>
       </div>}
       {!isAdmin&&isMSS&&<div className="grid grid-cols-2 gap-3 mb-3">
         <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
