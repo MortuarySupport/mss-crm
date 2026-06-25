@@ -5253,7 +5253,7 @@ export default function App() {
   const isTransfer=user.role==="transfer";
 
   const wrap=(children)=>(
-    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch",overflowX:"hidden",maxWidth:"100vw"}}>
+    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch",overflowX:"clip"}}>
       {showTimeoutModal&&(
         <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
           <div style={{background:"#fff",borderRadius:"20px",padding:"32px",maxWidth:"340px",width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
@@ -5265,7 +5265,7 @@ export default function App() {
         </div>
       )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
-      <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{children}</div>
+      <div style={{flex:1,minHeight:0}}>{children}</div>
     </div>
   );
 
