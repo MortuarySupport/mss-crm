@@ -2,28 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>MSS — Mortuary Support Services</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <style>
-      *{-webkit-tap-highlight-color:transparent;touch-action:pan-y;}
-      html,body{height:100%;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
-      body{position:relative;overscroll-behavior-y:auto;}
-      button,input,select,textarea{touch-action:manipulation;}
+      *{-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+      html{height:100%;}
+      body{min-height:100%;margin:0;padding:0;}
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      // Force vertical scroll on touch devices
-      var startY=0;
-      document.addEventListener("touchstart",function(e){startY=e.touches[0].clientY;},{passive:true});
-      document.addEventListener("touchmove",function(e){
-        var dy=Math.abs(e.touches[0].clientY-startY);
-        var dx=Math.abs(e.touches[0].clientX-startY);
-        if(dy>dx){document.scrollingElement.scrollTop+=startY-e.touches[0].clientY;}
-      },{passive:true});
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
