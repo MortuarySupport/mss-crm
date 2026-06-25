@@ -909,7 +909,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
   function savePrep(field,val){onSave&&onSave({prep:{...prep,[field]:val}});}
   const isInfectious=c.statusItems?.mccd==="infectious";
   return (
-    <div className={"rounded-2xl p-4 overflow-hidden "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
+    <div className={"rounded-2xl p-4 "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
       {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
         <div style={{width:"100%",minWidth:0}}>
