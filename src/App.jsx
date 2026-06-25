@@ -1190,7 +1190,7 @@ function LoginScreen({onLogin,users}) {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomeScreen({user,onAction}) {
+function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
   const isTransfer=user?.role==="transfer";
@@ -1212,6 +1212,7 @@ function HomeScreen({user,onAction}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
 
+      {isAdmin&&<button onClick={onToggleLock} className={"w-full mb-3 py-3 rounded-2xl border-2 font-black text-sm uppercase tracking-widest transition "+(lockOpen?"bg-green-600 text-white border-green-600":"border-gray-300 text-gray-600 hover:border-gray-700")}>{lockOpen?"🔓 SESSION LOCKED OPEN — TAP TO DISABLE":"🔒 LOCK SESSION OPEN"}</button>}
       {isAdmin&&<div className="grid grid-cols-3 gap-3 mb-3">
         <button onClick={()=>onAction("dashboard")} className={s.btnLg}>📊 DASHBOARD</button>
         <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
@@ -5165,6 +5166,7 @@ export default function App() {
   const [user,setUser]=useState(null);
   const [tab,setTab]=useState("home");
   const [showTimeoutModal,setShowTimeoutModal]=useState(false);
+  const [lockOpen,setLockOpen]=useState(false);
   const [action,setAction]=useState(null);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab,action]);
 
