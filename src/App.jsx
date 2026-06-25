@@ -1237,9 +1237,9 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("activitylog")} className={s.btnLg}>📝 ACTIVITY</button>
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>💰 INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
+        <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
       </div>}
-
-      {(isAdmin||isMSS)&&<button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>}
+      {!isAdmin&&isMSS&&<button onClick={()=>onAction("ashes")} className={s.btnLg+" w-full mt-3"}>🏺 ASHES REGISTER</button>}
     </div>
   );
 }
@@ -3360,6 +3360,7 @@ function AshesRegister({user,cases,onBack}){
   const[saving,setSaving]=useState(false);
   const[selAshes,setSelAshes]=useState(null);
   const canvasRef=React.useRef(null);
+  const drawingRef=React.useRef(false);
   const[drawing,setDrawing]=useState(false);
   const[hasSig,setHasSig]=useState(false);
 
@@ -3393,9 +3394,9 @@ function AshesRegister({user,cases,onBack}){
     const scaleY=canvas.height/rect.height;
     return{x:((touch?touch.clientX:e.clientX)-rect.left)*scaleX,y:((touch?touch.clientY:e.clientY)-rect.top)*scaleY};
   }
-  function startDraw(e){e.preventDefault();if(!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.beginPath();ctx.moveTo(pos.x,pos.y);setDrawing(true);}
-  function draw(e){e.preventDefault();if(!drawing||!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.lineCap="round";ctx.stroke();setHasSig(true);}
-  function endDraw(){setDrawing(false);if(canvasRef.current)setSigData(canvasRef.current.toDataURL());}
+  function startDraw(e){e.preventDefault();if(!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.beginPath();ctx.moveTo(pos.x,pos.y);drawingRef.current=true;setDrawing(true);}
+  function draw(e){e.preventDefault();if(!drawingRef.current||!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.lineCap="round";ctx.stroke();setHasSig(true);}
+  function endDraw(){drawingRef.current=false;setDrawing(false);if(canvasRef.current)setSigData(canvasRef.current.toDataURL());}
   function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}setSigData(null);setHasSig(false);}
 
   async function handleCheckIn(){
@@ -3460,17 +3461,22 @@ function AshesRegister({user,cases,onBack}){
     setSaving(false);
   }
 
-  const SigBox=React.memo(()=>(
-    <div className="mb-4">
-      <div className="text-xs font-black uppercase text-gray-500 mb-1">Signature</div>
-      <canvas ref={canvasRef} width={600} height={200}
-        style={{border:"2px solid #e5e7eb",borderRadius:"12px",display:"block",width:"100%",height:"160px",touchAction:"none",background:"#fff",cursor:"crosshair"}}
-        onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
-        onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}/>
-      {hasSig&&<button type="button" onClick={clearSig} className="text-xs font-black text-red-400 mt-1 uppercase">Clear Signature</button>}
-      {!hasSig&&<p className="text-xs text-gray-400 mt-1">Draw your signature above</p>}
-    </div>
-  ));
+  function SigBox(){
+    return(
+      <div className="mb-4">
+        <div className="text-xs font-black uppercase text-gray-500 mb-1">Signature</div>
+        <div style={{border:"2px solid #e5e7eb",borderRadius:"12px",background:"#fff",overflow:"hidden"}}>
+          <canvas ref={canvasRef} width={600} height={200}
+            style={{display:"block",width:"100%",height:"160px",touchAction:"none",cursor:"crosshair"}}
+            onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+            onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}/>
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          {hasSig?<button type="button" onClick={clearSig} className="text-xs font-black text-red-400 uppercase">Clear</button>:<p className="text-xs text-gray-400">Draw signature above</p>}
+        </div>
+      </div>
+    );
+  }
 
   if(view==="checkin") return(
     <div className="max-w-lg mx-auto px-4 py-4">
