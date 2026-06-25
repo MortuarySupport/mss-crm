@@ -3361,8 +3361,18 @@ function AshesRegister({user,cases,onBack}){
   const[selAshes,setSelAshes]=useState(null);
   const canvasRef=React.useRef(null);
   const drawingRef=React.useRef(false);
+  const savedImageRef=React.useRef(null);
   const[drawing,setDrawing]=useState(false);
   const[hasSig,setHasSig]=useState(false);
+
+  // Restore canvas after re-renders
+  React.useEffect(()=>{
+    if(canvasRef.current&&savedImageRef.current){
+      const img=new Image();
+      img.onload=()=>canvasRef.current?.getContext("2d")?.drawImage(img,0,0);
+      img.src=savedImageRef.current;
+    }
+  });
 
   // Load ashes records
   React.useEffect(()=>{
@@ -3396,8 +3406,8 @@ function AshesRegister({user,cases,onBack}){
   }
   function startDraw(e){e.preventDefault();if(!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.beginPath();ctx.moveTo(pos.x,pos.y);drawingRef.current=true;setDrawing(true);}
   function draw(e){e.preventDefault();if(!drawingRef.current||!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.lineCap="round";ctx.stroke();}
-  function endDraw(){drawingRef.current=false;setDrawing(false);if(canvasRef.current){const data=canvasRef.current.toDataURL();setSigData(data);setHasSig(true);}}
-  function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}setSigData(null);setHasSig(false);}
+  function endDraw(){drawingRef.current=false;if(canvasRef.current){const data=canvasRef.current.toDataURL();savedImageRef.current=data;setSigData(data);setHasSig(true);}setDrawing(false);}
+  function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}savedImageRef.current=null;setSigData(null);setHasSig(false);}
 
   async function handleCheckIn(){
     if(!selCase){alert("Please select a case.");return;}
