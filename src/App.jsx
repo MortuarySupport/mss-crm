@@ -720,7 +720,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
   const tabs=[["home","HOME"]];
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm z-50" style={{position:"sticky",top:0,zIndex:50}}>
+    <header className="bg-white border-b border-gray-200 shadow-sm z-50" style={{position:"fixed",top:0,left:0,right:0,zIndex:50}}>
       <div className="max-w-7xl mx-auto px-3 py-1.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button onClick={()=>onNav("home")} style={{background:"#111",color:"#fff",border:"none",borderRadius:"8px",padding:"0 16px",height:"36px",fontWeight:"900",fontSize:"12px",textTransform:"uppercase",letterSpacing:"1px",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>HOME</button>
@@ -5266,7 +5266,7 @@ export default function App() {
         </div>
       )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
-      <div>{children}<button onClick={()=>{window.scrollTo({top:0,behavior:"smooth"});window.parent.scrollTo({top:0,behavior:"smooth"});document.body.scrollTop=0;document.documentElement.scrollTop=0;}} style={{position:"fixed",bottom:"20px",right:"20px",zIndex:9999,background:"#111",color:"#fff",border:"none",borderRadius:"50%",width:"48px",height:"48px",fontSize:"22px",cursor:"pointer",boxShadow:"0 4px 12px rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>↑</button></div>
+      <div style={{paddingTop:"56px"}}>{children}</div>
     </div>
   );
 
