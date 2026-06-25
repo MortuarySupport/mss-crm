@@ -5266,7 +5266,7 @@ export default function App() {
         </div>
       )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
-      <div>{children}<button onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} style={{position:"fixed",bottom:"20px",right:"20px",zIndex:999,background:"#111",color:"#fff",border:"none",borderRadius:"50%",width:"44px",height:"44px",fontSize:"20px",cursor:"pointer",boxShadow:"0 4px 12px rgba(0,0,0,0.3)"}}>↑</button></div>
+      <div>{children}<button onClick={()=>{window.scrollTo({top:0,behavior:"smooth"});window.parent.scrollTo({top:0,behavior:"smooth"});document.body.scrollTop=0;document.documentElement.scrollTop=0;}} style={{position:"fixed",bottom:"20px",right:"20px",zIndex:9999,background:"#111",color:"#fff",border:"none",borderRadius:"50%",width:"48px",height:"48px",fontSize:"22px",cursor:"pointer",boxShadow:"0 4px 12px rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center"}}>↑</button></div>
     </div>
   );
 
