@@ -1233,10 +1233,10 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
       </div>}
       {isAdmin&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-        <button onClick={()=>onAction("pins")} className={s.btnLg}>PINS</button>
-        <button onClick={()=>onAction("activitylog")} className={s.btnLg}>ACTIVITY</button>
-        <button onClick={()=>onAction("invoicing")} className={s.btnLg}>INVOICING</button>
-        <button onClick={()=>onAction("changes")} className={s.btnLg}>CHANGES</button>
+        <button onClick={()=>onAction("pins")} className={s.btnLg}>🔢 PINS</button>
+        <button onClick={()=>onAction("activitylog")} className={s.btnLg}>📝 ACTIVITY</button>
+        <button onClick={()=>onAction("invoicing")} className={s.btnLg}>💰 INVOICING</button>
+        <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
       </div>}
 
     </div>
