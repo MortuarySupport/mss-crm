@@ -1239,7 +1239,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
       </div>}
 
-      {(isAdmin||isMSS)&&<button onClick={()=>onAction("ashes")} className={s.btnLg+" w-full mt-3"}>🏺 ASHES REGISTER</button>}
+      {(isAdmin||isMSS)&&<button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>}
     </div>
   );
 }
@@ -3374,13 +3374,14 @@ function AshesRegister({user,cases,onBack}){
   const cremationCases=cases.filter(c=>(c.prep?.disposition||"").toLowerCase().includes("cremat"));
   const fhList=[...new Set(cremationCases.map(c=>c.funeralHomeName).filter(Boolean))].sort();
 
-  // Cases for selected FH
-  const fhCases=selFH?cremationCases.filter(c=>c.funeralHomeName===selFH):[];
-  const filteredCases=fhCases.filter(c=>!search||(c.lastName||"").toLowerCase().includes(search.toLowerCase())||(c.firstName||"").toLowerCase().includes(search.toLowerCase())||(c.caseRef||"").toLowerCase().includes(search.toLowerCase()));
-
   // Active ashes in storage
   const inStorage=ashesRecords.filter(r=>!r.checked_out_at);
   const past=ashesRecords.filter(r=>r.checked_out_at);
+  const inStorageCaseIds=new Set(inStorage.map(r=>r.case_id));
+
+  // Cases for selected FH - exclude already checked in
+  const fhCases=selFH?cremationCases.filter(c=>c.funeralHomeName===selFH&&!inStorageCaseIds.has(c.id)):[];
+  const filteredCases=fhCases.filter(c=>!search||(c.lastName||"").toLowerCase().includes(search.toLowerCase())||(c.firstName||"").toLowerCase().includes(search.toLowerCase())||(c.caseRef||"").toLowerCase().includes(search.toLowerCase()));
 
   function resetForm(){setSelFH("");setSelCase(null);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);}
 
@@ -3459,18 +3460,17 @@ function AshesRegister({user,cases,onBack}){
     setSaving(false);
   }
 
-  function SigBox(){
-    return(
-      <div className="mb-4">
-        <div className="text-xs font-black uppercase text-gray-500 mb-1">Signature</div>
-        <canvas ref={canvasRef} width={600} height={150}
-          style={{border:"2px solid #e5e7eb",borderRadius:"12px",display:"block",width:"100%",height:"150px",touchAction:"none",background:"#fff",cursor:"crosshair"}}
-          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw}
-          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}/>
-        {hasSig&&<button onClick={clearSig} className="text-xs font-black text-red-400 mt-1">Clear</button>}
-      </div>
-    );
-  }
+  const SigBox=React.memo(()=>(
+    <div className="mb-4">
+      <div className="text-xs font-black uppercase text-gray-500 mb-1">Signature</div>
+      <canvas ref={canvasRef} width={600} height={200}
+        style={{border:"2px solid #e5e7eb",borderRadius:"12px",display:"block",width:"100%",height:"160px",touchAction:"none",background:"#fff",cursor:"crosshair"}}
+        onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+        onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}/>
+      {hasSig&&<button type="button" onClick={clearSig} className="text-xs font-black text-red-400 mt-1 uppercase">Clear Signature</button>}
+      {!hasSig&&<p className="text-xs text-gray-400 mt-1">Draw your signature above</p>}
+    </div>
+  ));
 
   if(view==="checkin") return(
     <div className="max-w-lg mx-auto px-4 py-4">
@@ -3580,9 +3580,9 @@ function AshesRegister({user,cases,onBack}){
         </div>
       </div>
 
-      {past.length>0&&<div>
-        <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-3">Past ({past.length})</h3>
-        <div className="space-y-3">
+      {past.length>0&&<details className="mt-4">
+        <summary className="text-sm font-black uppercase tracking-widest text-gray-400 cursor-pointer mb-3">Previously Checked Out ({past.length})</summary>
+        <div className="space-y-3 mt-3">
           {past.map(r=>(
             <div key={r.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
               <div className="text-base font-black text-gray-700">{r.deceased_name}</div>
@@ -3591,7 +3591,7 @@ function AshesRegister({user,cases,onBack}){
             </div>
           ))}
         </div>
-      </div>}
+      </details>}
     </div>
   );
 }
