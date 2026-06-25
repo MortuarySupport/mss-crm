@@ -5186,6 +5186,7 @@ export default function App() {
   },[]);
 
   function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);}
+  useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
   // Auto-logout after 2 minutes of inactivity
