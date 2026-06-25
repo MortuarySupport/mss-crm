@@ -1239,6 +1239,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
       </div>}
 
+      {(isAdmin||isMSS)&&<button onClick={()=>onAction("ashes")} className={s.btnLg+" w-full mt-3"}>🏺 ASHES REGISTER</button>}
     </div>
   );
 }
