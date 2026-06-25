@@ -2632,9 +2632,11 @@ function SignaturePad({onSave}) {
   function getPos(e, canvas) {
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches?.[0];
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     return {
-      x: (touch ? touch.clientX : e.clientX) - rect.left,
-      y: (touch ? touch.clientY : e.clientY) - rect.top,
+      x: ((touch ? touch.clientX : e.clientX) - rect.left) * scaleX,
+      y: ((touch ? touch.clientY : e.clientY) - rect.top) * scaleY,
     };
   }
 
