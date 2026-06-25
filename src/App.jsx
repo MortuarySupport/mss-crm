@@ -3579,21 +3579,26 @@ function AshesRegister({user,cases,onBack}){
       <div className="mb-6">
         <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-3">In Storage ({inStorage.length})</h3>
         {inStorage.length===0&&!loading&&<p className="text-gray-400 text-center py-6 border-2 border-dashed border-gray-200 rounded-2xl">No ashes currently in storage</p>}
-        <div className="space-y-3">
-          {inStorage.map(r=>(
-            <div key={r.id} className="bg-white border-2 border-green-300 rounded-2xl p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-lg font-black text-gray-900">{r.deceased_name}</div>
-                  <div className="text-sm text-gray-500">{r.funeral_home} · {r.case_ref}</div>
-                  <div className="text-xs text-gray-400 mt-1">Checked in: {r.checked_in_at} by {r.checked_in_by}</div>
-                  <div className="text-xs font-black text-green-600 mt-1">📍 {r.location||"Storeroom"}</div>
-                </div>
-                <span className="text-xs bg-green-100 text-green-700 border border-green-300 rounded-full px-3 py-1 font-black">IN STORAGE</span>
+        {(()=>{
+          const sorted=[...inStorage].sort((a,b)=>(a.funeral_home||"").localeCompare(b.funeral_home||"")||(a.deceased_name||"").localeCompare(b.deceased_name||""));
+          const byFH={};
+          sorted.forEach(r=>{if(!byFH[r.funeral_home])byFH[r.funeral_home]=[];byFH[r.funeral_home].push(r);});
+          return Object.entries(byFH).sort(([a],[b])=>a.localeCompare(b)).map(([fh,records])=>(
+            <div key={fh} className="mb-4">
+              <div className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 px-1">{fh}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {records.map(r=>(
+                  <div key={r.id} className="bg-white border-2 border-green-300 rounded-xl p-3 text-center">
+                    <div className="text-sm font-black text-gray-900 leading-tight">{r.deceased_name}</div>
+                    <div className="text-xs text-gray-400 mt-1">{r.case_ref}</div>
+                    <div className="text-xs text-green-600 font-black mt-1">Storeroom</div>
+                    <div className="text-xs text-gray-400 mt-1">{r.checked_in_at}</div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          ));
+        })()}
       </div>
 
       {past.length>0&&<details className="mt-4">
