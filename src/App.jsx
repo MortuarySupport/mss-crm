@@ -182,7 +182,7 @@ function calcAge(dob,dod) {
   if(d.getMonth()-b.getMonth()<0||(d.getMonth()===b.getMonth()&&d.getDate()<b.getDate())) a--;
   return a>=0?a:null;
 }
-function genCaseRef(cases) { return `MSL_${(cases.length+1).toString().padStart(5,"0")}`; }
+function genCaseRef(cases) { const max=cases.reduce((m,c)=>{const n=parseInt((c.caseRef||"").replace("MSL_","")||0);return n>m?n:m;},0); return `MSL_${(max+1).toString().padStart(5,"0")}`; }
 function getFHContacts(fhId) { return FUNERAL_HOMES.find(f=>f.id===fhId)?.contacts||[]; }
 function sexShort(s) { return s==="Male"?"M":s==="Female"?"F":"O"; }
 function sortAlpha(arr,key="name") { return [...arr].sort((a,b)=>a[key].localeCompare(b[key])); }
