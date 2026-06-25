@@ -5265,7 +5265,7 @@ export default function App() {
         </div>
       )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
-      <div style={{flex:1,minHeight:0}}>{children}</div>
+      <div>{children}</div>
     </div>
   );
 
