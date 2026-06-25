@@ -677,13 +677,13 @@ function LockView({user,cases,onUpdateCase,onBack}){
 // ─── BOTTOM NAV (Admin/MSS only) ──────────────────────────────────────────────
 function BottomNav({onAction,onNav,activeTab,action}){
   const items=[
-    {id:"checkin",label:"CHECK IN",icon:"M12 5v14M5 12l7-7 7 7"},
-    {id:"mortuary",label:"MORTUARY",icon:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"},
-    {id:"checkout",label:"CHECK OUT",icon:"M12 19V5M5 12l7 7 7-7"},
+    {id:"checkin",label:"✅ CHECK IN",icon:"M12 5v14M5 12l7-7 7 7"},
+    {id:"mortuary",label:"🏥 MORTUARY",icon:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"},
+    {id:"checkout",label:"🚐 CHECK OUT",icon:"M12 19V5M5 12l7 7 7-7"},
     {id:"records",label:"RECORDS",icon:"M4 6h16M4 10h16M4 14h16M4 18h16"},
-    {id:"calendar",label:"CALENDAR",icon:"M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"},
-    {id:"reports",label:"REPORTS",icon:"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"},
-    {id:"approvals",label:"APPROVALS",icon:"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"},
+    {id:"calendar",label:"📆 CALENDAR",icon:"M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"},
+    {id:"reports",label:"📈 REPORTS",icon:"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"},
+    {id:"approvals",label:"✔️ APPROVALS",icon:"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"},
   ];
 
   const isActive=(id)=>{
@@ -1197,16 +1197,16 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
   const isFD=user?.role==="fd";
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
   const row1=[
-    {label:"CHECK IN",action:"checkin",show:true},
-    {label:"MORTUARY",action:"mortuary",show:isMSS},
-    {label:"CHECK OUT",action:"checkout",show:true},
-    {label:"CALENDAR",action:"calendar",show:isMSS||isFD},
+    {label:"✅ CHECK IN",action:"checkin",show:true},
+    {label:"🏥 MORTUARY",action:"mortuary",show:isMSS},
+    {label:"🚐 CHECK OUT",action:"checkout",show:true},
+    {label:"📆 CALENDAR",action:"calendar",show:isMSS||isFD},
   ].filter(b=>b.show);
   const row2=[
-    {label:"MY CASES",action:"mycases",show:isMSS||isFD},
-    {label:"REPORTS",action:"reports",show:isMSS},
-    {label:"APPROVALS",action:"approvals",show:isMSS},
-    {label:"LOCK CASES",action:"lockview",show:isAdmin},
+    {label:"📋 MY CASES",action:"mycases",show:isMSS||isFD},
+    {label:"📈 REPORTS",action:"reports",show:isMSS},
+    {label:"✔️ APPROVALS",action:"approvals",show:isMSS},
+    {label:"🔐 LOCK CASES",action:"lockview",show:isAdmin},
   ].filter(b=>b.show);
   const transfers=[{label:"MY TRANSFERS",action:"transfers",show:isTransfer}].filter(b=>b.show);
   return (
@@ -2776,7 +2776,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
       const to=[MORTUARY_EMAIL,...fhContacts].join(",");
       const subj=encodeURIComponent(`T/L ${selCase.firstName} ${selCase.lastName} has departed MSS`);
       const body=encodeURIComponent(buildCheckOutEmail(selCase,coData));
-      logActivity(user,"CHECK OUT","Checked out "+selCase.firstName+" "+selCase.lastName,selCase.caseRef,selCase.id);
+      logActivity(user,"🚐 CHECK OUT","Checked out "+selCase.firstName+" "+selCase.lastName,selCase.caseRef,selCase.id);
       setDone(true);
       // EMAIL DISABLED — window.open(`mailto:${to}?subject=${subj}&body=${body}`);
     }catch(err){alert("Error: "+err.message);}
