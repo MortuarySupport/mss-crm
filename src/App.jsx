@@ -1171,7 +1171,7 @@ function LoginScreen({onLogin,users}) {
         <p className="text-center text-gray-500 text-sm mb-5">Baulkham Hills</p>
         <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
           <p className={s.label}>Enter Your PIN</p>
-          <input type="password" maxLength={6} className={`${s.inp} text-center text-4xl tracking-[0.8em] py-6 mb-4`}
+          <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6} className={`${s.inp} text-center text-4xl tracking-[0.8em] py-6 mb-4`}
             placeholder="••••" value={pin} autoFocus
             onChange={e=>setPin(e.target.value.replace(/\D/g,"").slice(0,6))}
             onKeyDown={e=>e.key==="Enter"&&attempt()}/>
@@ -4185,7 +4185,7 @@ function PinManagement({users,onPinUpdate}) {
             <h3 className="text-lg font-black text-gray-900 mb-1">Update PIN</h3>
             <p className="text-sm text-gray-500 mb-5">{editing.label}</p>
             <label className={s.label}>New PIN</label>
-            <input type="password" maxLength={8} className={`${s.inp} text-center text-xl tracking-[0.4em] mb-1`} placeholder="••••" value={newPin} autoFocus onChange={e=>{setNewPin(e.target.value.replace(/\D/g,""));setErr("");}}/>
+            <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={8} className={`${s.inp} text-center text-xl tracking-[0.4em] mb-1`} placeholder="••••" value={newPin} autoFocus onChange={e=>{setNewPin(e.target.value.replace(/\D/g,""));setErr("");}}/>
             {err&&<p className="text-red-500 text-xs mt-1">{err}</p>}
             <div className="flex gap-3 mt-5">
               <button onClick={()=>setEditing(null)} className={`${s.btnGhost} flex-1`}>Cancel</button>
