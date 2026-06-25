@@ -2500,7 +2500,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   return (
     <>
-    <div className="w-full px-3 py-4" style={{maxWidth:"100%",boxSizing:"border-box",overflowX:"hidden"}}>
+    <div className="w-full px-3 py-4" style={{maxWidth:"100%",boxSizing:"border-box"}}>
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       {!c.acceptedAt&&(
