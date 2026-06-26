@@ -949,26 +949,35 @@ function DOBPicker({value,onChange,maxDate,minDate}) {
 }
 
 // ─── TRANSFER FROM ────────────────────────────────────────────────────────────
+function GooglePlacesInput({value,onChange,placeholder}){
+  const inputRef=React.useRef(null);
+  const autocompleteRef=React.useRef(null);
+  React.useEffect(()=>{
+    if(!inputRef.current||!window.google) return;
+    const ac=new window.google.maps.places.Autocomplete(inputRef.current,{
+      types:["establishment","geocode"],
+      componentRestrictions:{country:"au"},
+      fields:["name","formatted_address"]
+    });
+    autocompleteRef.current=ac;
+    ac.addListener("place_changed",()=>{
+      const place=ac.getPlace();
+      if(place.name) onChange(place.name+(place.formatted_address?", "+place.formatted_address.split(",")[1]?.trim():""));
+    });
+    return()=>window.google?.maps?.event?.clearInstanceListeners(ac);
+  },[]);
+  return(
+    <input ref={inputRef} className={s.inp} placeholder={placeholder||"Start typing..."} defaultValue={value} autoComplete="off"/>
+  );
+}
+
 function TransferFromPicker({value,subValue,onChangeType,onChangeSub}) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-3">
         {TRANSFER_FROM_OPTIONS.map(o=><button key={o} type="button" onClick={()=>onChangeType(o)} className={s.tb(value===o)}>{o}</button>)}
       </div>
-      {(value==="Hospital"||value==="Nursing Home")&&(()=>{
-        const list=value==="Hospital"?SYDNEY_HOSPITALS:SYDNEY_NURSING_HOMES;
-        const filtered=subValue?list.filter(h=>h.toLowerCase().includes(subValue.toLowerCase())):[];
-        return(
-          <div style={{position:"relative"}}>
-            <input className={s.inp} placeholder={`Start typing ${value} name...`} value={subValue} onChange={e=>onChangeSub(e.target.value)} autoComplete="off"/>
-            {filtered.length>0&&subValue&&(
-              <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"2px solid #e5e7eb",borderRadius:"12px",zIndex:100,maxHeight:"200px",overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-                {filtered.slice(0,10).map(h=><button key={h} type="button" onClick={()=>onChangeSub(h)} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:"13px",fontWeight:"600"}} onMouseOver={e=>e.target.style.background="#f3f4f6"} onMouseOut={e=>e.target.style.background="none"}>{h}</button>)}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {(value==="Hospital"||value==="Nursing Home")&&<GooglePlacesInput value={subValue} onChange={onChangeSub} placeholder={`Start typing ${value} name...`}/>}
       {value==="Coroners"&&<select className={s.sel} value={subValue||"Sydney"} onChange={e=>onChangeSub(e.target.value)}>{CORONER_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>}
       {value==="Other"&&<input className={s.inp} placeholder="Describe origin…" value={subValue} onChange={e=>onChangeSub(e.target.value)}/>}
     </div>
@@ -5486,7 +5495,8 @@ export default function App() {
     .finally(()=>setLoading(false));
   },[]);
 
-  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);}
+  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);
+    if(!window.google){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places";document.head.appendChild(s);}}
   useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
