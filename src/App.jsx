@@ -4826,9 +4826,6 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
     const fdCaseIds=new Set(cases.filter(c=>c.funeralHomeId===user.funeralHomeId).map(c=>c.id));
     return b.case_id&&fdCaseIds.has(b.case_id);
   }):vehicleBookings;
-    const fdCaseIds=new Set(cases.filter(c=>c.funeralHomeId===user.funeralHomeId).map(c=>c.id));
-    return b.case_id&&fdCaseIds.has(b.case_id);
-  }):vehicleBookings;
   const[showModal,setShowModal]=useState(false);
   const[editingBooking,setEditingBooking]=useState(null);
   const[showCompleteModal,setShowCompleteModal]=useState(null);
