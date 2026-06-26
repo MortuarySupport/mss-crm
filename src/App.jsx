@@ -3057,10 +3057,13 @@ function MyCases({user,cases,onUpdateCase}) {
     <div className="w-full px-4 py-4">
       <h2 className="text-2xl font-black text-gray-900 mb-1">My Cases</h2>
       <p className="text-gray-500 text-sm mb-5">{myCases.length} total</p>
-      <div className="flex gap-2 mb-5">
-        <input className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base mb-3" style={{width:"100%",boxSizing:"border-box"}} placeholder="Search name, FD, case ref, date..." value={search} onChange={e=>setSearch(e.target.value)}/>
-        {[["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
-        {<div className="flex flex-wrap gap-1 ml-2">{[["lastName","Surname"],["funeralHome","FD"],["collection","Collection"],["checkout","Check Out"],["status","Status"]].map(([v,l])=><button key={v} onClick={()=>setSortBy(v)} className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition ${sortBy===v?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}</div>}
+      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+        <div className="flex gap-2 sm:w-1/2">
+          <input className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="Search name, FD, case ref, date..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          {[["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
+        </div>
+        <div className="flex flex-wrap gap-1 sm:w-1/2 sm:justify-end">{[["lastName","Surname"],["funeralHome","FD"],["collection","Collection"],["checkout","Check Out"],["status","Status"]].map(([v,l])=><button key={v} onClick={()=>setSortBy(v)} className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition ${sortBy===v?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
+        </div>
       </div>
       {display.length===0&&<p className="text-gray-400 text-center py-12">No {filter} cases.</p>}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
