@@ -953,8 +953,20 @@ function TransferFromPicker({value,subValue,onChangeType,onChangeSub}) {
       <div className="flex flex-wrap gap-2 mb-3">
         {TRANSFER_FROM_OPTIONS.map(o=><button key={o} type="button" onClick={()=>onChangeType(o)} className={s.tb(value===o)}>{o}</button>)}
       </div>
-      {value==="Hospital"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Hospital —</option>{SYDNEY_HOSPITALS.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}
-      {value==="Nursing Home"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Nursing Home —</option>{SYDNEY_NURSING_HOMES.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}
+      {(value==="Hospital"||value==="Nursing Home")&&(()=>{
+        const list=value==="Hospital"?SYDNEY_HOSPITALS:SYDNEY_NURSING_HOMES;
+        const filtered=subValue?list.filter(h=>h.toLowerCase().includes(subValue.toLowerCase())):[];
+        return(
+          <div style={{position:"relative"}}>
+            <input className={s.inp} placeholder={`Start typing ${value} name...`} value={subValue} onChange={e=>onChangeSub(e.target.value)} autoComplete="off"/>
+            {filtered.length>0&&subValue&&(
+              <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"2px solid #e5e7eb",borderRadius:"12px",zIndex:100,maxHeight:"200px",overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
+                {filtered.slice(0,10).map(h=><button key={h} type="button" onClick={()=>onChangeSub(h)} style={{display:"block",width:"100%",textAlign:"left",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:"13px",fontWeight:"600"}} onMouseOver={e=>e.target.style.background="#f3f4f6"} onMouseOut={e=>e.target.style.background="none"}>{h}</button>)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {value==="Coroners"&&<select className={s.sel} value={subValue||"Sydney"} onChange={e=>onChangeSub(e.target.value)}>{CORONER_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>}
       {value==="Other"&&<input className={s.inp} placeholder="Describe origin…" value={subValue} onChange={e=>onChangeSub(e.target.value)}/>}
     </div>
