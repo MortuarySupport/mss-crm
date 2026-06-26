@@ -953,7 +953,8 @@ function TransferFromPicker({value,subValue,onChangeType,onChangeSub}) {
       <div className="flex flex-wrap gap-2 mb-3">
         {TRANSFER_FROM_OPTIONS.map(o=><button key={o} type="button" onClick={()=>onChangeType(o)} className={s.tb(value===o)}>{o}</button>)}
       </div>
-      {(value==="Hospital"||value==="Nursing Home")&&<input className={s.inp} placeholder={`${value} name…`} value={subValue} onChange={e=>onChangeSub(e.target.value)}/>}
+      {value==="Hospital"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Hospital —</option>{SYDNEY_HOSPITALS.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}
+      {value==="Nursing Home"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Nursing Home —</option>{SYDNEY_NURSING_HOMES.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}}
       {value==="Coroners"&&<select className={s.sel} value={subValue||"Sydney"} onChange={e=>onChangeSub(e.target.value)}>{CORONER_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>}
       {value==="Other"&&<input className={s.inp} placeholder="Describe origin…" value={subValue} onChange={e=>onChangeSub(e.target.value)}/>}
     </div>
@@ -1421,6 +1422,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
         }catch(e){console.warn("Doc upload error:",e);}
       }
       setSubmitted(record);
+      setTimeout(()=>{window.scrollTo({top:0,behavior:"smooth"});window.parent.scrollTo({top:0,behavior:"smooth"});},100);
       onComplete(record);
     } catch(err) {
       alert("Error saving case: "+err.message);
@@ -2121,6 +2123,7 @@ function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
   const b=billable||{};
   function fmt(d){if(!d)return"—";const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}
   const checkinStr=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+  const checkinStr=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
   
   // Build services list with codes
   const serviceMap={
@@ -2226,6 +2229,7 @@ ${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE 
 <div class="name-block">
   <div>
     <h1>${(c.lastName||"").toUpperCase()}, ${c.firstName}</h1>
+    <p style="font-size:12px;color:#555;margin:2px 0 8px 0;font-weight:600;">Checked In: ${checkinStr} · By: ${c.checkedInBy||"—"}</p>
     <p style="font-size:12px;color:#555;margin:2px 0 8px 0;font-weight:600;">Checked In: ${checkinStr} · By: ${c.checkedInBy||"—"}</p>
     <p>DOB: ${fmt(c.dob)} &nbsp;|&nbsp; DOD: ${fmt(c.dod)} &nbsp;|&nbsp; Age: ${c.ageAtDeath??"&mdash;"} &nbsp;|&nbsp; ${c.sex||"&mdash;"}</p>
   </div>
