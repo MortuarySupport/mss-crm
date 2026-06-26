@@ -299,7 +299,7 @@ const VEHICLE_JOB_TYPES=[
   {label:"Mourning Vehicle Black Mercedes",defaultHours:4,vehicle:"Black Mercedes"},
   {label:"Mourning Vehicle Blue Mercedes",defaultHours:4,vehicle:"Blue Mercedes"},
 ];
-const VEHICLE_STAFF=["Peter","Angus","Scott","Steve","Lydia","All Hours","Other"];
+const VEHICLE_STAFF=["Peter","Angus","Scott","Steve","Lydia","James","All Hours","Other"];
 const FUEL_LEVELS=["E","1/4","1/2","3/4","F"];
 const CLEANLINESS=["Clean","Dusty","Dirty"];
 
@@ -1529,7 +1529,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               <TransferFromPicker value={form.transferFrom} subValue={form.transferFromSub} onChangeType={v=>{setF("transferFrom",v);setF("transferFromSub",v==="Coroners"?"Sydney":"");}} onChangeSub={v=>setF("transferFromSub",v)}/>
               {errors.transferFrom&&<p className="text-red-500 text-xs mt-1">{errors.transferFrom}</p>}
             </Field>
-            {!isTransfer&&(
+            {!isTransfer&&!isFD&&(
               <Field label="Transferred By" required>
                 <TransferByPicker value={form.transferredBy} onChange={v=>setF("transferredBy",v)}/>
                 {errors.transferredBy&&<p className="text-red-500 text-xs mt-1">{errors.transferredBy}</p>}
@@ -2120,6 +2120,7 @@ function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
   const si=statusItems||{};
   const b=billable||{};
   function fmt(d){if(!d)return"—";const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}
+  const checkinStr=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
   
   // Build services list with codes
   const serviceMap={
@@ -2225,6 +2226,7 @@ ${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE 
 <div class="name-block">
   <div>
     <h1>${(c.lastName||"").toUpperCase()}, ${c.firstName}</h1>
+    <p style="font-size:12px;color:#555;margin:2px 0 8px 0;font-weight:600;">Checked In: ${checkinStr} · By: ${c.checkedInBy||"—"}</p>
     <p>DOB: ${fmt(c.dob)} &nbsp;|&nbsp; DOD: ${fmt(c.dod)} &nbsp;|&nbsp; Age: ${c.ageAtDeath??"&mdash;"} &nbsp;|&nbsp; ${c.sex||"&mdash;"}</p>
   </div>
   <div class="fd-name">${c.funeralHomeName||"&mdash;"}</div>
