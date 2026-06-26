@@ -5225,7 +5225,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
       {/* Room Tabs */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"],["VehicleStaff","Vehicle & Staff","gray"]].map(([key,label,color])=>(
+        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"],...(isFD?[]:[["VehicleStaff","Vehicle & Staff","gray"]])].map(([key,label,color])=>(
           <button key={key} onClick={()=>setActiveRoom(key)}
             className={"px-4 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(activeRoom===key?(color==="green"?"bg-green-600 text-white border-green-600":color==="blue"?"bg-blue-600 text-white border-blue-600":"bg-gray-900 text-white border-gray-900"):"border-gray-200 text-gray-600 hover:border-gray-700")}>
             {label}
