@@ -3061,22 +3061,26 @@ function MyCases({user,cases,onUpdateCase}) {
         {(isAdmin||isMSS)&&<div className="flex gap-2 ml-2">{[["lastName","Last Name"],["funeralHome","FD"],["collection","Collection"]].map(([v,l])=><button key={v} onClick={()=>setSortBy(v)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${sortBy===v?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}</div>}
       </div>
       {display.length===0&&<p className="text-gray-400 text-center py-12">No {filter} cases.</p>}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {display.map(c=>(
-          <div key={c.id} className="bg-white border border-gray-200 rounded-2xl p-5">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3"><StatusDot status={c.prepStatus||"not-started"}/><span className="text-xs font-bold text-gray-400">{c.caseRef}</span><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/>{c.checkedOut&&<span className="text-xs bg-gray-100 text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 font-semibold">Departed</span>}{c.status==="approved"&&<span className="text-xs bg-blue-600 text-white rounded-full px-2 py-0.5 font-semibold">Approved</span>}{c.status==="locked"&&<span className="text-xs bg-gray-900 text-white rounded-full px-2 py-0.5 font-semibold">Locked</span>}</div>
-              <div className="flex gap-2 flex-wrap justify-end">
-                {isMSS&&c.checkedOut&&(c.status==="pending-lock")&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-3 py-1.5 hover:bg-blue-700 transition font-black uppercase">APPROVE</button>}
-                {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO APPROVE</button>}
-                {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5 hover:bg-gray-700 transition font-black uppercase">LOCK</button>}
-                {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-3 py-1.5 hover:bg-red-600 transition font-black uppercase">UNLOCK</button>}
-                {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
+          <div key={c.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <StatusDot status={c.prepStatus||"not-started"}/>
+              <CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/>
+              <div className="min-w-0">
+                <div className="text-sm font-black text-gray-900 truncate">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+                <div className="text-xs text-gray-400 truncate">{c.caseRef} · {c.funeralHomeName}{c.prep?.collectionDate?" · "+c.prep.collectionDate:""}</div>
               </div>
             </div>
-            <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)}/>
-            {isFD&&<div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-3">{[["2nd Note",c.statusItems?.secondNote],["Clothes",c.statusItems?.clothes],["Coffin",c.statusItems?.coffin],["MCCD",c.statusItems?.mccd],["Photo",c.statusItems?.photo]].map(([l,v])=><div key={l} className={`py-2 px-1 rounded-lg text-xs font-bold text-center ${v?"bg-green-100 text-green-700 border border-green-300":"bg-red-50 text-red-500 border border-red-200"}`}>{l}</div>)}</div>}
-            <DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {c.checkedOut&&<span className="text-xs bg-gray-100 text-gray-500 border border-gray-200 rounded-full px-2 py-0.5 font-semibold hidden sm:block">Departed</span>}
+              {c.status==="approved"&&<span className="text-xs bg-blue-600 text-white rounded-full px-2 py-0.5 font-semibold hidden sm:block">Approved</span>}
+              {c.status==="locked"&&<span className="text-xs bg-gray-900 text-white rounded-full px-2 py-0.5 font-semibold hidden sm:block">Locked</span>}
+              {isMSS&&c.checkedOut&&c.status==="pending-lock"&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-2 py-1 font-black uppercase">APPROVE</button>}
+              {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-2 py-1 font-black uppercase">UNDO</button>}
+              {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-2 py-1 font-black uppercase">LOCK</button>}
+              {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-2 py-1 font-black uppercase">UNLOCK</button>}
+            </div>
           </div>
         ))}
       </div>
