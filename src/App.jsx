@@ -1247,12 +1247,17 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
       </div>}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-        {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
-      </div>
-      {row2.length>0&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {row2.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
-      </div>}
+      {isFD
+        ?<div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mb-3">
+          {[...row1,...row2].map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+        </div>
+        :<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+          {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+        </div>
+        {row2.length>0&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {row2.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+        </div>}</>
+      }
       {transfers.length>0&&<div className="grid grid-cols-1 gap-3 mt-3">
         {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
       </div>}
