@@ -5224,7 +5224,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
       <div className="flex gap-3 mb-5">
         {canEdit&&<button onClick={()=>{resetModal();setShowBookModal(true);}} className={`${s.btnDark} py-3`}>+ BOOK A ROOM</button>}
-        {(isAdmin||user?.role==="mss")&&<button onClick={()=>setActiveRoom("VehicleStaff")} className={`${s.btnGhost} py-3`}>+ ADD JOB</button>}
+        {(isAdmin||user?.role==="mss")&&activeRoom!=="VehicleStaff"&&<button onClick={()=>setActiveRoom("VehicleStaff")} className={`${s.btnGhost} py-3`}>+ ADD JOB</button>}
         <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
       </div>
 
