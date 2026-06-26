@@ -3062,7 +3062,7 @@ function MyCases({user,cases,onUpdateCase}) {
           <input className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="Search name, FD, case ref, date..." value={search} onChange={e=>setSearch(e.target.value)}/>
           {[["current","Current"],["past","Past"]].map(([v,l])=><button key={v} onClick={()=>setFilter(v)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition ${filter===v?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
         </div>
-        <div className="flex flex-wrap gap-1 sm:w-1/2 sm:justify-end">{[["lastName","Surname"],["funeralHome","FD"],["collection","Collection"],["checkout","Check Out"],["status","Status"]].map(([v,l])=><button key={v} onClick={()=>setSortBy(v)} className={`px-2 py-1.5 rounded-lg text-xs font-bold border transition ${sortBy===v?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
+        <div className="grid grid-cols-5 gap-1 sm:w-1/2">{[["lastName","Surname"],["funeralHome","FD"],["collection","Collection"],["checkout","Check Out"],["status","Status"]].map(([v,l])=><button key={v} onClick={()=>setSortBy(v)} className={`w-full py-2 rounded-lg text-xs font-bold border transition text-center ${sortBy===v?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-500 hover:border-gray-700"}`}>{l}</button>)}
         </div>
       </div>
       {display.length===0&&<p className="text-gray-400 text-center py-12">No {filter} cases.</p>}
