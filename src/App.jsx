@@ -4820,7 +4820,7 @@ function printWeek(weekDates,slotMap,slots){
 }
 
 // ─── VEHICLE WEEK VIEW (embedded in Calendar) ────────────────────────────────
-function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking,user,cases}){
+function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking,user,cases,readOnly=false}){
   const[showModal,setShowModal]=useState(false);
   const[editingBooking,setEditingBooking]=useState(null);
   const[showCompleteModal,setShowCompleteModal]=useState(null);
@@ -4906,7 +4906,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
 
   return(
     <div>
-      <button onClick={()=>setShowModal(true)} className="mb-4 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">+ ADD JOB</button>
+      {!readOnly&&<button onClick={()=>setShowModal(true)} className="mb-4 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">+ ADD JOB</button>}
       <div className="overflow-x-auto">
         <table style={{minWidth:"600px",width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
           <thead>
@@ -5225,7 +5225,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
       {/* Room Tabs */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"],...(isFD?[]:[["VehicleStaff","Vehicle & Staff","gray"]])].map(([key,label,color])=>(
+        {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"],["VehicleStaff","Vehicle & Staff","gray"]].map(([key,label,color])=>(
           <button key={key} onClick={()=>setActiveRoom(key)}
             className={"px-4 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(activeRoom===key?(color==="green"?"bg-green-600 text-white border-green-600":color==="blue"?"bg-blue-600 text-white border-blue-600":"bg-gray-900 text-white border-gray-900"):"border-gray-200 text-gray-600 hover:border-gray-700")}>
             {label}
@@ -5290,7 +5290,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
           </tbody>
         </table>
       </div>}
-      {activeRoom==="VehicleStaff"&&<VehicleWeekView weekDates={weekDates} vehicleBookings={vehicleBookings} onAddVehicleBooking={onAddVehicleBooking} onUpdateVehicleBooking={onUpdateVehicleBooking} onDeleteVehicleBooking={onDeleteVehicleBooking} user={user} cases={cases}/>}
+      {activeRoom==="VehicleStaff"&&<VehicleWeekView weekDates={weekDates} vehicleBookings={vehicleBookings} onAddVehicleBooking={onAddVehicleBooking} onUpdateVehicleBooking={onUpdateVehicleBooking} onDeleteVehicleBooking={onDeleteVehicleBooking} user={user} cases={cases} readOnly={isFD}/>}
 
       {/* Book / Edit Modal */}
       {showBookModal&&(canEdit||isFD)&&(
