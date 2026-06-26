@@ -954,7 +954,7 @@ function TransferFromPicker({value,subValue,onChangeType,onChangeSub}) {
         {TRANSFER_FROM_OPTIONS.map(o=><button key={o} type="button" onClick={()=>onChangeType(o)} className={s.tb(value===o)}>{o}</button>)}
       </div>
       {value==="Hospital"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Hospital —</option>{SYDNEY_HOSPITALS.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}
-      {value==="Nursing Home"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Nursing Home —</option>{SYDNEY_NURSING_HOMES.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}}
+      {value==="Nursing Home"&&<select className={s.inp} value={subValue} onChange={e=>onChangeSub(e.target.value)}><option value="">— Select Nursing Home —</option>{SYDNEY_NURSING_HOMES.map(h=><option key={h}>{h}</option>)}<option value="Other">Other...</option></select>}
       {value==="Coroners"&&<select className={s.sel} value={subValue||"Sydney"} onChange={e=>onChangeSub(e.target.value)}>{CORONER_OPTIONS.map(o=><option key={o}>{o}</option>)}</select>}
       {value==="Other"&&<input className={s.inp} placeholder="Describe origin…" value={subValue} onChange={e=>onChangeSub(e.target.value)}/>}
     </div>
