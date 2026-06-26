@@ -1242,10 +1242,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
         <button onClick={onToggleLock} className={s.btnLg+(lockOpen?" bg-green-600 text-white border-green-600 hover:bg-green-700":"")}>{lockOpen?"🔓 LOCKED":"🔒 LOCK"}</button>
       </div>}
-      {!isAdmin&&isMSS&&<div className="grid grid-cols-2 gap-3 mb-3">
-        <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
-        <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
-      </div>}
+
 
       {isFD
         ?<div className="grid grid-cols-2 gap-3 max-w-sm mx-auto mb-3">
@@ -1253,7 +1250,12 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         </div>
         :!isAdmin&&isMSS
         ?<><div className="grid grid-cols-3 gap-3 mb-3">
-          {(()=>{const allBtns=[...row1,...row2];const noMort=allBtns.filter(b=>b.action!=="mortuary");const mid=Math.floor(noMort.length/2);return[...noMort.slice(0,mid),{label:"🏥 MORTUARY",action:"mortuary",isMort:true},...noMort.slice(mid)].map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={b.isMort?s.btnLg+" bg-red-600 hover:bg-red-700 text-white border-red-600":s.btnLg}>{b.label}</button>));})()}
+          <button onClick={()=>onAction("mortuary")} className={s.btnLg+" bg-red-600 hover:bg-red-700 text-white border-red-600"}>🏥 MORTUARY</button>
+          <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
+          <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
+        </div>
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          {[...row1,...row2].filter(b=>b.action!=="mortuary").map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
         </div></>
         :<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
