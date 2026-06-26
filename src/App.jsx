@@ -4821,6 +4821,16 @@ function printWeek(weekDates,slotMap,slots){
 
 // ─── VEHICLE WEEK VIEW (embedded in Calendar) ────────────────────────────────
 function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdateVehicleBooking,onDeleteVehicleBooking,user,cases,readOnly=false}){
+  const isFDUser=user?.role==="fd";
+  const filteredVehicleBookings=isFDUser?(vehicleBookings||[]).filter(b=>{
+    const fdCaseIds=new Set(cases.filter(c=>c.funeralHomeId===user.funeralHomeId).map(c=>c.id));
+    return b.case_id&&fdCaseIds.has(b.case_id);
+  }):vehicleBookings;
+  const isFDUser=user?.role==="fd";
+  const filteredVehicleBookings=isFDUser?(vehicleBookings||[]).filter(b=>{
+    const fdCaseIds=new Set(cases.filter(c=>c.funeralHomeId===user.funeralHomeId).map(c=>c.id));
+    return b.case_id&&fdCaseIds.has(b.case_id);
+  }):vehicleBookings;
   const[showModal,setShowModal]=useState(false);
   const[editingBooking,setEditingBooking]=useState(null);
   const[showCompleteModal,setShowCompleteModal]=useState(null);
@@ -4842,7 +4852,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
   const activeCases=cases.filter(c=>c.status==="active"&&!c.checkedOut);
   const bookingsByDate={};
   weekDates.forEach(d=>bookingsByDate[d]=[]);
-  (vehicleBookings||[]).forEach(b=>{if(bookingsByDate[b.date])bookingsByDate[b.date].push(b);});
+  (filteredVehicleBookings||[]).forEach(b=>{if(bookingsByDate[b.date])bookingsByDate[b.date].push(b);});
   weekDates.forEach(d=>bookingsByDate[d].sort((a,b2)=>a.time.localeCompare(b2.time)));
 
   const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
