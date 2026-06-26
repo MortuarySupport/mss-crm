@@ -4224,7 +4224,7 @@ function VehicleCalendarView({user,cases,vehicleBookings,onAddVehicleBooking,onU
   // Group bookings by date
   const bookingsByDate={};
   weekDates.forEach(d=>bookingsByDate[d]=[]);
-  (vehicleBookings||[]).forEach(b=>{if(bookingsByDate[b.date])bookingsByDate[b.date].push(b);});
+  (filteredVehicleBookings||[]).forEach(b=>{if(bookingsByDate[b.date])bookingsByDate[b.date].push(b);});
   weekDates.forEach(d=>bookingsByDate[d].sort((a,b2)=>a.time.localeCompare(b2.time)));
 
   const dayNames=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
