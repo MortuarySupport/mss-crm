@@ -1252,9 +1252,8 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
           {[...row1,...row2].map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
         </div>
         :!isAdmin&&isMSS
-        ?<><button onClick={()=>onAction("mortuary")} className="w-full py-5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wide transition mb-3">🏥 MORTUARY</button>
-        <div className="grid grid-cols-3 gap-3 mb-3">
-          {[...row1,...row2].filter(b=>b.action!=="mortuary").map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+        ?<><div className="grid grid-cols-3 gap-3 mb-3">
+          {(()=>{const allBtns=[...row1,...row2];const noMort=allBtns.filter(b=>b.action!=="mortuary");const mid=Math.floor(noMort.length/2);return[...noMort.slice(0,mid),{label:"🏥 MORTUARY",action:"mortuary",isMort:true},...noMort.slice(mid)].map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={b.isMort?s.btnLg+" bg-red-600 hover:bg-red-700 text-white border-red-600":s.btnLg}>{b.label}</button>));})()}
         </div></>
         :<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
