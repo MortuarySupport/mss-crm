@@ -4929,20 +4929,23 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                   if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
                   if(slot){
                     const rowSpan=slot.spanOf||1;
-                    const bg=slot.completed?"#dcfce7":"#f8fafc";
-                    const border=slot.completed?"#16a34a":"#6b7280";
-                    const textColor=slot.completed?"#166534":"#1f2937";
+                    const isMine=!isFDUser||(slot.booking?.case_id&&fdCaseIds?.has(slot.booking.case_id));
+                    const bg=!isMine?"#f3f4f6":slot.completed?"#dcfce7":"#f8fafc";
+                    const border=!isMine?"#e5e7eb":slot.completed?"#16a34a":"#6b7280";
+                    const textColor=!isMine?"#9ca3af":slot.completed?"#166534":"#1f2937";
                     return(
-                      <td key={date} rowSpan={rowSpan} style={{padding:"2px",backgroundColor:bg,border:`2px solid ${border}`,borderRadius:"4px",verticalAlign:"top"}}>
+                      <td key={date} rowSpan={rowSpan} style={{padding:"2px",backgroundColor:bg,border:`2px solid ${border}`,borderRadius:"4px",verticalAlign:"top",opacity:isMine?1:0.5}}>
                         <div style={{padding:"2px 4px"}}>
+                          {!isMine?<div style={{fontSize:"9px",color:"#9ca3af",fontWeight:"700",textAlign:"center"}}>BUSY</div>:<>
                           <div style={{fontSize:"10px",fontWeight:"900",textTransform:"uppercase",color:textColor,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label}</div>
                           <div style={{fontSize:"9px",color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.label2}</div>
                           <div style={{fontSize:"9px",color:"#9ca3af",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{slot.staff}</div>
                           {slot.completed&&<div style={{fontSize:"9px",color:"#16a34a",fontWeight:"900"}}>✓ DONE</div>}
-                          <div style={{display:"flex",gap:"2px",marginTop:"2px"}}>
+                          {!readOnly&&<div style={{display:"flex",gap:"2px",marginTop:"2px"}}>
                             <button onClick={()=>openEdit(slot.booking)} style={{flex:1,fontSize:"8px",padding:"1px",background:"#e5e7eb",border:"none",borderRadius:"3px",cursor:"pointer",fontWeight:"700"}}>EDIT</button>
                             {!slot.completed&&<button onClick={()=>setShowCompleteModal(slot.booking)} style={{flex:1,fontSize:"8px",padding:"1px",background:"#111",color:"#fff",border:"none",borderRadius:"3px",cursor:"pointer",fontWeight:"700"}}>DONE</button>}
-                          </div>
+                          </div>}
+                          </>}
                         </div>
                       </td>
                     );
