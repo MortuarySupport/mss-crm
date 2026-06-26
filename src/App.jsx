@@ -5062,7 +5062,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
 
   const isFD=user?.role==="fd";
-  const canEdit=user?.role==="admin"||user?.role==="mss";
+  const canEdit=user?.role==="admin"||user?.role==="mss"||user?.role==="fd";
   const weekDates=getWeekDates(weekBase);
 
   function prevWeek(){const d=new Date(weekDates[0]);d.setDate(d.getDate()-7);setWeekBase(d.toISOString().slice(0,10));}
