@@ -2123,7 +2123,6 @@ function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
   const b=billable||{};
   function fmt(d){if(!d)return"—";const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}
   const checkinStr=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
-  const checkinStr=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
   
   // Build services list with codes
   const serviceMap={
