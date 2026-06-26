@@ -4929,7 +4929,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                   if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
                   if(slot){
                     const rowSpan=slot.spanOf||1;
-                    const isMine=!isFDUser||(slot.booking?.case_id&&fdCaseIds?.has(slot.booking.case_id));
+                    const isMine=!isFDUser||(isFDUser&&!!slot.booking?.case_id&&fdCaseIds?.has(slot.booking.case_id));
                     const bg=!isMine?"#f3f4f6":slot.completed?"#dcfce7":"#f8fafc";
                     const border=!isMine?"#e5e7eb":slot.completed?"#16a34a":"#6b7280";
                     const textColor=!isMine?"#9ca3af":slot.completed?"#166534":"#1f2937";
