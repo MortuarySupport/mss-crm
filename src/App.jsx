@@ -4900,11 +4900,23 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
   async function deleteBooking(b){if(!window.confirm("Delete this booking?"))return;await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"DELETE"});onDeleteVehicleBooking(b.id);resetModal();}
 
   // Build vehicle slot map (by hour slots like room calendar)
-  // Group bookings by date for multi-booking support
-  const bookingsByDateSlot={};
-  (vehicleBookings||[]).filter(b=>weekDates.includes(b.date)).forEach(b=>{
-    if(!bookingsByDateSlot[b.date]) bookingsByDateSlot[b.date]=[];
-    bookingsByDateSlot[b.date].push(b);
+  // Build vSlotMap - multiple bookings per slot stored as arrays
+  const vSlotMap={};
+  (vehicleBookings||[]).forEach(b=>{
+    if(!weekDates.includes(b.date)) return;
+    const[hStr,mStr]=(b.time||"08:00").split(":");
+    const hour=parseInt(hStr);
+    const isHalf=parseInt(mStr||0)>=30;
+    const totalSlots=Math.ceil((b.hours||1)*2);
+    let h=hour,half=isHalf;
+    for(let i=0;i<totalSlots;i++){
+      const key=`${b.date}_${h}_${half?"half":"full"}`;
+      if(!vSlotMap[key]) vSlotMap[key]=[];
+      vSlotMap[key].push({booking:b,isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,
+        label:i===0?b.job_type:"",label2:i===0?(b.case_label||"TBC"):"",
+        staff:i===0?(b.staff||[]).join(", "):"",completed:b.completed});
+      if(half){half=false;h++;}else{half=true;}
+    }
   });
 
   return(
@@ -4925,9 +4937,10 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                 <td style={{fontSize:"10px",fontWeight:"900",color:half?"#d1d5db":"#6b7280",padding:"2px 4px",verticalAlign:"top",whiteSpace:"nowrap"}}>{label}</td>
                 {weekDates.map(date=>{
                   const key=`${date}_${hour}_${half?"half":"full"}`;
-                  const slot=vSlotMap[key];
+                  const slots=vSlotMap[key]||[];
+                  const slot=slots[0];
                   if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
-                  if(slot){
+                  if(slots.length>0){
                     const rowSpan=slot.spanOf||1;
                     const isMine=!isFDUser||(isFDUser&&!!slot.booking?.case_id&&fdCaseIds?.has(slot.booking.case_id));
                     const bg=!isMine?"#f3f4f6":slot.completed?"#dcfce7":"#f8fafc";
