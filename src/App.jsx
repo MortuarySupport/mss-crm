@@ -2362,33 +2362,38 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       funeral_home_name:"Funeral director",billable:"Services & items",
       statusItems:"Checklist",
     };
-    const prepLabels={
-      viewing:"Viewing",viewingSlot:"Viewing slot",viewingDate:"Viewing date",
-      viewingLocation:"Viewing location",viewingHost:"Viewing host",viewingDuration:"Viewing duration",
-      collectionDate:"Collection/Delivery date",collectionTime:"Collection time",
-      funeralDate:"Funeral date",funeralTime:"Funeral time",sameDates:"Same day",
-      disposition:"Disposition",weight:"Weight",coffinType:"Coffin type",
-      coffinSize:"Coffin size",coffinColour:"Coffin colour",notes:"Notes",
-      prepOptions:"Preparation type",pacemakerRemoved:"Pacemaker",
-      mortuaryValuables:"Valuables",viewingSlot:"Viewing slot",
+    // High-level change grouping
+    const PREP_GROUPS={
+      viewing:["viewing","viewingSlot","viewingDate","viewingLocation","viewingHost","viewingDuration"],
+      dates:["collectionDate","collectionTime","funeralDate","funeralTime","sameDates"],
+      disposition:["disposition"],
+      coffin:["coffinType","coffinSize","coffinColour","coffinName","coffinHandles","otherInstructions"],
+      preparation:["prepOptions"],
+      comments:["comments"],
+      valuables:["mortuaryValuables","mortuaryValuablesText"],
     };
+    const GROUP_LABELS={viewing:"Viewing updated",dates:"Dates updated",disposition:"Disposition updated",coffin:"Coffin details updated",preparation:"Preparation type updated",comments:"Comments updated",valuables:"Valuables updated"};
     function fmt(d){if(!d)return"—";if(d.match&&d.match(/^\d{4}-\d{2}-\d{2}$/)){const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}return String(d);}
     const changes=[];
     Object.keys(updates).forEach(k=>{
       if(k==="prep"){
         const oldPrep=existingCase?.prep||{};
+        const changedGroups=new Set();
+        const ungrouped=[];
         Object.keys(updates.prep||{}).forEach(pk=>{
           const oldVal=oldPrep[pk];
           const newVal=updates.prep[pk];
           if(JSON.stringify(oldVal)===JSON.stringify(newVal)) return;
-          const label=prepLabels[pk]||pk;
-          if(Array.isArray(newVal)){
-            changes.push(`${label} updated to: ${newVal.join(", ")||"—"}`);
-          } else if(newVal===undefined||newVal===null||newVal===""){
-            changes.push(`${label} cleared`);
-          } else {
-            changes.push(`${label} changed to: ${fmt(newVal)}`);
-          }
+          const grp=Object.keys(PREP_GROUPS).find(g=>PREP_GROUPS[g].includes(pk));
+          if(grp) changedGroups.add(grp);
+          else ungrouped.push(pk);
+        });
+        changedGroups.forEach(g=>changes.push(GROUP_LABELS[g]||g));
+        ungrouped.forEach(pk=>{
+          const oldVal=oldPrep[pk];const newVal=updates.prep[pk];
+          if(Array.isArray(newVal)){changes.push(`${pk} updated`);}
+          else if(!newVal){changes.push(`${pk} cleared`);}
+          else{changes.push(`${pk} updated`);}
         });
       } else if(k==="statusItems"){
         const oldSI=existingCase?.statusItems||{};
