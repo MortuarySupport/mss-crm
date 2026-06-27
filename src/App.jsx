@@ -4868,11 +4868,32 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
 
   async function saveBooking(){
     if(!jobDate||!jobTime||assignedStaff.length===0){alert("Please select date, time and at least one staff member.");return;}
-    setSaving(true);
-    try{
-      const selCase=activeCases.find(x=>x.id===caseId);
-      const data=  {job_type:jobType,date:jobDate,time:jobTime,hours:jobHours,staff:assignedStaff,case_id:tbc?"":caseId,tbc,case_label:tbc?"TBC":selCase?`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`:"",funeral_home:selCase?.funeralHomeName||"",notes,completed:false,created_by:user?.name||"",created_at:new Date().toISOString()};
-      if(editingBooking){
+   // Clash detection
+   const newStart=jobTime;
+   const [nh,nm]=(jobTime||"00:00").split(":").map(Number);
+   const newStartMins=nh*60+nm;
+   const newEndMins=newStartMins+(jobHours||1)*60;
+   const newVehicle=VEHICLE_JOB_TYPES.find(j=>j.label===jobType)?.vehicle;
+   const clashes=[];
+   (vehicleBookings||[]).filter(b=>b.date===jobDate&&(!editingBooking||b.id!==editingBooking.id)).forEach(b=>{
+     const [bh,bm]=(b.time||"00:00").split(":").map(Number);
+     const bStart=bh*60+bm;
+     const bEnd=bStart+(b.hours||1)*60;
+     const overlaps=newStartMins<bEnd&&newEndMins>bStart;
+     if(!overlaps) return;
+     // Check staff clash
+     const staffClash=assignedStaff.filter(s=>(b.staff||[]).includes(s));
+     if(staffClash.length>0) clashes.push(`${staffClash.join(", ")} already booked at this time`);
+     // Check vehicle clash
+     const bVehicle=VEHICLE_JOB_TYPES.find(j=>j.label===b.job_type)?.vehicle;
+     if(newVehicle&&bVehicle&&newVehicle===bVehicle) clashes.push(`${newVehicle} already booked at this time`);
+   });
+   if(clashes.length>0){alert("⚠ Booking clash detected:\n\n"+[...new Set(clashes)].join("\n")+"\n\nPlease choose a different time or staff member.");return;}
+   setSaving(true);
+   try{
+     const selCase=activeCases.find(x=>x.id===caseId);
+     const data={job_type:jobType,date:jobDate,time:jobTime,hours:jobHours,staff:assignedStaff,case_id:tbc?"":caseId,tbc,case_label:tbc?"TBC":selCase?`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`:"",funeral_home:selCase?.funeralHomeName||"",notes,completed:false,created_by:user?.name||"",created_at:new Date().toISOString()};
+     if(editingBooking){
         await sb(`vehicle_bookings?id=eq.${editingBooking.id}`,{method:"PATCH",body:JSON.stringify(data),prefer:"return=representation"});
         onUpdateVehicleBooking({...editingBooking,...data});
       } else {
