@@ -4868,27 +4868,6 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
 
   async function saveBooking(){
     if(!jobDate||!jobTime||assignedStaff.length===0){alert("Please select date, time and at least one staff member.");return;}
-   // Clash detection
-   const newStart=jobTime;
-   const [nh,nm]=(jobTime||"00:00").split(":").map(Number);
-   const newStartMins=nh*60+nm;
-   const newEndMins=newStartMins+(jobHours||1)*60;
-   const newVehicle=VEHICLE_JOB_TYPES.find(j=>j.label===jobType)?.vehicle;
-   const clashes=[];
-   (vehicleBookings||[]).filter(b=>b.date===jobDate&&(!editingBooking||b.id!==editingBooking.id)).forEach(b=>{
-     const [bh,bm]=(b.time||"00:00").split(":").map(Number);
-     const bStart=bh*60+bm;
-     const bEnd=bStart+(b.hours||1)*60;
-     const overlaps=newStartMins<bEnd&&newEndMins>bStart;
-     if(!overlaps) return;
-     // Check staff clash
-     const staffClash=assignedStaff.filter(s=>(b.staff||[]).includes(s)&&s!=="All Hours"&&s!=="Other");
-     if(staffClash.length>0) clashes.push(`${staffClash.join(", ")} already booked at this time`);
-     // Check vehicle clash
-     const bVehicle=VEHICLE_JOB_TYPES.find(j=>j.label===b.job_type)?.vehicle;
-     if(newVehicle&&bVehicle&&newVehicle===bVehicle&&!["Hearse"].includes(newVehicle)) clashes.push(`${newVehicle} already booked at this time`);
-   });
-   if(clashes.length>0){alert("⚠ Booking clash detected:\n\n"+[...new Set(clashes)].join("\n")+"\n\nPlease choose a different time or staff member.");return;}
    setSaving(true);
    try{
      const selCase=activeCases.find(x=>x.id===caseId);
@@ -4921,21 +4900,11 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
   async function deleteBooking(b){if(!window.confirm("Delete this booking?"))return;await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"DELETE"});onDeleteVehicleBooking(b.id);resetModal();}
 
   // Build vehicle slot map (by hour slots like room calendar)
-  const vSlotMap={};
-  (vehicleBookings||[]).forEach(b=>{
-    if(!weekDates.includes(b.date)) return;
-    const[hStr,mStr]=(b.time||"08:00").split(":");
-    const hour=parseInt(hStr);
-    const isHalf=parseInt(mStr||0)>=30;
-    const totalSlots=Math.ceil((b.hours||1)*2);
-    let h=hour,half=isHalf;
-    for(let i=0;i<totalSlots;i++){
-      const key=`${b.date}_${h}_${half?"half":"full"}`;
-      vSlotMap[key]={booking:b,isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,
-        label:i===0?b.job_type:"",label2:i===0?(b.case_label||"TBC"):"",
-        staff:i===0?(b.staff||[]).join(", "):"",completed:b.completed};
-      if(half){half=false;h++;}else{half=true;}
-    }
+  // Group bookings by date for multi-booking support
+  const bookingsByDateSlot={};
+  (vehicleBookings||[]).filter(b=>weekDates.includes(b.date)).forEach(b=>{
+    if(!bookingsByDateSlot[b.date]) bookingsByDateSlot[b.date]=[];
+    bookingsByDateSlot[b.date].push(b);
   });
 
   return(
