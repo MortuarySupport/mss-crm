@@ -4882,11 +4882,11 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
      const overlaps=newStartMins<bEnd&&newEndMins>bStart;
      if(!overlaps) return;
      // Check staff clash
-     const staffClash=assignedStaff.filter(s=>(b.staff||[]).includes(s));
+     const staffClash=assignedStaff.filter(s=>(b.staff||[]).includes(s)&&s!=="All Hours"&&s!=="Other");
      if(staffClash.length>0) clashes.push(`${staffClash.join(", ")} already booked at this time`);
      // Check vehicle clash
      const bVehicle=VEHICLE_JOB_TYPES.find(j=>j.label===b.job_type)?.vehicle;
-     if(newVehicle&&bVehicle&&newVehicle===bVehicle) clashes.push(`${newVehicle} already booked at this time`);
+     if(newVehicle&&bVehicle&&newVehicle===bVehicle&&!["Hearse"].includes(newVehicle)) clashes.push(`${newVehicle} already booked at this time`);
    });
    if(clashes.length>0){alert("⚠ Booking clash detected:\n\n"+[...new Set(clashes)].join("\n")+"\n\nPlease choose a different time or staff member.");return;}
    setSaving(true);
