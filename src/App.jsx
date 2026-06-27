@@ -4941,7 +4941,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                   const slot=slots[0];
                   if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
                   if(slots.length>0&&slot&&!slot.isContinuation){
-                    const rowSpan=slot.spanOf||1;
+                    const rowSpan=Math.max(...slots.map(s=>s.spanOf||1));
                     const firstSlots=slots.filter(s=>s.isFirst);
                     return(
                       <td key={date} rowSpan={rowSpan} style={{padding:"2px",verticalAlign:"top",border:"1px solid #e5e7eb"}}>
