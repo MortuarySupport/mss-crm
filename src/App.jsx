@@ -4900,23 +4900,16 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
   async function deleteBooking(b){if(!window.confirm("Delete this booking?"))return;await sb(`vehicle_bookings?id=eq.${b.id}`,{method:"DELETE"});onDeleteVehicleBooking(b.id);resetModal();}
 
   // Build vehicle slot map (by hour slots like room calendar)
-  // Build vSlotMap - multiple bookings per slot stored as arrays
+  // Build vSlotMap - only store at start slot, no rowSpan
   const vSlotMap={};
   (vehicleBookings||[]).forEach(b=>{
     if(!weekDates.includes(b.date)) return;
     const[hStr,mStr]=(b.time||"08:00").split(":");
     const hour=parseInt(hStr);
     const isHalf=parseInt(mStr||0)>=30;
-    const totalSlots=Math.ceil((b.hours||1)*2);
-    let h=hour,half=isHalf;
-    for(let i=0;i<totalSlots;i++){
-      const key=`${b.date}_${h}_${half?"half":"full"}`;
-      if(!vSlotMap[key]) vSlotMap[key]=[];
-      vSlotMap[key].push({booking:b,isFirst:i===0,isContinuation:i>0,spanOf:totalSlots,
-        label:i===0?b.job_type:"",label2:i===0?(b.case_label||"TBC"):"",
-        staff:i===0?(b.staff||[]).join(", "):"",completed:b.completed});
-      if(half){half=false;h++;}else{half=true;}
-    }
+    const key=`${b.date}_${hour}_${isHalf?"half":"full"}`;
+    if(!vSlotMap[key]) vSlotMap[key]=[];
+    vSlotMap[key].push({booking:b,label:b.job_type,label2:b.case_label||"TBC",staff:(b.staff||[]).join(", "),completed:b.completed,hours:b.hours});
   });
 
   return(
@@ -4938,14 +4931,10 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                 {weekDates.map(date=>{
                   const key=`${date}_${hour}_${half?"half":"full"}`;
                   const slots=vSlotMap[key]||[];
-                  const slot=slots[0];
-                  if(slot?.isContinuation) return <td key={date} style={{padding:0,border:"none"}}/>;
-                  if(slots.length>0&&slot&&!slot.isContinuation){
-                    const rowSpan=Math.max(...slots.map(s=>s.spanOf||1));
-                    const firstSlots=slots.filter(s=>s.isFirst);
+                  if(slots.length>0){
                     return(
-                      <td key={date} rowSpan={rowSpan} style={{padding:"2px",verticalAlign:"top",border:"1px solid #e5e7eb"}}>
-                        {firstSlots.map((s,si)=>{
+                      <td key={date} style={{padding:"2px",verticalAlign:"top",border:"1px solid #e5e7eb",minWidth:"60px"}}>
+                        {slots.map((s,si)=>{
                           const isMine=!isFDUser||(isFDUser&&!!s.booking?.case_id&&fdCaseIds?.has(s.booking.case_id));
                           const colors=["#dbeafe","#dcfce7","#fef3c7","#fce7f3","#ede9fe","#ffedd5"];
                           const bords=["#3b82f6","#16a34a","#d97706","#db2777","#7c3aed","#ea580c"];
@@ -4969,7 +4958,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                       </td>
                     );
                   }
-                  return <td key={date} style={{padding:"2px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f3f4f6",cursor:"pointer"}} onClick={()=>{setJobDate(date);setJobTime(label);setShowModal(true);}}><div style={{minHeight:"24px",textAlign:"center",color:"#e5e7eb",fontSize:"11px",fontWeight:"900"}}>+</div></td>;
+                  return <td key={`${date}_empty`} style={{padding:"2px",backgroundColor:half?"#f9fafb":"#ffffff",border:"1px solid #f3f4f6",cursor:"pointer"}} onClick={()=>{setJobDate(date);setJobTime(label);setShowModal(true);}}><div style={{minHeight:"24px",textAlign:"center",color:"#e5e7eb",fontSize:"11px",fontWeight:"900"}}>+</div></td>;
                 })}
               </tr>
             ));
