@@ -5216,29 +5216,19 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
   return(
     <div className="w-full px-4 py-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-black text-gray-900 uppercase">Calendar</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
-          <button onClick={prevWeek} className={`${s.btnGhost} py-2 px-4`}>← PREV</button>
-          <span className="text-xs font-black text-gray-600 uppercase px-2">{fmt(weekDates[0])} – {fmt(weekDates[6])}</span>
-          <button onClick={nextWeek} className={`${s.btnDark} py-2 px-4`}>NEXT →</button>
+          <button onClick={prevWeek} className={`${s.btnGhost} py-1.5 px-3 text-xs`}>← PREV</button>
+          <span className="text-xs font-black text-gray-600 uppercase">{fmt(weekDates[0])} – {fmt(weekDates[6])}</span>
+          <button onClick={nextWeek} className={`${s.btnDark} py-1.5 px-3 text-xs`}>NEXT →</button>
+        </div>
+        <div className="flex gap-2">
+          {canEdit&&<button onClick={()=>{resetModal();setShowBookModal(true);}} className={`${s.btnDark} py-1.5 px-3 text-xs`}>+ BOOK ROOM</button>}
+          {(isAdmin||user?.role==="mss")&&activeRoom!=="VehicleStaff"&&<button onClick={()=>setActiveRoom("VehicleStaff")} className={`${s.btnGhost} py-1.5 px-3 text-xs`}>+ ADD JOB</button>}
+          <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-1.5 px-3 text-xs`}>🖨️ PRINT</button>
         </div>
       </div>
-
-      <div className="flex gap-4 mb-4">
-        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-green-500"/><span className="text-xs font-black uppercase text-gray-600">Viewing Room</span></div>
-        <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-blue-500"/><span className="text-xs font-black uppercase text-gray-600">Family Meeting Room</span></div>
-        {isFD&&<div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-gray-300"/><span className="text-xs font-black uppercase text-gray-600">Unavailable</span></div>}
-      </div>
-
-      <div className="flex gap-3 mb-5">
-        {canEdit&&<button onClick={()=>{resetModal();setShowBookModal(true);}} className={`${s.btnDark} py-3`}>+ BOOK A ROOM</button>}
-        {(isAdmin||user?.role==="mss")&&activeRoom!=="VehicleStaff"&&<button onClick={()=>setActiveRoom("VehicleStaff")} className={`${s.btnGhost} py-3`}>+ ADD JOB</button>}
-        <button onClick={()=>printWeek(weekDates,slotMap,CALENDAR_SLOTS)} className={`${s.btnGhost} py-3`}>🖨️ PRINT WEEK</button>
-      </div>
-
-      {/* Room Tabs */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-2">
         {[["ViewingRoom","Viewing Room","green"],["FamilyRoom","Family Meeting Room","blue"],["VehicleStaff","Vehicle & Staff","gray"]].map(([key,label,color])=>(
           <button key={key} onClick={()=>setActiveRoom(key)}
             className={"px-4 py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(activeRoom===key?(color==="green"?"bg-green-600 text-white border-green-600":color==="blue"?"bg-blue-600 text-white border-blue-600":"bg-gray-900 text-white border-gray-900"):"border-gray-200 text-gray-600 hover:border-gray-700")}>
