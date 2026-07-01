@@ -2571,6 +2571,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         {c.pendingChanges?.length>0&&<button onClick={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>}
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],true)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">🖨️ PRINT JOB CARD</button>
+        <button onClick={()=>setShowPacemakerCert(true)} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-black text-sm uppercase hover:bg-amber-600 transition">📋 PACEMAKER CERT</button>
       </div>
       <div className={s.card}>
         <p className={s.section}>Checklist</p>
