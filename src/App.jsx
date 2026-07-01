@@ -775,7 +775,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
     try{
       const list=await listDocuments(caseId);
       setDocs(list.filter(f=>f.name&&!f.name.endsWith("/")));
-      const{data:certs}=await supabase.from("pacemaker_certificates").select("*").eq("case_id",caseId).order("created_at",{ascending:false});
+      const certsRes=await fetch(SUPABASE_URL+"/rest/v1/pacemaker_certificates?case_id=eq."+caseId+"&order=created_at.desc",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});const certs=await certsRes.json();
       setPaceCerts(certs||[]);
     }catch(e){console.error(e);}
     setLoading(false);
@@ -2017,13 +2017,13 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
     const sig = canvasRef.current.toDataURL("image/png");
     try{
       // Save cert record
-      const r=await supabase.from("pacemaker_certificates").insert({
+      const r=await fetch(SUPABASE_URL+"/rest/v1/pacemaker_certificates",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=representation"},body:JSON.stringify({
         case_id:caseData.id,case_ref:caseData.caseRef,
         first_name:caseData.firstName,last_name:caseData.lastName,
         dob:caseData.dob,dod:caseData.dod,
         funeral_home_name:caseData.funeralHomeName||"",
         removal_date:certDate,embalmer_name:displayName,signature_data:sig
-      });
+      })});
 
       // Fill and upload official PDF
       try{
@@ -2045,9 +2045,9 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
         const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
         const filePath="cases/"+caseData.id+"/"+fileName;
-        const {data:storageData,error:upErr}=await supabase.storage.from("case-documents").upload(filePath,filledBytes,{contentType:"application/pdf",upsert:true});
-        if(!upErr){
-          await supabase.from("case_documents").insert({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()});
+        const upRes=await fetch(SUPABASE_URL+"/storage/v1/object/case-documents/"+filePath,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
+        if(upRes.ok){
+          await fetch(SUPABASE_URL+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()})});
         }
       }catch(pdfErr){console.error("PDF error:",pdfErr);}
 
