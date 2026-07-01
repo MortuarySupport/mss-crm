@@ -2362,6 +2362,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const [selFH,setSelFH]=useState(null);
   const [selCase,setSelCase]=useState(null);
   const [showPacemakerCert,setShowPacemakerCert]=useState(false);
+  const [docReload,setDocReload]=useState(0);
   useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[selFH?.id,selCase?.id]);
 
   const byFH={};
@@ -2669,14 +2670,14 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           </div>
         ))}
       </div>
-      <div id="docsSection"><DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
+      <div id="docsSection"><DocumentSection key={docReload} caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
       <div className="grid grid-cols-3 gap-3 mb-4">
         {[["not-started","Not Started","bg-red-500"],["in-progress","In Progress","bg-amber-500"],["completed","Completed","bg-green-600"]].map(([val,label,col])=>(
           <button key={val} onClick={()=>handleStatus(val)} className={`py-4 rounded-2xl text-white font-black text-base transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-80 hover:opacity-100"}`}>{label}</button>
         ))}
       </div>
 
-      {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>setShowPacemakerCert(false)}/>}
+      {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>{setShowPacemakerCert(false);setDocReload(p=>p+1);}}/>}
     </div>
     </>
   );
