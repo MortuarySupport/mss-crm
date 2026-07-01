@@ -182,7 +182,19 @@ function calcAge(dob,dod) {
   if(d.getMonth()-b.getMonth()<0||(d.getMonth()===b.getMonth()&&d.getDate()<b.getDate())) a--;
   return a>=0?a:null;
 }
-function genCaseRef(cases) { const max=cases.reduce((m,c)=>{const n=parseInt((c.caseRef||"").replace("MSL_","")||0);return n>m?n:m;},0); return `MSL_${(max+1).toString().padStart(5,"0")}`; }
+async function genCaseRef() {
+  try {
+    const r=await fetch(SUPABASE_URL+"/rest/v1/cases?select=case_ref&order=case_ref.desc&limit=1",{
+      headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
+    });
+    const data=await r.json();
+    const last=data?.[0]?.case_ref||"MSL_00000";
+    const n=parseInt(last.replace("MSL_","")||0);
+    return `MSL_${(n+1).toString().padStart(5,"0")}`;
+  } catch {
+    return `MSL_${Date.now().toString().slice(-5)}`;
+  }
+}
 function getFHContacts(fhId) { return FUNERAL_HOMES.find(f=>f.id===fhId)?.contacts||[]; }
 function sexShort(s) { return s==="Male"?"M":s==="Female"?"F":"O"; }
 function sortAlpha(arr,key="name") { return [...arr].sort((a,b)=>a[key].localeCompare(b[key])); }
@@ -1424,7 +1436,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     const e=validate();
     if(Object.keys(e).length){setErrors(e);return;}
     setSaving(true);
-    const caseRef=genCaseRef(cases);
+    const caseRef=await genCaseRef();
     const fhId=isFD?user.funeralHomeId:selFH;
     const fhName=fhId==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===fhId)?.name||"";
     const age=calcAge(form.dob,form.dod);
