@@ -140,9 +140,21 @@ const PREP_OPTIONS = [
   {label:"Repatriation",short:"REP"},
 ];
 const DESTINATIONS = [
-  "Northern Suburbs Memorial Gardens","Macquarie Park Cemetery","Rookwood General Cemetery",
-  "Eastern Suburbs Memorial Park","Woronora Memorial Park","Forest Lawn Memorial Park",
-  "Frenchs Forest Bushland Cemetery","Castlebrook Memorial Park",
+  // Crematoriums
+  "Eastern Suburbs Memorial Park Crematorium","Macquarie Park Crematorium","Northern Suburbs Crematorium",
+  "Rookwood Crematorium","Woronora Crematorium","Forest Lawn Crematorium","Castlebrook Crematorium",
+  "Kemps Creek Crematorium","Liverpool Crematorium","Pinegrove Crematorium",
+  // Cemeteries
+  "Rookwood General Cemetery","Northern Suburbs Memorial Gardens","Eastern Suburbs Memorial Park",
+  "Woronora Memorial Park","Forest Lawn Memorial Park","Frenchs Forest Bushland Cemetery",
+  "Castlebrook Memorial Park","Macquarie Park Cemetery","Kemps Creek Memorial Park",
+  "Liverpool General Cemetery","Pinegrove Memorial Park","Hawkesbury Cemetery",
+  "Penrith General Cemetery","Catholic Metropolitan Cemeteries","St Michaels Cemetery",
+  "South Head Cemetery","Waverley Cemetery","Botany Cemetery",
+  "Randwick Cemetery","Sutherland General Cemetery","Heathcote Cemetery",
+  "Campbelltown General Cemetery","Camden General Cemetery","Windsor Cemetery",
+  // Other
+  "Repatriation","Other",
 ];
 const BILLABLE_ITEMS = [
   "After Hours Body Prep or Sealing Surcharge","Assist in Witness Dressing - Per Person",
