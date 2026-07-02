@@ -1310,8 +1310,10 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
           {row2.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
         </div>}</>
       }
-      {transfers.length>0&&<div className="grid grid-cols-1 gap-3 mt-3">
-        {transfers.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
+      {isTransfer&&<div className="grid grid-cols-1 gap-3 mt-3 max-w-xs mx-auto w-full">
+        <button onClick={()=>onAction("checkin")} className={s.btnLg}>✅ CHECK IN</button>
+        <button onClick={()=>onAction("checkout")} className={s.btnLg}>🚐 CHECK OUT</button>
+        <button onClick={()=>onAction("transfers")} className={s.btnLg}>📋 MY TRANSFERS</button>
       </div>}
       {isAdmin&&<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
         <button onClick={()=>onAction("pins")} className={s.btnLg}>🔢 PINS</button>
