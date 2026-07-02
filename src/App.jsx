@@ -1538,7 +1538,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     );
   }
 
-  const effectiveStep=isFD?3:step;
+  const effectiveStep=isFD?3:isTransfer&&step===1?2:step;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
