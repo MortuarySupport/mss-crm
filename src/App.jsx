@@ -912,6 +912,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
       {viewingCert&&<PacemakerCertificateView cert={viewingCert} onClose={()=>setViewingCert(null)}/>}
     </div>
   );
+}
 
 // ─── CASE VIEW CARD ───────────────────────────────────────────────────────────
 function CaseViewCard({c,isAdmin,onSave}) {
