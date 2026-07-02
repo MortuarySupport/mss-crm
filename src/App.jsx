@@ -986,10 +986,25 @@ function CaseViewCard({c,isAdmin,onSave}) {
 
 // ─── DATE INPUT ─────────────────────────────────────────────────────────────
 function DOBPicker({value,onChange,maxDate,minDate}) {
+  const [text,setText]=useState(value?fmt(value):"");
+  function handleChange(v){
+    setText(v);
+    const m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if(m){const iso=`${m[3]}-${m[2]}-${m[1]}`;onChange(iso);}
+    else if(!v){onChange("");}
+  }
+  React.useEffect(()=>{setText(value?fmt(value):"");},[value]);
   return (
     <div>
-      <input type="date" className={s.inp} value={value||""} min={minDate||""} max={maxDate||today()} onChange={e=>onChange(e.target.value)}/>
-      {value&&<p className="text-sm text-gray-600 mt-1 font-medium">{fmt(value)}</p>}
+      <input className={s.inp} placeholder="DD/MM/YYYY" value={text} inputMode="numeric"
+        onChange={e=>{
+          let v=e.target.value.replace(/[^0-9/]/g,"");
+          if(v.length===2&&!v.includes("/"))v+="/";
+          if(v.length===5&&v.split("/").length===2)v+="/";
+          if(v.length>10)v=v.slice(0,10);
+          handleChange(v);
+        }}/>
+      {value&&<p className="text-xs text-gray-500 mt-1">{fmt(value)}</p>}
     </div>
   );
 }
