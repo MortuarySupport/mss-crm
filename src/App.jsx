@@ -925,6 +925,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
   return (
     <div className={"rounded-2xl p-4 "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
       {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
+      {c.pacemaker&&<div className="flex items-center gap-2 mb-3 bg-amber-500 text-white rounded-xl px-3 py-2"><span className="text-base">⚡</span><span className="text-sm font-black uppercase tracking-wide">PACEMAKER FITTED — REMOVAL REQUIRED</span></div>}
       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
         <div style={{width:"100%",minWidth:0}}>
           <div className="font-black text-gray-900 mb-1" style={{fontSize:"clamp(14px,4vw,22px)",wordBreak:"break-all",overflowWrap:"anywhere"}}>
