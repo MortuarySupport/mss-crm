@@ -923,6 +923,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
   function savePrep(field,val){onSave&&onSave({prep:{...prep,[field]:val}});}
   const isInfectious=c.statusItems?.mccd==="infectious";
   return (
+    {viewingDoc&&<div onClick={()=>setViewingDoc(null)} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",flexDirection:"column"}}><div style={{background:"#111",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{color:"#fff",fontWeight:900,fontSize:13}}>{viewingDoc.name}</span><button onClick={()=>setViewingDoc(null)} style={{color:"#fff",background:"none",border:"none",fontSize:22,cursor:"pointer",lineHeight:1}}>✕</button></div><iframe src={viewingDoc.url} style={{flex:1,border:"none",width:"100%"}} onClick={e=>e.stopPropagation()}/></div>}
     <div className={"rounded-2xl p-4 "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
       {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
@@ -1445,7 +1446,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       dob:form.dob,dod:form.dod,sex:form.sex,ageAtDeath:age,
       transferredFrom:getTransferDisplay(),transferredBy:isTransfer?user.name:form.transferredBy,
       transferPersonName:"",transferDate:form.transferDate,
-      valuables:getValuablesDisplay(),paperwork:form.paperwork.join(", "),size:form.size,fridge:form.fridge,weight:form.weight,
+      valuables:getValuablesDisplay(),paperwork:form.paperwork.join(", "),size:form.size,fridge:form.fridge,weight:form.weight,pacemaker:form.pacemaker||false,
       funeralHomeId:fhId,funeralHomeName:fhName,
       checkedInBy:user.name,checkedInRole:checkinRole,
       checkedInAt:new Date().toISOString(),
