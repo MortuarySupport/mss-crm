@@ -1446,7 +1446,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       dob:form.dob,dod:form.dod,sex:form.sex,ageAtDeath:age,
       transferredFrom:getTransferDisplay(),transferredBy:isTransfer?user.name:form.transferredBy,
       transferPersonName:"",transferDate:form.transferDate,
-      valuables:getValuablesDisplay(),paperwork:form.paperwork.join(", "),size:form.size,fridge:form.fridge,weight:form.weight,pacemaker:form.pacemaker||false,pacemaker:form.pacemaker||false,
+      valuables:getValuablesDisplay(),paperwork:form.paperwork.join(", "),size:form.size,fridge:form.fridge,weight:form.weight,pacemaker:form.pacemaker||false,
       funeralHomeId:fhId,funeralHomeName:fhName,
       checkedInBy:user.name,checkedInRole:checkinRole,
       checkedInAt:new Date().toISOString(),
@@ -1629,6 +1629,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             </Field>
             <Field label="WEIGHT (IF KNOWN)">
               <input className={s.inp} placeholder="e.g. 85kg" value={form.weight} onChange={e=>setF("weight",e.target.value)}/>
+              <Field label="Pacemaker Fitted"><button type="button" onClick={()=>setF("pacemaker",!form.pacemaker)} className={"w-full py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(form.pacemaker?"bg-red-600 text-white border-red-600":"border-gray-200 text-gray-600 hover:border-red-400")}>⚠️ {form.pacemaker?"YES — PACEMAKER FITTED":"No Pacemaker"}</button></Field>
             </Field>
           </div>
 
