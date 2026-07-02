@@ -911,7 +911,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
       </div>
       {viewingCert&&<PacemakerCertificateView cert={viewingCert} onClose={()=>setViewingCert(null)}/>}
     </div>
-  );
+  </>);
 }
 
 // ─── CASE VIEW CARD ───────────────────────────────────────────────────────────
