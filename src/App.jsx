@@ -201,7 +201,7 @@ for(let h=9;h<=21;h++){
   if(h<21) VIEWING_SLOTS.push(`${String(h).padStart(2,"0")}:30`);
 }
 
-const TRANSFER_BY_PRESETS = { "All Hours":["Jimmy","Jacquie","Peter"], "MSS":["Angus","Peter","Scott"] };
+const TRANSFER_BY_PRESETS = { "All Hours":["Jimmy","Jacquie","Peter","James"], "MSS":["Angus","Peter","Scott"] };
 const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD"];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
