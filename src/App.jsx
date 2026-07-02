@@ -827,7 +827,6 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
   // Preview the filename that will be used
   const previewName=`${label}_${(funeralHomeName||"FD").replace(/[^a-zA-Z0-9]/g,"_")}_${(lastName||"Lastname").replace(/[^a-zA-Z0-9]/g,"_")}_${dod?dod.split("-").reverse().join(""):""}.[ext]`;
 
-  return(
   return(<>
     <div className={`${s.card} mt-4`}>
       <div className="flex items-center justify-between mb-3">
