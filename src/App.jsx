@@ -2982,7 +2982,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 
           {/* Checklist */}
           <div className={s.card}>
-            <p className={s.section}>DEPARTURE CHECKLIST {errors.checklist&&<span className="text-red-500 text-xs ml-2 normal-case">({errors.checklist})</span>}</p>
+            <div className="flex items-center justify-between mb-2"><p className={s.section+" mb-0"}>DEPARTURE CHECKLIST {errors.checklist&&<span className="text-red-500 text-xs ml-2 normal-case">({errors.checklist})</span>}</p><button type="button" onClick={()=>{const all={};CHECKOUT_ITEMS.forEach(i=>all[i]=true);setChecklist(all);setErrors(e=>({...e,checklist:""}));}} className="text-xs font-black uppercase tracking-wide text-white bg-gray-900 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition">✓ CHECK ALL</button></div>
             {CHECKOUT_ITEMS.map(item=>(
               <div key={item}>
                 <div onClick={()=>{setChecklist(c=>({...c,[item]:!c[item]}));setErrors(e=>({...e,checklist:""}));}}
