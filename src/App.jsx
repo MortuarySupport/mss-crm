@@ -169,7 +169,7 @@ for(let h=9;h<=21;h++){
 }
 
 const TRANSFER_BY_PRESETS = { "All Hours":["Jimmy","Jacquie","Peter"], "MSS":["Angus","Peter","Scott"] };
-const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide"];
+const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD"];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function genId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
