@@ -1629,7 +1629,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             </Field>
             <Field label="WEIGHT (IF KNOWN)">
               <input className={s.inp} placeholder="e.g. 85kg" value={form.weight} onChange={e=>setF("weight",e.target.value)}/>
-              <Field label="Pacemaker Fitted"><button type="button" onClick={()=>setF("pacemaker",!form.pacemaker)} className={"w-full py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(form.pacemaker?"bg-red-600 text-white border-red-600":"border-gray-200 text-gray-600 hover:border-red-400")}>⚠️ {form.pacemaker?"YES — PACEMAKER FITTED":"No Pacemaker"}</button></Field>
+            <Field label="Pacemaker Fitted"><button type="button" onClick={()=>setF("pacemaker",!form.pacemaker)} className={"w-full py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(form.pacemaker?"bg-red-600 text-white border-red-600":"border-gray-200 text-gray-600 hover:border-red-400")}>⚠️ {form.pacemaker?"YES — PACEMAKER FITTED":"No Pacemaker"}</button></Field>
             </Field>
           </div>
 
