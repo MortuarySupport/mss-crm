@@ -828,7 +828,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
   const previewName=`${label}_${(funeralHomeName||"FD").replace(/[^a-zA-Z0-9]/g,"_")}_${(lastName||"Lastname").replace(/[^a-zA-Z0-9]/g,"_")}_${dod?dod.split("-").reverse().join(""):""}.[ext]`;
 
   return(
-    {viewingDoc&&<div onClick={()=>setViewingDoc(null)} style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.85)",zIndex:9999,display:"flex",flexDirection:"column"}}><div style={{background:"#111",padding:"12px 16px",display:"flex",justifyContent:"space-between"}}><span style={{color:"#fff",fontWeight:900}}>{viewingDoc.name}</span><button onClick={()=>setViewingDoc(null)} style={{color:"#fff",background:"none",border:"none",fontSize:22,cursor:"pointer"}}>✕</button></div><iframe src={viewingDoc.url} style={{flex:1,border:"none",width:"100%"}}/></div>}
+  return(<>
     <div className={`${s.card} mt-4`}>
       <div className="flex items-center justify-between mb-3">
         <p className={s.section+" mb-0"}>DOCUMENTS</p>
@@ -913,7 +913,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod}){
       {viewingCert&&<PacemakerCertificateView cert={viewingCert} onClose={()=>setViewingCert(null)}/>}
     </div>
   );
-}
+  </>);
 
 // ─── CASE VIEW CARD ───────────────────────────────────────────────────────────
 function CaseViewCard({c,isAdmin,onSave}) {
