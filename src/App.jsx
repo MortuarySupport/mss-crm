@@ -1531,7 +1531,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             uploadBody=doc.file;
             contentType=doc.file?.type||"application/octet-stream";
           }
-          const upRes=await fetch(`${SUPABASE_URL}/storage/v1/object/case-documents/${path}`,{
+          const upRes=await fetch(`${SUPABASE_URL}/storage/v1/object/Case-documents/${path}`,{
             method:"POST",
             headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":contentType,"x-upsert":"true"},
             body:uploadBody
