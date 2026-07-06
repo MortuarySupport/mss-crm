@@ -1064,8 +1064,8 @@ function TransferByPicker({value,onChange}) {
 
       {company&&(
         <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
-          {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>
-          {company==="Other"&&<input className={s.inp} placeholder="Enter company name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Other > ${e.target.value}`);}} autoFocus/>}
+          {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>}
+alue={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);          {company==="Other"&&<input className={s.inp} placeholder="Enter company name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Other > ${e.target.value}`);}} autoFocus/>}
           {presets.length>0&&!manual&&(
             <div>
               <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Person</div>
