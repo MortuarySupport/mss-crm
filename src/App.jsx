@@ -1536,6 +1536,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":contentType,"x-upsert":"true"},
             body:uploadBody
           });
+          console.log("Upload",fileName,"status:",upRes.status,await upRes.text().catch(()=>""));
           if(upRes.ok){
             await fetch(`${SUPABASE_URL}/rest/v1/case_documents`,{
               method:"POST",
