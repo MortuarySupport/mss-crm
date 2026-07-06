@@ -202,7 +202,7 @@ for(let h=9;h<=21;h++){
 }
 
 const TRANSFER_BY_PRESETS = { "All Hours":["Jimmy","Jacquie","Peter","James"], "MSS":["Angus","Peter","Scott"] };
-const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD"];
+const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD","Other"];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function genId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
@@ -1054,7 +1054,7 @@ function TransferByPicker({value,onChange}) {
   const isStatewide=company==="Statewide";
   const isAllHoursOrMSS=(company==="All Hours"||company==="MSS"||company==="Statewide")&&company!=="ALL";
   const selectedName=value?.includes(" > ")?value.split(" > ")[1]:"";
-  function selectCompany(c){setCompany(c);setManual(false);setManualVal("");if(c==="Statewide")onChange("");else if(c==="ALL")onChange("");else if(!TRANSFER_BY_PRESETS[c])onChange(c);else onChange("");}
+  function selectCompany(c){setCompany(c);setManual(false);setManualVal("");if(c==="Statewide")onChange("");else if(c==="ALL")onChange("");else if(c==="Other"){setManual(true);}else if(!TRANSFER_BY_PRESETS[c])onChange(c);else onChange("");}
   return (
     <div>
       <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">COMPANY</div>
@@ -1064,7 +1064,8 @@ function TransferByPicker({value,onChange}) {
 
       {company&&(
         <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
-          {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>}
+          {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>
+          {company==="Other"&&<input className={s.inp} placeholder="Enter company name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Other > ${e.target.value}`);}} autoFocus/>}}
           {presets.length>0&&!manual&&(
             <div>
               <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Person</div>
