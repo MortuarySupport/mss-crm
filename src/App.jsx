@@ -1505,17 +1505,44 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     };
     try {
       await insertCase(caseToDb(record));
-      // Upload check-in documents
+      // Upload check-in documents - convert images to PDF
       const docs=form.checkInDocs||[];
+      const {PDFDocument}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js").catch(()=>({PDFDocument:null}));
       for(const doc of docs){
-        if(!doc.file) continue;
         try{
-          const path=`${record.id}/${Date.now()}_${doc.label.replace(/\s+/g,"_")}_${doc.file.name}`;
-          await fetch(`${SUPABASE_URL}/storage/v1/object/Case-documents/${path}`,{
+          const pages=doc.pages||[{file:doc.file,preview:doc.preview}];
+          const fileName=`${doc.label.replace(/\s+/g,"_")}.pdf`;
+          const path=`${record.id}/${Date.now()}_${fileName}`;
+          let uploadBody,contentType;
+          if(PDFDocument&&pages.length>0){
+            const pdfDoc=await PDFDocument.create();
+            for(const pg of pages){
+              if(!pg.preview) continue;
+              const b64=pg.preview.split(",")[1];
+              const isJpeg=pg.preview.includes("jpeg")||pg.preview.includes("jpg");
+              const imgBytes=Uint8Array.from(atob(b64),ch=>ch.charCodeAt(0));
+              const img=isJpeg?await pdfDoc.embedJpg(imgBytes):await pdfDoc.embedPng(imgBytes);
+              const page=pdfDoc.addPage([img.width,img.height]);
+              page.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
+            }
+            uploadBody=await pdfDoc.save();
+            contentType="application/pdf";
+          } else {
+            uploadBody=doc.file;
+            contentType=doc.file?.type||"application/octet-stream";
+          }
+          const upRes=await fetch(`${SUPABASE_URL}/storage/v1/object/case-documents/${path}`,{
             method:"POST",
-            headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":doc.file.type||"application/octet-stream","x-upsert":"true"},
-            body:doc.file
+            headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":contentType,"x-upsert":"true"},
+            body:uploadBody
           });
+          if(upRes.ok){
+            await fetch(`${SUPABASE_URL}/rest/v1/case_documents`,{
+              method:"POST",
+              headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},
+              body:JSON.stringify({case_id:record.id,name:fileName,path,uploaded_at:new Date().toISOString()})
+            });
+          }
         }catch(e){console.warn("Doc upload error:",e);}
       }
       setSubmitted(record);
@@ -1707,7 +1734,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               </div>
             ))}
             <div className="space-y-2">
-              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>(
+              {["MCCD","CRA","VOD","LE","Coroners BO","Transfer Docket","OTHER"].map(lbl=>(
                 <div key={lbl} className="bg-white border border-gray-200 rounded-xl p-3">
                   <div className="text-xs font-black uppercase text-gray-600 mb-2">{lbl}</div>
                   <div className="flex gap-2">
