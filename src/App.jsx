@@ -1684,21 +1684,43 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           </div>
 
           <div className="mb-6">
-            <p className={s.section}>DOCUMENTS (OPTIONAL)</p>
-            <p className="text-xs text-gray-500 mb-3">Upload any documents that arrived with the deceased</p>
+            <p className={s.section}>DOCUMENTS</p>
+            <p className="text-xs text-gray-500 mb-3">Select document type then take a photo or choose from library. Add multiple pages before saving.</p>
             {(form.checkInDocs||[]).map((doc,i)=>(
-              <div key={i} className="flex items-center gap-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                <span className="text-xs font-black text-gray-600 uppercase">{doc.label}</span>
-                <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
-                <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕</button>
+              <div key={i} className="mb-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black text-gray-700 uppercase">{doc.label} — {doc.pages?.length||1} page{(doc.pages?.length||1)!==1?"s":""}</span>
+                  <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕ Remove</button>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {(doc.pages||[doc]).map((pg,pi)=>(
+                    <div key={pi} className="relative">
+                      <img src={pg.preview||pg.dataUrl} alt="" style={{width:60,height:80,objectFit:"cover",borderRadius:6,border:"1px solid #e5e7eb"}}/>
+                      <button type="button" onClick={()=>{const updated=[...(form.checkInDocs||[])];updated[i]={...updated[i],pages:(updated[i].pages||[updated[i]]).filter((_,pj)=>pj!==pi)};if(!updated[i].pages.length)updated.splice(i,1);setF("checkInDocs",updated);}} className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-black">✕</button>
+                    </div>
+                  ))}
+                  <label className="cursor-pointer flex items-center justify-center w-14 h-20 border-2 border-dashed border-gray-300 rounded-lg text-gray-400 text-lg hover:border-gray-500">
+                    <input type="file" accept="image/*" className="hidden" multiple onChange={e=>{const files=Array.from(e.target.files);files.forEach(file=>{const reader=new FileReader();reader.onload=ev=>{const updated=[...(form.checkInDocs||[])];const pg={preview:ev.target.result,file,name:file.name};if(!updated[i].pages)updated[i].pages=[{preview:updated[i].preview,file:updated[i].file,name:updated[i].name}];updated[i].pages.push(pg);setF("checkInDocs",updated);};reader.readAsDataURL(file);});e.target.value="";}}/>
+                    +
+                  </label>
+                </div>
               </div>
             ))}
-            <div className="flex gap-2 mb-2 flex-wrap">
+            <div className="space-y-2">
               {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>(
-                <label key={lbl} className="cursor-pointer">
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file}]);}e.target.value="";}}/>
-                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">+ {lbl}</span>
-                </label>
+                <div key={lbl} className="bg-white border border-gray-200 rounded-xl p-3">
+                  <div className="text-xs font-black uppercase text-gray-600 mb-2">{lbl}</div>
+                  <div className="flex gap-2">
+                    <label className="flex-1 cursor-pointer">
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){const reader=new FileReader();reader.onload=ev=>{setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file,preview:ev.target.result,pages:[{preview:ev.target.result,file,name:file.name}]}]);};reader.readAsDataURL(file);}e.target.value="";}}/>
+                      <span className="block text-center px-3 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">📷 Camera</span>
+                    </label>
+                    <label className="flex-1 cursor-pointer">
+                      <input type="file" accept="image/*" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){const reader=new FileReader();reader.onload=ev=>{setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file,preview:ev.target.result,pages:[{preview:ev.target.result,file,name:file.name}]}]);};reader.readAsDataURL(file);}e.target.value="";}}/>
+                      <span className="block text-center px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">🖼 Library</span>
+                    </label>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
