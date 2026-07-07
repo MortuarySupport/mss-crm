@@ -335,6 +335,7 @@ function PresenceDot({viewers,currentUserId,size="sm"}){
 // ─── VEHICLE & STAFF CONSTANTS ────────────────────────────────────────────────
 const VEHICLE_JOB_TYPES=[
   {label:"Transfer - Morty",defaultHours:1,vehicle:"Morty"},
+  {label:"Repat Delivery - Morty",defaultHours:4,vehicle:"Morty"},
   {label:"ED (Early Delivery) - Morty",defaultHours:1,vehicle:"Morty"},
   {label:"ED (Early Delivery) - Harry",defaultHours:1,vehicle:"Harry"},
   {label:"Hearse Driver Only",defaultHours:4,vehicle:"Hearse"},
