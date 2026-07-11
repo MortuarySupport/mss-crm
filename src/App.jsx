@@ -1946,7 +1946,7 @@ canvas{border:1.5px solid #ddd;border-radius:8px;display:block;width:100%;height
 <script>
 const SU="${SU}",SK="${SK}";
 const caseData=${cdJSON};
-function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
+function fmtLong(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
 function toggleOther(){document.getElementById("otherF").style.display=document.getElementById("embSel").value==="other"?"block":"none";}
 let cv,cx,dr=false,empty=true;
 setTimeout(function(){
@@ -1986,10 +1986,10 @@ function savePDF(){
   pw.document.write('<div class="g">');
   pw.document.write('<div><div class="fl">Deceased</div><div class="fv">'+caseData.firstName+' '+caseData.lastName+'</div></div>');
   pw.document.write('<div><div class="fl">Case Reference</div><div class="fv">'+caseData.caseRef+'</div></div>');
-  pw.document.write('<div><div class="fl">Date of Birth</div><div class="fv">'+fmt(caseData.dob)+'</div></div>');
-  pw.document.write('<div><div class="fl">Date of Death</div><div class="fv">'+fmt(caseData.dod)+'</div></div>');
+  pw.document.write('<div><div class="fl">Date of Birth</div><div class="fv">'+fmtLong(caseData.dob)+'</div></div>');
+  pw.document.write('<div><div class="fl">Date of Death</div><div class="fv">'+fmtLong(caseData.dod)+'</div></div>');
   pw.document.write('<div><div class="fl">Funeral Director</div><div class="fv">'+(caseData.funeralHomeName||"—")+'</div></div>');
-  pw.document.write('<div><div class="fl">Date of Removal</div><div class="fv">'+fmt(date)+'</div></div>');
+  pw.document.write('<div><div class="fl">Date of Removal</div><div class="fv">'+fmtLong(date)+'</div></div>');
   pw.document.write('</div>');
   pw.document.write('<div class="stmt"><strong>DECLARATION:</strong><br><br>I hereby certify that I have examined the above-named deceased and have successfully removed the pacemaker/implantable cardiac device prior to cremation/preparation. The device has been safely disposed of in accordance with relevant regulations.<br><br>This removal was carried out at MSS Mortuary Support Services, Baulkham Hills NSW.</div>');
   pw.document.write('<div><div class="fl">Embalmer / Technician</div><div class="fv">'+name+'</div></div>');
@@ -2020,7 +2020,7 @@ async function saveAndEmail(){
       const{width,height}=page.getSize();
       page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
       page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
-      page.drawText(fmt(date),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
+      page.drawText(fmtLong(date),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
       if(sig){const sigData=sig.split(",")[1]||sig;const sigBytes=Uint8Array.from(atob(sigData),ch=>ch.charCodeAt(0));const sigImg=await pdfDoc.embedPng(sigBytes);page.drawImage(sigImg,{x:100,y:height-310,width:200,height:36});}
       const filledBytes=await pdfDoc.save();
       const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
@@ -2031,7 +2031,7 @@ async function saveAndEmail(){
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
     const to="info@mortuarysupport.com.au";
     const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-    const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
+    const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmtLong(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
     window.open("mailto:"+to+"?subject="+subj+"&body="+body);
     alert("Certificate saved to case documents.");
     closeOverlay();
@@ -2074,7 +2074,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
   const SU = SUPABASE_URL;
   const SK = SUPABASE_KEY;
 
-  function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
+  function fmtLong(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
 
   useEffect(()=>{
     const cv = canvasRef.current;
@@ -2139,7 +2139,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         const{height}=page.getSize();
         page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
         page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
-        page.drawText(fmt(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
+        page.drawText(fmtLong(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
         const sigData=sig.split(",")[1]||sig;
         const sigBytes=Uint8Array.from(atob(sigData),ch=>ch.charCodeAt(0));
         const sigImg=await pdfDoc.embedPng(sigBytes);
@@ -2158,7 +2158,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
       // Email
       const to="info@mortuarysupport.com.au";
       const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
+      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmtLong(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
       window.open("mailto:"+to+"?subject="+subj+"&body="+body);
       alert("Certificate saved to case documents.");
       onSaved&&onSaved();
@@ -2176,7 +2176,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         </div>
         <div style={{padding:22}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[["Full Name",caseData.firstName+" "+caseData.lastName],["Case Reference",caseData.caseRef],["Date of Birth",fmt(caseData.dob)],["Date of Death",fmt(caseData.dod)]].map(([l,v])=>(
+            {[["Full Name",caseData.firstName+" "+caseData.lastName],["Case Reference",caseData.caseRef],["Date of Birth",fmtLong(caseData.dob)],["Date of Death",fmtLong(caseData.dod)]].map(([l,v])=>(
               <div key={l} style={{background:"#f9f9f9",border:"1px solid #eee",borderRadius:8,padding:"9px 11px"}}>
                 <div style={{fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#999",marginBottom:2}}>{l}</div>
                 <div style={{fontSize:13,fontWeight:700,color:"#111"}}>{v}</div>
@@ -2682,7 +2682,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <p className={s.section}>Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <button type="button" onClick={async()=>{try{await updateCase(c.id,{pacemaker:!c.pacemaker});}catch(e){alert(e.message);}}} className={"w-full py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(c.pacemaker?"bg-amber-500 text-white border-amber-500":"border-gray-200 text-gray-600 hover:border-amber-400")}>⚡ {c.pacemaker?"PACEMAKER FLAGGED — TAP TO REMOVE":"Flag Pacemaker"}</button>
+          <button type="button" onClick={()=>updStatus&&updStatus("pacemaker",!c.pacemaker)} className={"w-full py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(c.pacemaker?"bg-amber-500 text-white border-amber-500":"border-gray-200 text-gray-600 hover:border-amber-400")}>⚡ {c.pacemaker?"PACEMAKER FLAGGED — TAP TO REMOVE":"Flag Pacemaker"}</button>
         </div>
       </div>
       <Divider/>
