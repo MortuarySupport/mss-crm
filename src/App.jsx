@@ -5659,6 +5659,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <ChromeWarningBanner/>
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
       <div style={{paddingTop:"56px"}}>{children}</div>
     </div>
