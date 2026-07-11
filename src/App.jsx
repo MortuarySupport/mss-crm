@@ -2682,7 +2682,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <p className={s.section}>Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <button type="button" onClick={()=>upd(c.id,{pacemaker:!c.pacemaker})} className={"w-full py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(c.pacemaker?"bg-amber-500 text-white border-amber-500":"border-gray-200 text-gray-600 hover:border-amber-400")}>⚡ {c.pacemaker?"PACEMAKER FLAGGED — TAP TO REMOVE":"Flag Pacemaker"}</button>
+          <button type="button" onClick={async()=>{try{await updateCase(c.id,{pacemaker:!c.pacemaker});}catch(e){alert(e.message);}}} className={"w-full py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(c.pacemaker?"bg-amber-500 text-white border-amber-500":"border-gray-200 text-gray-600 hover:border-amber-400")}>⚡ {c.pacemaker?"PACEMAKER FLAGGED — TAP TO REMOVE":"Flag Pacemaker"}</button>
         </div>
       </div>
       <Divider/>
