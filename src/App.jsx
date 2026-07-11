@@ -5638,7 +5638,7 @@ export default function App() {
   },[]);
 
   function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);
-    if(!window.google){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places";document.head.appendChild(s);}}
+    if(!window.google&&!document.querySelector("script[src*=maps]")){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places&loading=async";s.async=true;document.head.appendChild(s);}}
   useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
