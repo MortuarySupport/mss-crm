@@ -202,7 +202,7 @@ for(let h=9;h<=21;h++){
 }
 
 const TRANSFER_BY_PRESETS = { "All Hours":["Jimmy","Jacquie","Peter","James"], "MSS":["Angus","Peter","Scott"] };
-const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD","Other"];
+const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD"];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function genId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
@@ -335,7 +335,6 @@ function PresenceDot({viewers,currentUserId,size="sm"}){
 // ─── VEHICLE & STAFF CONSTANTS ────────────────────────────────────────────────
 const VEHICLE_JOB_TYPES=[
   {label:"Transfer - Morty",defaultHours:1,vehicle:"Morty"},
-  {label:"Repat Delivery - Morty",defaultHours:4,vehicle:"Morty"},
   {label:"ED (Early Delivery) - Morty",defaultHours:1,vehicle:"Morty"},
   {label:"ED (Early Delivery) - Harry",defaultHours:1,vehicle:"Harry"},
   {label:"Hearse Driver Only",defaultHours:4,vehicle:"Hearse"},
@@ -1055,7 +1054,7 @@ function TransferByPicker({value,onChange}) {
   const isStatewide=company==="Statewide";
   const isAllHoursOrMSS=(company==="All Hours"||company==="MSS"||company==="Statewide")&&company!=="ALL";
   const selectedName=value?.includes(" > ")?value.split(" > ")[1]:"";
-  function selectCompany(c){setCompany(c);setManual(false);setManualVal("");if(c==="Statewide")onChange("");else if(c==="ALL")onChange("");else if(c==="Other"){setManual(true);}else if(!TRANSFER_BY_PRESETS[c])onChange(c);else onChange("");}
+  function selectCompany(c){setCompany(c);setManual(false);setManualVal("");if(c==="Statewide")onChange("");else if(c==="ALL")onChange("");else if(!TRANSFER_BY_PRESETS[c])onChange(c);else onChange("");}
   return (
     <div>
       <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">COMPANY</div>
@@ -1066,7 +1065,6 @@ function TransferByPicker({value,onChange}) {
       {company&&(
         <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
           {isStatewide&&<input className={s.inp} placeholder="Type full name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Statewide > ${e.target.value}`);}}/>}
-          {company==="Other"&&<input className={s.inp} placeholder="Enter company name…" value={manualVal} onChange={e=>{setManualVal(e.target.value);onChange(`Other > ${e.target.value}`);}} autoFocus/>}
           {presets.length>0&&!manual&&(
             <div>
               <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Select Person</div>
@@ -1507,45 +1505,17 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     };
     try {
       await insertCase(caseToDb(record));
-      // Upload check-in documents - convert images to PDF
+      // Upload check-in documents
       const docs=form.checkInDocs||[];
-      const {PDFDocument}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js").catch(()=>({PDFDocument:null}));
       for(const doc of docs){
+        if(!doc.file) continue;
         try{
-          const pages=doc.pages||[{file:doc.file,preview:doc.preview}];
-          const fileName=`${doc.label.replace(/\s+/g,"_")}.pdf`;
-          const path=`${record.id}/${Date.now()}_${fileName}`;
-          let uploadBody,contentType;
-          if(PDFDocument&&pages.length>0){
-            const pdfDoc=await PDFDocument.create();
-            for(const pg of pages){
-              if(!pg.preview) continue;
-              const b64=pg.preview.split(",")[1];
-              const isJpeg=pg.preview.includes("jpeg")||pg.preview.includes("jpg");
-              const imgBytes=Uint8Array.from(atob(b64),ch=>ch.charCodeAt(0));
-              const img=isJpeg?await pdfDoc.embedJpg(imgBytes):await pdfDoc.embedPng(imgBytes);
-              const page=pdfDoc.addPage([img.width,img.height]);
-              page.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
-            }
-            uploadBody=await pdfDoc.save();
-            contentType="application/pdf";
-          } else {
-            uploadBody=doc.file;
-            contentType=doc.file?.type||"application/octet-stream";
-          }
-          const upRes=await fetch(`${SUPABASE_URL}/storage/v1/object/Case-documents/${path}`,{
+          const path=`${record.id}/${Date.now()}_${doc.label.replace(/\s+/g,"_")}_${doc.file.name}`;
+          await fetch(`${SUPABASE_URL}/storage/v1/object/Case-documents/${path}`,{
             method:"POST",
-            headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":contentType,"x-upsert":"true"},
-            body:uploadBody
+            headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":doc.file.type||"application/octet-stream","x-upsert":"true"},
+            body:doc.file
           });
-          console.log("Upload",fileName,"status:",upRes.status,await upRes.text().catch(()=>""));
-          if(upRes.ok){
-            await fetch(`${SUPABASE_URL}/rest/v1/case_documents`,{
-              method:"POST",
-              headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},
-              body:JSON.stringify({case_id:record.id,name:fileName,path,uploaded_at:new Date().toISOString()})
-            });
-          }
         }catch(e){console.warn("Doc upload error:",e);}
       }
       setSubmitted(record);
@@ -1714,43 +1684,21 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           </div>
 
           <div className="mb-6">
-            <p className={s.section}>DOCUMENTS</p>
-            <p className="text-xs text-gray-500 mb-3">Select document type then take a photo or choose from library. Add multiple pages before saving.</p>
+            <p className={s.section}>DOCUMENTS (OPTIONAL)</p>
+            <p className="text-xs text-gray-500 mb-3">Upload any documents that arrived with the deceased</p>
             {(form.checkInDocs||[]).map((doc,i)=>(
-              <div key={i} className="mb-3 bg-gray-50 border border-gray-200 rounded-xl p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-black text-gray-700 uppercase">{doc.label} — {doc.pages?.length||1} page{(doc.pages?.length||1)!==1?"s":""}</span>
-                  <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕ Remove</button>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {(doc.pages||[doc]).map((pg,pi)=>(
-                    <div key={pi} className="relative">
-                      <img src={pg.preview||pg.dataUrl} alt="" style={{width:60,height:80,objectFit:"cover",borderRadius:6,border:"1px solid #e5e7eb"}}/>
-                      <button type="button" onClick={()=>{const updated=[...(form.checkInDocs||[])];updated[i]={...updated[i],pages:(updated[i].pages||[updated[i]]).filter((_,pj)=>pj!==pi)};if(!updated[i].pages.length)updated.splice(i,1);setF("checkInDocs",updated);}} className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-black">✕</button>
-                    </div>
-                  ))}
-                  <label className="cursor-pointer flex items-center justify-center w-14 h-20 border-2 border-dashed border-gray-300 rounded-lg text-gray-400 text-lg hover:border-gray-500">
-                    <input type="file" accept="image/*" className="hidden" multiple onChange={e=>{const files=Array.from(e.target.files);files.forEach(file=>{const reader=new FileReader();reader.onload=ev=>{const updated=[...(form.checkInDocs||[])];const pg={preview:ev.target.result,file,name:file.name};if(!updated[i].pages)updated[i].pages=[{preview:updated[i].preview,file:updated[i].file,name:updated[i].name}];updated[i].pages.push(pg);setF("checkInDocs",updated);};reader.readAsDataURL(file);});e.target.value="";}}/>
-                    +
-                  </label>
-                </div>
+              <div key={i} className="flex items-center gap-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                <span className="text-xs font-black text-gray-600 uppercase">{doc.label}</span>
+                <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
+                <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕</button>
               </div>
             ))}
-            <div className="space-y-2">
-              {["MCCD","CRA","VOD","LE","Coroners BO","Transfer Docket","OTHER"].map(lbl=>(
-                <div key={lbl} className="bg-white border border-gray-200 rounded-xl p-3">
-                  <div className="text-xs font-black uppercase text-gray-600 mb-2">{lbl}</div>
-                  <div className="flex gap-2">
-                    <label className="flex-1 cursor-pointer">
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){const reader=new FileReader();reader.onload=ev=>{setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file,preview:ev.target.result,pages:[{preview:ev.target.result,file,name:file.name}]}]);};reader.readAsDataURL(file);}e.target.value="";}}/>
-                      <span className="block text-center px-3 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">📷 Camera</span>
-                    </label>
-                    <label className="flex-1 cursor-pointer">
-                      <input type="file" accept="image/*" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){const reader=new FileReader();reader.onload=ev=>{setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file,preview:ev.target.result,pages:[{preview:ev.target.result,file,name:file.name}]}]);};reader.readAsDataURL(file);}e.target.value="";}}/>
-                      <span className="block text-center px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-600 text-xs font-black uppercase">🖼 Library</span>
-                    </label>
-                  </div>
-                </div>
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>(
+                <label key={lbl} className="cursor-pointer">
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file}]);}e.target.value="";}}/>
+                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">+ {lbl}</span>
+                </label>
               ))}
             </div>
           </div>
@@ -1946,7 +1894,7 @@ canvas{border:1.5px solid #ddd;border-radius:8px;display:block;width:100%;height
 <script>
 const SU="${SU}",SK="${SK}";
 const caseData=${cdJSON};
-function fmtLong(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
+function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
 function toggleOther(){document.getElementById("otherF").style.display=document.getElementById("embSel").value==="other"?"block":"none";}
 let cv,cx,dr=false,empty=true;
 setTimeout(function(){
@@ -1986,10 +1934,10 @@ function savePDF(){
   pw.document.write('<div class="g">');
   pw.document.write('<div><div class="fl">Deceased</div><div class="fv">'+caseData.firstName+' '+caseData.lastName+'</div></div>');
   pw.document.write('<div><div class="fl">Case Reference</div><div class="fv">'+caseData.caseRef+'</div></div>');
-  pw.document.write('<div><div class="fl">Date of Birth</div><div class="fv">'+fmtLong(caseData.dob)+'</div></div>');
-  pw.document.write('<div><div class="fl">Date of Death</div><div class="fv">'+fmtLong(caseData.dod)+'</div></div>');
+  pw.document.write('<div><div class="fl">Date of Birth</div><div class="fv">'+fmt(caseData.dob)+'</div></div>');
+  pw.document.write('<div><div class="fl">Date of Death</div><div class="fv">'+fmt(caseData.dod)+'</div></div>');
   pw.document.write('<div><div class="fl">Funeral Director</div><div class="fv">'+(caseData.funeralHomeName||"—")+'</div></div>');
-  pw.document.write('<div><div class="fl">Date of Removal</div><div class="fv">'+fmtLong(date)+'</div></div>');
+  pw.document.write('<div><div class="fl">Date of Removal</div><div class="fv">'+fmt(date)+'</div></div>');
   pw.document.write('</div>');
   pw.document.write('<div class="stmt"><strong>DECLARATION:</strong><br><br>I hereby certify that I have examined the above-named deceased and have successfully removed the pacemaker/implantable cardiac device prior to cremation/preparation. The device has been safely disposed of in accordance with relevant regulations.<br><br>This removal was carried out at MSS Mortuary Support Services, Baulkham Hills NSW.</div>');
   pw.document.write('<div><div class="fl">Embalmer / Technician</div><div class="fv">'+name+'</div></div>');
@@ -2020,7 +1968,7 @@ async function saveAndEmail(){
       const{width,height}=page.getSize();
       page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
       page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
-      page.drawText(fmtLong(date),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
+      page.drawText(fmt(date),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
       if(sig){const sigData=sig.split(",")[1]||sig;const sigBytes=Uint8Array.from(atob(sigData),ch=>ch.charCodeAt(0));const sigImg=await pdfDoc.embedPng(sigBytes);page.drawImage(sigImg,{x:100,y:height-310,width:200,height:36});}
       const filledBytes=await pdfDoc.save();
       const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
@@ -2031,7 +1979,7 @@ async function saveAndEmail(){
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
     const to="info@mortuarysupport.com.au";
     const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-    const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmtLong(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
+    const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
     window.open("mailto:"+to+"?subject="+subj+"&body="+body);
     alert("Certificate saved to case documents.");
     closeOverlay();
@@ -2074,7 +2022,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
   const SU = SUPABASE_URL;
   const SK = SUPABASE_KEY;
 
-  function fmtLong(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
+  function fmt(d){if(!d)return"—";try{return new Date(d+"T12:00:00").toLocaleDateString("en-AU",{day:"2-digit",month:"long",year:"numeric"});}catch(e){return d;}}
 
   useEffect(()=>{
     const cv = canvasRef.current;
@@ -2139,7 +2087,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         const{height}=page.getSize();
         page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
         page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
-        page.drawText(fmtLong(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
+        page.drawText(fmt(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
         const sigData=sig.split(",")[1]||sig;
         const sigBytes=Uint8Array.from(atob(sigData),ch=>ch.charCodeAt(0));
         const sigImg=await pdfDoc.embedPng(sigBytes);
@@ -2158,7 +2106,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
       // Email
       const to="info@mortuarysupport.com.au";
       const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmtLong(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
+      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
       window.open("mailto:"+to+"?subject="+subj+"&body="+body);
       alert("Certificate saved to case documents.");
       onSaved&&onSaved();
@@ -2176,7 +2124,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         </div>
         <div style={{padding:22}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[["Full Name",caseData.firstName+" "+caseData.lastName],["Case Reference",caseData.caseRef],["Date of Birth",fmtLong(caseData.dob)],["Date of Death",fmtLong(caseData.dod)]].map(([l,v])=>(
+            {[["Full Name",caseData.firstName+" "+caseData.lastName],["Case Reference",caseData.caseRef],["Date of Birth",fmt(caseData.dob)],["Date of Death",fmt(caseData.dod)]].map(([l,v])=>(
               <div key={l} style={{background:"#f9f9f9",border:"1px solid #eee",borderRadius:8,padding:"9px 11px"}}>
                 <div style={{fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",color:"#999",marginBottom:2}}>{l}</div>
                 <div style={{fontSize:13,fontWeight:700,color:"#111"}}>{v}</div>
@@ -2681,9 +2629,6 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}>
         <p className={s.section}>Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <button type="button" onClick={()=>updStatus&&updStatus("pacemaker",!c.pacemaker)} className={"w-full py-2.5 rounded-xl border-2 font-black text-sm uppercase transition "+(c.pacemaker?"bg-amber-500 text-white border-amber-500":"border-gray-200 text-gray-600 hover:border-amber-400")}>⚡ {c.pacemaker?"PACEMAKER FLAGGED — TAP TO REMOVE":"Flag Pacemaker"}</button>
-        </div>
       </div>
       <Divider/>
       <div className={s.card}>
@@ -2755,7 +2700,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <div className={s.card}>
         <p className={s.section}>SERVICES & ITEMS</p>
         {[
-          {cat:"Preparation",items:[{code:"BP",label:"Basic Preparation"},{code:"TP",label:"Temporary Preservation"},{code:"FE",label:"Full Embalm"},{code:"BP1",label:"Basic Preparation (OS)"},{code:"TP1",label:"Temp Preservation (OS)"},{code:"FE1",label:"Full Embalm (OS)"},{code:"TPC",label:"Temp Preservation - Coroner"},{code:"FEC",label:"Full Embalm - Coroner"},{code:"TPC1",label:"Temp Preservation - Coroner (OS)"},{code:"FEC1",label:"Full Embalm - Coroner (OS)"},{code:"NSNA",label:"NSNA"},{code:"NSNA_PKG",label:"NSNA Package $1,198"}]},
+          {cat:"Preparation",items:[{code:"BP",label:"Basic Preparation"},{code:"TP",label:"Temporary Preservation"},{code:"FE",label:"Full Embalm"},{code:"BP1",label:"Basic Preparation (OS)"},{code:"TP1",label:"Temp Preservation (OS)"},{code:"FE1",label:"Full Embalm (OS)"},{code:"TPC",label:"Temp Preservation - Coroner"},{code:"FEC",label:"Full Embalm - Coroner"},{code:"TPC1",label:"Temp Preservation - Coroner (OS)"},{code:"FEC1",label:"Full Embalm - Coroner (OS)"},{code:"NSNA",label:"NSNA"}]},
           {cat:"Cosmetics",items:[{code:"DRS",label:"Dressing/Make Up"},{code:"FP",label:"Finger Prints/Hair Locks"},{code:"PR",label:"Pacemaker Removal"}]},
           {cat:"Supplementary Care",items:[{code:"ASP",label:"Aspiration/Cavity Treatment"},{code:"BSI",label:"Bio-Seal"},{code:"INF",label:"List A | Covid | Infectious"},{code:"REC",label:"Reconstruction"}]},
           {cat:"Storage",items:[{code:"ACC",label:"Accommodation (per night)"}]},
@@ -5638,7 +5583,7 @@ export default function App() {
   },[]);
 
   function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);
-    if(!window.google&&!document.querySelector("script[src*=maps]")){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places&loading=async";s.async=true;document.head.appendChild(s);}}
+    if(!window.google){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places";document.head.appendChild(s);}}
   useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
 
