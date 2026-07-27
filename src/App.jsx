@@ -3489,10 +3489,6 @@ function AshesRegister({user,cases,onBack}){
   const[manualLastName,setManualLastName]=useState("");
   const[manualDOB,setManualDOB]=useState("");
   const[manualDOD,setManualDOD]=useState("");
-  const[manualFirstName,setManualFirstName]=useState("");
-  const[manualLastName,setManualLastName]=useState("");
-  const[manualDOB,setManualDOB]=useState("");
-  const[manualDOD,setManualDOD]=useState("");
   const canvasRef=React.useRef(null);
   const drawingRef=React.useRef(false);
   const savedImageRef=React.useRef(null);
