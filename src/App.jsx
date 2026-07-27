@@ -759,6 +759,13 @@ function BottomNav({onAction,onNav,activeTab,action}){
 }
 
 // ─── HEADER ───────────────────────────────────────────────────────────────────
+function AppFooter(){
+  return(
+    <div style={{borderTop:"1px solid #e5e7eb",padding:"12px 16px",textAlign:"center",background:"#fff",marginTop:"auto"}}>
+      <p style={{fontSize:"11px",color:"#9ca3af",margin:0}}>© {new Date().getFullYear()} Give Me Just 10 Pty Ltd · Mortuary Support | Lumière · All rights reserved</p>
+    </div>
+  );
+}
 function Header({user,onSignOut,onNav,activeTab}) {
   const isAdmin=user?.role==="admin",isMSS=user?.role==="mss"||isAdmin;
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
