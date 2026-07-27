@@ -3692,7 +3692,7 @@ function AshesRegister({user,cases,onBack}){
         <div>
           <div className="text-xs font-black uppercase text-gray-500 mb-2">Who is signing out?</div>
           <div className="flex gap-2">
-            {["FD","MSS","Admin","Other"].map(t=><button key={t} onClick={()=>setSignerType(t)} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black transition "+(signerType===t?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>{t}</button>)}
+            {["FD","MSS","Admin","Family","Other"].map(t=><button key={t} onClick={()=>setSignerType(t)} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black transition "+(signerType===t?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>{t}</button>)}
           </div>
         </div>
         <div>
