@@ -3484,6 +3484,11 @@ function AshesRegister({user,cases,onBack}){
   const[idPhoto,setIdPhoto]=useState(null);
   const[saving,setSaving]=useState(false);
   const[selAshes,setSelAshes]=useState(null);
+  const[manualEntry,setManualEntry]=useState(false);
+  const[manualFirstName,setManualFirstName]=useState("");
+  const[manualLastName,setManualLastName]=useState("");
+  const[manualDOB,setManualDOB]=useState("");
+  const[manualDOD,setManualDOD]=useState("");
   const canvasRef=React.useRef(null);
   const drawingRef=React.useRef(false);
   const savedImageRef=React.useRef(null);
@@ -3519,7 +3524,7 @@ function AshesRegister({user,cases,onBack}){
   const fhCases=selFH?cremationCases.filter(c=>c.funeralHomeName===selFH&&!inStorageCaseIds.has(c.id)):[];
   const filteredCases=fhCases.filter(c=>!search||(c.lastName||"").toLowerCase().includes(search.toLowerCase())||(c.firstName||"").toLowerCase().includes(search.toLowerCase())||(c.caseRef||"").toLowerCase().includes(search.toLowerCase()));
 
-  function resetForm(){setSelFH("");setSelCase(null);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);}
+  function resetForm(){setSelFH("");setSelCase(null);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
 
   // Signature canvas
   function getPos(e,canvas){
@@ -3535,16 +3540,19 @@ function AshesRegister({user,cases,onBack}){
   function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}savedImageRef.current=null;setSigData(null);setHasSig(false);}
 
   async function handleCheckIn(){
-    if(!selCase){alert("Please select a case.");return;}
+    if(!manualEntry&&!selCase){alert("Please select a case.");return;}
+    if(manualEntry&&(!manualFirstName.trim()||!manualLastName.trim())){alert("Please enter first and last name.");return;}
     if(!sigData){alert("Please provide a signature.");return;}
     setSaving(true);
     try{
       const record={
         id:genId(),
-        case_id:selCase.id,
-        case_ref:selCase.caseRef,
-        deceased_name:`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`,
-        funeral_home:selCase.funeralHomeName,
+        case_id:manualEntry?"MANUAL":selCase.id,
+        case_ref:manualEntry?"MANUAL":selCase.caseRef,
+        deceased_name:manualEntry?`${manualLastName.toUpperCase()}, ${manualFirstName}`:`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`,
+        funeral_home:manualEntry?selFH:selCase.funeralHomeName,
+        dob:manualEntry?manualDOB:selCase.dob,
+        dod:manualEntry?manualDOD:selCase.dod,
         checked_in_at:checkInDate,
         checked_in_by:staffName,
         checked_in_sig:sigData,
@@ -3626,6 +3634,11 @@ function AshesRegister({user,cases,onBack}){
           </select>
         </div>
         {selFH&&<div>
+          <div className="flex gap-2 mb-3">
+            <button type="button" onClick={()=>{setManualEntry(false);setSelCase(null);}} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(!manualEntry?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>From System</button>
+            <button type="button" onClick={()=>{setManualEntry(true);setSelCase(null);}} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(manualEntry?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>Manual Entry</button>
+          </div>
+          {!manualEntry&&<>
           <div className="text-xs font-black uppercase text-gray-500 mb-1">Search Deceased</div>
           <input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm mb-2" placeholder="Search name or case ref..." value={search} onChange={e=>setSearch(e.target.value)}/>
           <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -3637,6 +3650,13 @@ function AshesRegister({user,cases,onBack}){
             ))}
             {filteredCases.length===0&&<p className="text-gray-400 text-sm text-center py-4">No cremation cases found</p>}
           </div>
+          </> }
+          {manualEntry&&<div className="space-y-3">
+            <div><div className="text-xs font-black uppercase text-gray-500 mb-1">First Name</div><input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={manualFirstName} onChange={e=>setManualFirstName(e.target.value)} placeholder="First name..."/></div>
+            <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Last Name</div><input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={manualLastName} onChange={e=>setManualLastName(e.target.value)} placeholder="Last name..."/></div>
+            <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Date of Birth</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={manualDOB} onChange={e=>setManualDOB(e.target.value)}/></div>
+            <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Date of Death</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={manualDOD} onChange={e=>setManualDOD(e.target.value)}/></div>
+          </div>}
         </div>}
         <div>
           <div className="text-xs font-black uppercase text-gray-500 mb-1">Check In Date</div>
