@@ -497,7 +497,6 @@ function Field({label,required,children}) {
     <div className="mb-5">
       <label className={s.label}>{label}{required&&<span className="text-red-500 ml-1">*</span>}</label>
       {children}
-      <AppFooter/>
     </div>
   );
 }
@@ -5668,7 +5667,7 @@ export default function App() {
         </div>
       )}
       <Header user={user} onSignOut={handleLogout} onNav={t=>{setTab(t);setAction(null);}} activeTab={tab}/>
-      <div style={{paddingTop:"56px"}}>{children}</div>
+      <div style={{paddingTop:"56px"}}>{children}<AppFooter/></div>
     </div>
   );
 
