@@ -3732,21 +3732,6 @@ function AshesRegister({user,cases,onBack}){
           w.document.close();w.print();
         }} className="flex-1 py-2 rounded-xl border border-gray-300 text-gray-600 text-xs font-black uppercase hover:border-gray-700 transition">🖨 PRINT CHECKED OUT</button>
       </div>
-      <div className="flex gap-2 mb-4">
-        <button onClick={()=>{
-          const w=window.open("","_blank");
-          const rows=inStorage.sort((a,b)=>(a.funeral_home||"").localeCompare(b.funeral_home||"")||(a.deceased_name||"").localeCompare(b.deceased_name||""));
-          w.document.write(`<!DOCTYPE html><html><head><title>Ashes In Storage</title><style>body{font-family:Arial,sans-serif;padding:20px;}h1{font-size:18px;font-weight:900;margin-bottom:4px;}p{font-size:12px;color:#666;margin-bottom:16px;}table{width:100%;border-collapse:collapse;}th{background:#111;color:#fff;padding:8px;font-size:11px;text-align:left;}td{padding:8px;border-bottom:1px solid #ddd;font-size:11px;}tr:nth-child(even){background:#f9f9f9;}.footer{margin-top:20px;font-size:10px;color:#999;text-align:center;}</style></head><body><h1>ASHES IN STORAGE</h1><p>Mortuary Support | Lumière · Printed: ${new Date().toLocaleString("en-AU")} · Total: ${rows.length}</p><table><tr><th>Deceased</th><th>Funeral Director</th><th>Case Ref</th><th>Checked In</th><th>Staff</th><th>Location</th></tr>${rows.map(r=>`<tr><td>${r.deceased_name}</td><td>${r.funeral_home||"—"}</td><td>${r.case_ref||"—"}</td><td>${r.checked_in_at||"—"}</td><td>${r.checked_in_by||"—"}</td><td>${r.location||"Storeroom"}</td></tr>`).join("")}</table><div class="footer">Mortuary Support | Lumière · mortuarysupport.com.au · 02 8814 5500</div></body></html>`);
-          w.document.close();w.print();
-        }} className="flex-1 py-2 rounded-xl border border-gray-300 text-gray-600 text-xs font-black uppercase hover:border-gray-700 transition">🖨 PRINT IN STORAGE</button>
-        <button onClick={()=>{
-          const w=window.open("","_blank");
-          const rows=[...past].sort((a,b)=>(a.funeral_home||"").localeCompare(b.funeral_home||"")||(a.deceased_name||"").localeCompare(b.deceased_name||""));
-          w.document.write(`<!DOCTYPE html><html><head><title>Ashes Checked Out</title><style>body{font-family:Arial,sans-serif;padding:20px;}h1{font-size:18px;font-weight:900;margin-bottom:4px;}p{font-size:12px;color:#666;margin-bottom:16px;}table{width:100%;border-collapse:collapse;}th{background:#111;color:#fff;padding:8px;font-size:11px;text-align:left;}td{padding:8px;border-bottom:1px solid #ddd;font-size:11px;}tr:nth-child(even){background:#f9f9f9;}.footer{margin-top:20px;font-size:10px;color:#999;text-align:center;}</style></head><body><h1>ASHES CHECKED OUT</h1><p>Mortuary Support | Lumière · Printed: ${new Date().toLocaleString("en-AU")} · Total: ${rows.length}</p><table><tr><th>Deceased</th><th>Funeral Director</th><th>Case Ref</th><th>Checked In</th><th>Checked Out</th><th>Signed By</th><th>Signer Type</th></tr>${rows.map(r=>`<tr><td>${r.deceased_name}</td><td>${r.funeral_home||"—"}</td><td>${r.case_ref||"—"}</td><td>${r.checked_in_at||"—"}</td><td>${r.checked_out_at?new Date(r.checked_out_at).toLocaleDateString("en-AU"):"—"}</td><td>${r.checked_out_by||"—"}</td><td>${r.signer_type||"—"}</td></tr>`).join("")}</table><div class="footer">Mortuary Support | Lumière · mortuarysupport.com.au · 02 8814 5500</div></body></html>`);
-          w.document.close();w.print();
-        }} className="flex-1 py-2 rounded-xl border border-gray-300 text-gray-600 text-xs font-black uppercase hover:border-gray-700 transition">🖨 PRINT CHECKED OUT</button>
-      </div>
-
       {loading&&<p className="text-gray-400 text-center py-8">Loading...</p>}
 
       <div className="mb-6">
