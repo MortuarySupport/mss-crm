@@ -2923,7 +2923,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
       <h2 className="text-2xl font-black text-gray-900 mb-3">Check Out</h2>
 
       {step===1&&!isFD&&(
-        <div><p className={s.section}>Who is checking out?</p><div className="grid grid-cols-1 gap-3">{[["MSS","MSS Staff"],["DRIVER","Driver / Transfer Team"],["FUNERAL DIRECTOR","Funeral Director"],["FAMILY","Family"]].map(([v,l])=><button key={v} onClick={()=>{setCheckoutRole(v);setStep(2);}} className={s.btnLgGhost}>{l}</button>)}</div></div>
+        <div><p className={s.section}>Who is checking out?</p><div className="grid grid-cols-1 gap-3">{[["MSS","MSS Staff"],["DRIVER","Driver / Transfer Team"],["FUNERAL DIRECTOR","Funeral Director"]].map(([v,l])=><button key={v} onClick={()=>{setCheckoutRole(v);setStep(2);}} className={s.btnLgGhost}>{l}</button>)}</div></div>
       )}
 
       {step===2&&!selCase&&(
