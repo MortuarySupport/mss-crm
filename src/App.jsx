@@ -497,6 +497,7 @@ function Field({label,required,children}) {
     <div className="mb-5">
       <label className={s.label}>{label}{required&&<span className="text-red-500 ml-1">*</span>}</label>
       {children}
+      <AppFooter/>
     </div>
   );
 }
@@ -5648,7 +5649,7 @@ export default function App() {
   const isTransfer=user.role==="transfer";
 
   const wrap=(children)=>(
-    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch",overflowX:"clip"}}>
+    <div className="min-h-screen bg-gray-50 flex flex-col" style={{WebkitOverflowScrolling:"touch",overflowX:"clip",display:"flex",flexDirection:"column"}}>
       {showTimeoutModal&&(
         <div style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",padding:"16px"}}>
           <div style={{background:"#fff",borderRadius:"20px",padding:"32px",maxWidth:"340px",width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
