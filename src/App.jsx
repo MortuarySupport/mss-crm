@@ -155,6 +155,7 @@ const DESTINATIONS = [
   "Heathcote Cemetery",
   "Kemps Creek Crematorium",
   "Kemps Creek Memorial Park",
+  "Leura Crematorium",
   "Liverpool Crematorium",
   "Liverpool General Cemetery",
   "Macquarie Park Cemetery",
