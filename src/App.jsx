@@ -3514,8 +3514,8 @@ function AshesRegister({user,cases,onBack}){
   },[view]);
 
   // Cremation cases only - disposition includes cremation
-  const cremationCases=cases.filter(c=>(c.prep?.disposition||"").toLowerCase().includes("cremat"));
-  const fhList=[...new Set([...FUNERAL_HOMES.map(f=>f.name),...cremationCases.map(c=>c.funeralHomeName)].filter(Boolean))].sort();
+  const cremationCases=cases;
+  const fhList=[...new Set([...FUNERAL_HOMES.map(f=>f.name),...cases.map(c=>c.funeralHomeName)].filter(Boolean))].sort();
 
   // Active ashes in storage
   const inStorage=ashesRecords.filter(r=>!r.checked_out_at);
