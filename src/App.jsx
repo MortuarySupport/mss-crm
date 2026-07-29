@@ -5710,8 +5710,6 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="newcheckins") return wrap(<NewCheckInsView cases={cases} onAction={a=>{setAction(a);}} user={user}/>);
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={cases} onBack={()=>setAction(null)}/>);
-  if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={cases} onBack={()=>setAction(null)}/>);
-  if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={cases} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
