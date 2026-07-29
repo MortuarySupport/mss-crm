@@ -3566,11 +3566,14 @@ function AshesRegister({user,cases,onBack}){
         id_photo:null,
         created_at:new Date().toISOString()
       };
-      await fetch(SUPABASE_URL+"/rest/v1/ashes_register",{
+      const res=await fetch(SUPABASE_URL+"/rest/v1/ashes_register",{
         method:"POST",
         headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=representation"},
         body:JSON.stringify(record)
       });
+      const resText=await res.text();
+      console.log("Ashes save status:",res.status,resText);
+      if(!res.ok){alert("Save error: "+resText);return;}
       setAshesRecords(prev=>[record,...prev]);
       resetForm();
       setView("list");
