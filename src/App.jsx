@@ -3553,8 +3553,6 @@ function AshesRegister({user,cases,onBack}){
         case_ref:manualEntry?"MANUAL":selCase.caseRef,
         deceased_name:manualEntry?`${manualLastName.toUpperCase()}, ${manualFirstName}`:`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`,
         funeral_home:manualEntry?selFH:selCase.funeralHomeName,
-        dob:manualEntry?manualDOB:selCase.dob,
-        dod:manualEntry?manualDOD:selCase.dod,
         checked_in_at:checkInDate,
         checked_in_by:staffName,
         checked_in_sig:sigData,
