@@ -1342,7 +1342,10 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
         <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
       </div>}
-      {!isAdmin&&isMSS&&<button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>}
+      {!isAdmin&&isMSS&&<div className="grid grid-cols-2 gap-3 mt-3">
+        <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
+        <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
+      </div>}
 
     </div>
   );
