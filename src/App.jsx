@@ -3474,7 +3474,7 @@ function InvoicingView({user,cases,onUpdateCase}){
 
 
 // ─── VEHICLE LOG ─────────────────────────────────────────────────────────────
-const VLOG_VEHICLES=["Harry","Morty","Mercy","Betty","Maxi","Blessed 4"];
+const VLOG_VEHICLES=["Harry","Morty","Mercy","Betty","Maxi","Blessed","Other"];
 const VLOG_STAFF=["Peter","Angus","Steve","Scott"];
 function VehicleLog({user,onBack}){
   const[view,setView]=useState("list");
