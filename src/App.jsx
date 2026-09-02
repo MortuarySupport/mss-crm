@@ -3517,7 +3517,10 @@ function VehicleLog({user,onBack}){
     setSaving(true);
     try{
       const record={id:genId(),vehicle,trip_type:tripType,driver,depart_datetime:`${departDate}T${departTime}`,return_datetime:`${returnDate}T${returnTime}`,depart_from:departFrom,destinations:destinations.filter(d=>d.trim()),return_location:returnLocation,mile_start:parseInt(mileStart)||0,mile_end:parseInt(mileEnd)||0,total_km:(parseInt(mileEnd)||0)-(parseInt(mileStart)||0),signature:sigData,created_by:user?.name||"",created_at:new Date().toISOString()};
-      await fetch(SUPABASE_URL+"/rest/v1/vehicle_logs",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify(record)});
+      const vres=await fetch(SUPABASE_URL+"/rest/v1/vehicle_logs",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify(record)});
+      const vtxt=await vres.text();
+      console.log("VehicleLog save:",vres.status,vtxt);
+      if(!vres.ok){alert("Save failed: "+vtxt);return;}
       setLogs(prev=>[record,...prev]);resetForm();setView("list");
     }catch(err){alert("Error: "+err.message);}
     setSaving(false);
