@@ -1340,6 +1340,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>💰 INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
         <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
+        <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
       </div>}
       {!isAdmin&&isMSS&&<button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>}
 
@@ -3364,7 +3365,7 @@ function InvoicingView({user,cases,onUpdateCase}){
     const now=new Date().toISOString();
     await updateCase(cas.id,{invoiced_at:now});
     onUpdateCase(cas.id,{invoicedAt:now});
-    setSelCase(null);
+    setSelCases([]);
   }
 
   if(selCase){
@@ -3469,6 +3470,114 @@ function InvoicingView({user,cases,onUpdateCase}){
 }
 
 
+// ─── VEHICLE LOG ─────────────────────────────────────────────────────────────
+const VLOG_VEHICLES=["Harry","Morty","Mercy","Betty","Maxi","Blessed 4"];
+const VLOG_STAFF=["Peter","Angus","Steve","Scott"];
+function VehicleLog({user,onBack}){
+  const[view,setView]=useState("list");
+  const[logs,setLogs]=useState([]);
+  const[loading,setLoading]=useState(true);
+  const[saving,setSaving]=useState(false);
+  const[reportWeek,setReportWeek]=useState(todaySydney());
+  const[vehicle,setVehicle]=useState("");
+  const[driver,setDriver]=useState(user?.name||"");
+  const[departDate,setDepartDate]=useState(todaySydney());
+  const[departTime,setDepartTime]=useState(new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Australia/Sydney"}));
+  const[returnDate,setReturnDate]=useState(todaySydney());
+  const[returnTime,setReturnTime]=useState(new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Australia/Sydney"}));
+  const[departFrom,setDepartFrom]=useState("");
+  const[destinations,setDestinations]=useState([""]);
+  const[returnLocation,setReturnLocation]=useState("");
+  const[mileStart,setMileStart]=useState("");
+  const[mileEnd,setMileEnd]=useState("");
+  const[sigData,setSigData]=useState(null);
+  const[hasSig,setHasSig]=useState(false);
+  const canvasRef=React.useRef(null);
+  const drawingRef=React.useRef(false);
+  const savedImageRef=React.useRef(null);
+  React.useEffect(()=>{loadLogs();},[]);
+  React.useEffect(()=>{if(canvasRef.current&&savedImageRef.current){const img=new Image();img.onload=()=>canvasRef.current?.getContext("2d")?.drawImage(img,0,0);img.src=savedImageRef.current;}});
+  async function loadLogs(){try{const r=await fetch(SUPABASE_URL+"/rest/v1/vehicle_logs?select=*&order=depart_datetime.desc&limit=200",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}});const d=await r.json();setLogs(Array.isArray(d)?d:[]);}catch(e){console.warn(e);}setLoading(false);}
+  function getPos(e,canvas){const rect=canvas.getBoundingClientRect();const touch=e.touches?.[0];const sx=canvas.width/rect.width;const sy=canvas.height/rect.height;return{x:((touch?touch.clientX:e.clientX)-rect.left)*sx,y:((touch?touch.clientY:e.clientY)-rect.top)*sy};}
+  function startDraw(e){e.preventDefault();if(!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.beginPath();ctx.moveTo(pos.x,pos.y);drawingRef.current=true;}
+  function draw(e){e.preventDefault();if(!drawingRef.current||!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.lineCap="round";ctx.stroke();}
+  function endDraw(){drawingRef.current=false;if(canvasRef.current){const d=canvasRef.current.toDataURL();savedImageRef.current=d;setSigData(d);setHasSig(true);}}
+  function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}savedImageRef.current=null;setSigData(null);setHasSig(false);}
+  function resetForm(){setVehicle("");setDriver(user?.name||"");setDepartDate(todaySydney());setDepartTime(new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Australia/Sydney"}));setReturnDate(todaySydney());setReturnTime(new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:"Australia/Sydney"}));setDepartFrom("");setDestinations([""]);setReturnLocation("");setMileStart("");setMileEnd("");setSigData(null);setHasSig(false);savedImageRef.current=null;}
+  async function handleSave(){
+    if(!vehicle){alert("Please select a vehicle.");return;}
+    if(!driver.trim()){alert("Please select a driver.");return;}
+    if(!departFrom.trim()){alert("Please enter departure location.");return;}
+    if(!mileStart){alert("Please enter start mileage.");return;}
+    if(!mileEnd){alert("Please enter end mileage.");return;}
+    if(!sigData){alert("Please provide a signature.");return;}
+    setSaving(true);
+    try{
+      const record={id:genId(),vehicle,driver,depart_datetime:`${departDate}T${departTime}`,return_datetime:`${returnDate}T${returnTime}`,depart_from:departFrom,destinations:destinations.filter(d=>d.trim()),return_location:returnLocation,mile_start:parseInt(mileStart)||0,mile_end:parseInt(mileEnd)||0,total_km:(parseInt(mileEnd)||0)-(parseInt(mileStart)||0),signature:sigData,created_by:user?.name||"",created_at:new Date().toISOString()};
+      await fetch(SUPABASE_URL+"/rest/v1/vehicle_logs",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify(record)});
+      setLogs(prev=>[record,...prev]);resetForm();setView("list");
+    }catch(err){alert("Error: "+err.message);}
+    setSaving(false);
+  }
+  function printWeeklyReport(){
+    const weekStart=new Date(reportWeek+"T00:00:00");const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+6);
+    const weekLogs=logs.filter(l=>{const d=new Date(l.depart_datetime);return d>=weekStart&&d<=weekEnd;}).sort((a,b)=>new Date(a.depart_datetime)-new Date(b.depart_datetime));
+    const w=window.open("","_blank");
+    w.document.write(`<!DOCTYPE html><html><head><title>Vehicle Log Report</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:11px;}h1{font-size:16px;font-weight:900;margin-bottom:4px;}p{color:#666;margin-bottom:12px;}table{width:100%;border-collapse:collapse;}th{background:#111;color:#fff;padding:6px 8px;text-align:left;font-size:10px;}td{padding:6px 8px;border-bottom:1px solid #ddd;vertical-align:top;}tr:nth-child(even){background:#f9f9f9;}.sig{max-height:40px;}.footer{margin-top:20px;border-top:1px solid #ccc;padding-top:10px;font-size:9px;color:#999;text-align:center;}</style></head><body><h1>VEHICLE LOG — WEEKLY REPORT</h1><p>Mortuary Support | Lumière · Week: ${weekStart.toLocaleDateString("en-AU")} – ${weekEnd.toLocaleDateString("en-AU")} · Printed: ${new Date().toLocaleString("en-AU")} · Entries: ${weekLogs.length}</p><table><tr><th>Date</th><th>Vehicle</th><th>Driver</th><th>Departed</th><th>Returned</th><th>From</th><th>Destinations</th><th>Return To</th><th>Start km</th><th>End km</th><th>Total km</th><th>Sig</th></tr>${weekLogs.map(l=>`<tr><td>${new Date(l.depart_datetime).toLocaleDateString("en-AU")}</td><td><b>${l.vehicle}</b></td><td>${l.driver}</td><td>${new Date(l.depart_datetime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})}</td><td>${new Date(l.return_datetime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})}</td><td>${l.depart_from||"—"}</td><td>${(l.destinations||[]).join(", ")||"—"}</td><td>${l.return_location||"—"}</td><td>${l.mile_start||0}</td><td>${l.mile_end||0}</td><td><b>${l.total_km||0}</b></td><td>${l.signature?`<img src="${l.signature}" class="sig"/>`:"—"}</td></tr>`).join("")}</table><div class="footer">Mortuary Support | Lumière · 02 8814 5500 · mortuarysupport.com.au · © 2026 Give Me Just 10 Pty Ltd</div></body></html>`);
+    w.document.close();w.print();
+  }
+  const mileTotal=(parseInt(mileEnd)||0)-(parseInt(mileStart)||0);
+  if(view==="new") return(
+    <div className="max-w-lg mx-auto px-4 py-4">
+      <button onClick={()=>{resetForm();setView("list");}} className="text-xs font-black text-gray-400 uppercase mb-4">← Back</button>
+      <h2 className="text-2xl font-black text-gray-900 mb-4">🚗 New Vehicle Log</h2>
+      <div className="space-y-4">
+        <div><div className="text-xs font-black uppercase text-gray-500 mb-2">Vehicle</div><div className="grid grid-cols-3 gap-2">{VLOG_VEHICLES.map(v=><button key={v} type="button" onClick={()=>setVehicle(v)} className={"py-2.5 rounded-xl border-2 text-sm font-black transition "+(vehicle===v?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700")}>{v}</button>)}</div></div>
+        <div><div className="text-xs font-black uppercase text-gray-500 mb-2">Driver</div><div className="grid grid-cols-4 gap-2">{VLOG_STAFF.map(s=><button key={s} type="button" onClick={()=>setDriver(s)} className={"py-2.5 rounded-xl border-2 text-sm font-black transition "+(driver===s?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700")}>{s}</button>)}</div></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Departure Date</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={departDate} onChange={e=>setDepartDate(e.target.value)}/></div>
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Departure Time</div><input type="time" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={departTime} onChange={e=>setDepartTime(e.target.value)}/></div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Return Date</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></div>
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Return Time</div><input type="time" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></div>
+        </div>
+        <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Departure From</div><input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="Location name..." value={departFrom} onChange={e=>setDepartFrom(e.target.value)}/></div>
+        <div>
+          <div className="text-xs font-black uppercase text-gray-500 mb-1">Destinations</div>
+          {destinations.map((d,i)=>(<div key={i} className="flex gap-2 mb-2"><input className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder={`Destination ${i+1}...`} value={d} onChange={e=>{const nd=[...destinations];nd[i]=e.target.value;setDestinations(nd);}}/>{destinations.length>1&&<button type="button" onClick={()=>setDestinations(destinations.filter((_,j)=>j!==i))} className="text-red-400 font-black px-2">✕</button>}</div>))}
+          <button type="button" onClick={()=>setDestinations([...destinations,""])} className="text-xs font-black uppercase text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">+ Add Destination</button>
+        </div>
+        <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Return Location</div><input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="Return location..." value={returnLocation} onChange={e=>setReturnLocation(e.target.value)}/></div>
+        <div className="grid grid-cols-3 gap-3">
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Start km</div><input type="number" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="0" value={mileStart} onChange={e=>setMileStart(e.target.value)}/></div>
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">End km</div><input type="number" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="0" value={mileEnd} onChange={e=>setMileEnd(e.target.value)}/></div>
+          <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Total km</div><div className="w-full border-2 border-gray-100 rounded-xl px-3 py-2 text-sm bg-gray-50 font-black text-gray-700">{mileTotal>0?mileTotal:"—"}</div></div>
+        </div>
+        <div>
+          <div className="text-xs font-black uppercase text-gray-500 mb-1">Driver Signature</div>
+          <div style={{border:"2px solid #e5e7eb",borderRadius:"12px",background:"#fff",overflow:"hidden"}}><canvas ref={canvasRef} width={600} height={200} style={{display:"block",width:"100%",height:"160px",touchAction:"none",cursor:"crosshair"}} onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw} onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}/></div>
+          {hasSig?<button type="button" onClick={clearSig} className="text-xs font-black text-red-400 mt-1 uppercase">Clear</button>:<p className="text-xs text-gray-400 mt-1">Sign above</p>}
+        </div>
+        <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase">{saving?"SAVING...":"💾 SAVE LOG ENTRY"}</button>
+      </div>
+    </div>
+  );
+  return(
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <h2 className="text-2xl font-black text-gray-900 mb-4">🚗 Vehicle Log</h2>
+      <div className="flex gap-3 mb-4">
+        <button onClick={()=>{resetForm();setView("new");}} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">+ NEW LOG ENTRY</button>
+        <button onClick={()=>setView(view==="report"?"list":"report")} className={"flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(view==="report"?"bg-gray-900 text-white border-gray-900":"border-gray-900 text-gray-900 hover:bg-gray-50")}>📊 WEEKLY REPORT</button>
+      </div>
+      {view==="report"&&(<div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4"><div className="text-xs font-black uppercase text-gray-500 mb-2">Week starting</div><div className="flex gap-3"><input type="date" className="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={reportWeek} onChange={e=>setReportWeek(e.target.value)}/><button onClick={printWeeklyReport} className="px-5 py-2 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">🖨 PRINT</button></div></div>)}
+      {loading&&<p className="text-gray-400 text-center py-8">Loading...</p>}
+      {!loading&&logs.length===0&&<p className="text-gray-400 text-center py-12 border-2 border-dashed border-gray-200 rounded-2xl">No vehicle log entries yet</p>}
+      <div className="space-y-3">{logs.map(l=>(<div key={l.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3"><div className="flex items-start justify-between gap-2"><div><div className="flex items-center gap-2 mb-1"><span className="text-sm font-black text-gray-900">{l.vehicle}</span><span className="text-xs text-gray-400">·</span><span className="text-sm text-gray-700">{l.driver}</span><span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 font-black">{l.total_km} km</span></div><div className="text-xs text-gray-500">{new Date(l.depart_datetime).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})} · {new Date(l.depart_datetime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})} → {new Date(l.return_datetime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})}</div><div className="text-xs text-gray-400 mt-0.5">{l.depart_from} → {(l.destinations||[]).join(", ")||"—"} → {l.return_location||"—"}</div></div>{l.signature&&<img src={l.signature} alt="sig" style={{height:32,borderRadius:4,border:"1px solid #e5e7eb"}}/>}</div></div>))}</div>
+    </div>
+  );
+}
+
 // ─── ASHES REGISTER ───────────────────────────────────────────────────────────
 function AshesRegister({user,cases,onBack}){
   const[view,setView]=useState("list"); // list | checkin | checkout
@@ -3476,7 +3585,7 @@ function AshesRegister({user,cases,onBack}){
   const[loading,setLoading]=useState(true);
   const[search,setSearch]=useState("");
   const[selFH,setSelFH]=useState("");
-  const[selCase,setSelCase]=useState(null);
+  const[selCases,setSelCases]=useState([]);
   const[checkInDate,setCheckInDate]=useState(todaySydney());
   const[staffName,setStaffName]=useState(user?.name||"");
   const[sigPad,setSigPad]=useState(null);
@@ -3542,17 +3651,19 @@ function AshesRegister({user,cases,onBack}){
   function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}savedImageRef.current=null;setSigData(null);setHasSig(false);}
 
   async function handleCheckIn(){
-    if(!manualEntry&&!selCase){alert("Please select a case.");return;}
+    if(!manualEntry&&selCases.length===0){alert("Please select at least one case.");return;}
     if(manualEntry&&(!manualFirstName.trim()||!manualLastName.trim())){alert("Please enter first and last name.");return;}
     if(!sigData){alert("Please provide a signature.");return;}
     setSaving(true);
     try{
+      const casesToProcess=manualEntry?[{id:"MANUAL",caseRef:"MANUAL",lastName:manualLastName,firstName:manualFirstName,funeralHomeName:selFH}]:selCases;
+      for(const sc of casesToProcess){
       const record={
         id:genId(),
-        case_id:manualEntry?"MANUAL":selCase.id,
-        case_ref:manualEntry?"MANUAL":selCase.caseRef,
-        deceased_name:manualEntry?`${manualLastName.toUpperCase()}, ${manualFirstName}`:`${(selCase.lastName||"").toUpperCase()}, ${selCase.firstName}`,
-        funeral_home:manualEntry?selFH:selCase.funeralHomeName,
+        case_id:sc.id,
+        case_ref:sc.caseRef,
+        deceased_name:`${(sc.lastName||"").toUpperCase()}, ${sc.firstName}`,
+        funeral_home:sc.funeralHomeName||selFH,
         checked_in_at:checkInDate,
         checked_in_by:staffName,
         checked_in_sig:sigData,
@@ -3574,6 +3685,7 @@ function AshesRegister({user,cases,onBack}){
       console.log("Ashes save status:",res.status,resText);
       if(!res.ok){alert("Save error: "+resText);return;}
       setAshesRecords(prev=>[record,...prev]);
+      }
       resetForm();
       setView("list");
     }catch(err){alert("Error: "+err.message);}
@@ -5713,6 +5825,7 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="newcheckins") return wrap(<NewCheckInsView cases={cases} onAction={a=>{setAction(a);}} user={user}/>);
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={cases} onBack={()=>setAction(null)}/>);
+  if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
