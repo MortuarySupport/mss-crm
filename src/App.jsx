@@ -3665,7 +3665,7 @@ function AshesRegister({user,cases,onBack}){
   const fhCases=selFH?cremationCases.filter(c=>c.funeralHomeName===selFH&&!inStorageCaseIds.has(c.id)):[];
   const filteredCases=fhCases.filter(c=>!search||(c.lastName||"").toLowerCase().includes(search.toLowerCase())||(c.firstName||"").toLowerCase().includes(search.toLowerCase())||(c.caseRef||"").toLowerCase().includes(search.toLowerCase()));
 
-  function resetForm(){setSelFH("");setSelCase(null);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
+  function resetForm(){setSelFH("");setSelCases([]);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
 
   // Signature canvas
   function getPos(e,canvas){
@@ -3773,15 +3773,15 @@ function AshesRegister({user,cases,onBack}){
       <div className="space-y-4">
         <div>
           <div className="text-xs font-black uppercase text-gray-500 mb-1">Funeral Director</div>
-          <select className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={selFH} onChange={e=>{setSelFH(e.target.value);setSelCase(null);setSearch("");}}>
+          <select className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={selFH} onChange={e=>{setSelFH(e.target.value);setSelCases([]);setSearch("");}}>
             <option value="">— Select Funeral Director —</option>
             {fhList.map(fh=><option key={fh}>{fh}</option>)}
           </select>
         </div>
         {selFH&&<div>
           <div className="flex gap-2 mb-3">
-            <button type="button" onClick={()=>{setManualEntry(false);setSelCase(null);}} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(!manualEntry?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>From System</button>
-            <button type="button" onClick={()=>{setManualEntry(true);setSelCase(null);}} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(manualEntry?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>Manual Entry</button>
+            <button type="button" onClick={()=>{setManualEntry(false);setSelCases([]);}} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(!manualEntry?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>From System</button>
+            <button type="button" onClick={()=>{setManualEntry(true);setSelCases([]);}} className={"flex-1 py-2 rounded-xl border-2 text-xs font-black uppercase transition "+(manualEntry?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600")}>Manual Entry</button>
           </div>
           {!manualEntry&&<>
           <div className="text-xs font-black uppercase text-gray-500 mb-1">Search Deceased</div>
