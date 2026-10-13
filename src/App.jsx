@@ -5710,6 +5710,81 @@ class ErrorBoundary extends React.Component{
   }
 }
 
+// ─── KIOSK HOME ──────────────────────────────────────────────────────────────
+function KioskHome({onCheckIn,onCheckOut,onLogin}){
+  return(
+    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div style={{marginBottom:"40px",textAlign:"center"}}>
+        <MSSLogo size="lg"/>
+        <p style={{color:"#6b7280",fontSize:"12px",fontWeight:"700",letterSpacing:"3px",textTransform:"uppercase",marginTop:"12px"}}>Mortuary Support Services</p>
+      </div>
+      <div style={{width:"100%",maxWidth:"380px",display:"flex",flexDirection:"column",gap:"16px"}}>
+        <button onClick={onCheckIn} style={{width:"100%",padding:"22px",background:"#fff",color:"#111",border:"none",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer"}}>✅ CHECK IN</button>
+        <button onClick={onCheckOut} style={{width:"100%",padding:"22px",background:"#1a1a1a",color:"#fff",border:"2px solid #333",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer"}}>📦 CHECK OUT</button>
+        <button onClick={onLogin} style={{width:"100%",padding:"16px",background:"transparent",color:"#4b5563",border:"2px solid #222",borderRadius:"16px",fontSize:"14px",fontWeight:"700",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",marginTop:"8px"}}>🔐 LOGIN</button>
+      </div>
+      <p style={{color:"#1f2937",fontSize:"11px",letterSpacing:"1px",textTransform:"uppercase",marginTop:"48px"}}>Lumière CRM</p>
+    </div>
+  );
+}
+
+// ─── GUEST CHECK OUT ─────────────────────────────────────────────────────────
+function GuestCheckOut({cases,onUpdateCase,onBack}){
+  const[step,setStep]=useState("selectFD");
+  const[selFH,setSelFH]=useState(null);
+  const[doneCase,setDoneCase]=useState(null);
+  const FHS=[
+    {id:"FH01",name:"Amazing Funerals"},{id:"FH02",name:"Blessed Funerals"},
+    {id:"FH03",name:"DBFF"},{id:"FH04",name:"Divine Family Funerals"},
+    {id:"FH05",name:"Farwell Funerals"},{id:"FH06",name:"Global Funerals"},
+    {id:"FH07",name:"Hansol Funerals"},{id:"FH08",name:"Kellie Hart Funerals"},
+    {id:"FH09",name:"Serenity Family Funerals"},{id:"FH10",name:"Sydney Funerals"},
+    {id:"FH11",name:"The Last Time"},{id:"FH12",name:"Timmins Funerals"},
+    {id:"FH13",name:"Tomorrow Funerals"},{id:"FH14",name:"Your Funeral Director"},
+    {id:"FH15",name:"Funerals By Design"},
+  ];
+  useEffect(()=>{
+    if(doneCase){const t=setTimeout(()=>onBack(),5*60*1000);return()=>clearTimeout(t);}
+  },[doneCase]);
+  if(doneCase) return(
+    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}>
+      <div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div>
+      <h2 style={{color:"#fff",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked Out</h2>
+      <p style={{color:"#9ca3af",fontSize:"15px",marginBottom:"4px"}}>{doneCase.firstName} {doneCase.lastName}</p>
+      <p style={{color:"#6b7280",fontSize:"13px",marginBottom:"32px"}}>{selFH?.name||""}</p>
+      <p style={{color:"#374151",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p>
+      <button onClick={onBack} style={{marginTop:"32px",padding:"14px 32px",background:"#1a1a1a",color:"#9ca3af",border:"2px solid #333",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button>
+    </div>
+  );
+  if(step==="selectFD") return(
+    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div style={{width:"100%",maxWidth:"420px"}}>
+        <button onClick={onBack} style={{background:"none",border:"none",color:"#6b7280",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",marginBottom:"32px",padding:0}}>← Back</button>
+        <h2 style={{color:"#fff",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>📦 CHECK OUT</h2>
+        <p style={{color:"#6b7280",fontSize:"13px",marginBottom:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Select your funeral home</p>
+        <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
+          {FHS.map(fh=>{
+            const count=cases.filter(c=>c.funeralHomeId===fh.id&&c.step>1&&c.step<5).length;
+            if(count===0) return null;
+            return(
+              <button key={fh.id} onClick={()=>{setSelFH(fh);setStep("checkout");}} style={{width:"100%",padding:"16px 20px",background:"#1a1a1a",color:"#fff",border:"2px solid #333",borderRadius:"14px",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span>{fh.name}</span>
+                <span style={{background:"#333",borderRadius:"8px",padding:"4px 10px",fontSize:"12px",color:"#9ca3af"}}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+  const guestFDUser={role:"fd",funeralHomeId:selFH.id,name:selFH.name};
+  return(
+    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
+      <CheckOutFlow user={guestFDUser} cases={cases} onUpdateCase={(id,updates)=>{onUpdateCase(id,updates);const c=cases.find(x=>x.id===id);if(c)setDoneCase({...c,...updates});}} onBack={()=>setStep("selectFD")}/>
+    </div>
+  );
+}
+
 export default function App() {
   const [users,setUsers]=useState([]);
   const [maintenanceMode,setMaintenanceMode]=useState(null);
@@ -5744,6 +5819,8 @@ export default function App() {
   const [showTimeoutModal,setShowTimeoutModal]=useState(false);
   const [lockOpen,setLockOpen]=useState(false);
   const [action,setAction]=useState(null);
+  const [kioskScreen,setKioskScreen]=useState("home");
+  useEffect(()=>{if(kioskScreen==="done"){const t=setTimeout(()=>setKioskScreen("home"),5*60*1000);return()=>clearTimeout(t);}},[kioskScreen]);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab,action]);
 
   useEffect(()=>{
@@ -5817,7 +5894,11 @@ export default function App() {
         <p style={{color:"#6b7280",fontSize:"11px",marginTop:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Mortuary Support | Lumière</p>
       </div>
     );
-    return <LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>;
+    if(kioskScreen==="done") return(<div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}><div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div><h2 style={{color:"#fff",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked In</h2><p style={{color:"#9ca3af",fontSize:"14px",marginBottom:"32px"}}>The record has been saved successfully.</p><p style={{color:"#374151",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p><button onClick={()=>setKioskScreen("home")} style={{marginTop:"32px",padding:"14px 32px",background:"#1a1a1a",color:"#9ca3af",border:"2px solid #333",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button></div>);
+    if(kioskScreen==="checkin") return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><CheckInFlow user={{role:"guest",name:"Guest"}} cases={cases} onComplete={()=>{setKioskDone("checkin");setKioskScreen("done");}} onBack={()=>setKioskScreen("home")}/></div>);
+    if(kioskScreen==="checkout") return(<GuestCheckOut cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setKioskScreen("home")}/>);
+    if(kioskScreen==="login") return(<LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>);
+    return(<KioskHome onCheckIn={()=>setKioskScreen("checkin")} onCheckOut={()=>setKioskScreen("checkout")} onLogin={()=>setKioskScreen("login")}/>);
   }
   if(maintenanceMode&&user?.role!=="admin") return(
     <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px",textAlign:"center"}}>
