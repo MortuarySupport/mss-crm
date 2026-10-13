@@ -5764,7 +5764,7 @@ function GuestCheckOut({cases,onUpdateCase,onBack}){
         <p style={{color:"#6b7280",fontSize:"13px",marginBottom:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Select your funeral home</p>
         <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
           {FHS.map(fh=>{
-            const count=cases.filter(c=>c.funeralHomeId===fh.id&&c.step>1&&c.step<5).length;
+            const count=cases.filter(c=>c.funeralHomeId===fh.id&&!c.checkedOut&&!["past","locked","pending-lock","approved"].includes(c.status)).length;
             if(count===0) return null;
             return(
               <button key={fh.id} onClick={()=>{setSelFH(fh);setStep("checkout");}} style={{width:"100%",padding:"16px 20px",background:"#fff",color:"#111827",border:"2px solid #e5e7eb",borderRadius:"14px",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
