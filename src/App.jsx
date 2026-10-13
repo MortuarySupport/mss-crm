@@ -5713,17 +5713,17 @@ class ErrorBoundary extends React.Component{
 // ─── KIOSK HOME ──────────────────────────────────────────────────────────────
 function KioskHome({onCheckIn,onCheckOut,onLogin}){
   return(
-    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-      <div style={{marginBottom:"40px",textAlign:"center"}}>
+    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+      <div style={{marginBottom:"48px",textAlign:"center"}}>
         <MSSLogo size="lg"/>
-        <p style={{color:"#6b7280",fontSize:"12px",fontWeight:"700",letterSpacing:"3px",textTransform:"uppercase",marginTop:"12px"}}>Mortuary Support Services</p>
+        <p style={{color:"#9ca3af",fontSize:"12px",fontWeight:"700",letterSpacing:"3px",textTransform:"uppercase",marginTop:"12px"}}>Mortuary Support Services</p>
       </div>
       <div style={{width:"100%",maxWidth:"380px",display:"flex",flexDirection:"column",gap:"16px"}}>
-        <button onClick={onCheckIn} style={{width:"100%",padding:"22px",background:"#fff",color:"#111",border:"none",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer"}}>✅ CHECK IN</button>
-        <button onClick={onCheckOut} style={{width:"100%",padding:"22px",background:"#1a1a1a",color:"#fff",border:"2px solid #333",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer"}}>📦 CHECK OUT</button>
-        <button onClick={onLogin} style={{width:"100%",padding:"16px",background:"transparent",color:"#4b5563",border:"2px solid #222",borderRadius:"16px",fontSize:"14px",fontWeight:"700",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",marginTop:"8px"}}>🔐 LOGIN</button>
+        <button onClick={onCheckIn} style={{width:"100%",padding:"22px",background:"#111827",color:"#fff",border:"none",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>✅ CHECK IN</button>
+        <button onClick={onCheckOut} style={{width:"100%",padding:"22px",background:"#fff",color:"#111827",border:"2px solid #e5e7eb",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>📦 CHECK OUT</button>
+        <button onClick={onLogin} style={{width:"100%",padding:"16px",background:"transparent",color:"#9ca3af",border:"2px solid #e5e7eb",borderRadius:"16px",fontSize:"13px",fontWeight:"700",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",marginTop:"8px"}}>🔐 LOGIN</button>
       </div>
-      <p style={{color:"#1f2937",fontSize:"11px",letterSpacing:"1px",textTransform:"uppercase",marginTop:"48px"}}>Lumière CRM</p>
+      <p style={{color:"#d1d5db",fontSize:"11px",letterSpacing:"1px",textTransform:"uppercase",marginTop:"48px"}}>Lumière CRM</p>
     </div>
   );
 }
@@ -5747,29 +5747,29 @@ function GuestCheckOut({cases,onUpdateCase,onBack}){
     if(doneCase){const t=setTimeout(()=>onBack(),5*60*1000);return()=>clearTimeout(t);}
   },[doneCase]);
   if(doneCase) return(
-    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}>
+    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}>
       <div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div>
-      <h2 style={{color:"#fff",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked Out</h2>
-      <p style={{color:"#9ca3af",fontSize:"15px",marginBottom:"4px"}}>{doneCase.firstName} {doneCase.lastName}</p>
+      <h2 style={{color:"#111827",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked Out</h2>
+      <p style={{color:"#6b7280",fontSize:"15px",marginBottom:"4px"}}>{doneCase.firstName} {doneCase.lastName}</p>
       <p style={{color:"#6b7280",fontSize:"13px",marginBottom:"32px"}}>{selFH?.name||""}</p>
-      <p style={{color:"#374151",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p>
-      <button onClick={onBack} style={{marginTop:"32px",padding:"14px 32px",background:"#1a1a1a",color:"#9ca3af",border:"2px solid #333",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button>
+      <p style={{color:"#9ca3af",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p>
+      <button onClick={onBack} style={{marginTop:"32px",padding:"14px 32px",background:"#111827",color:"#fff",border:"none",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button>
     </div>
   );
   if(step==="selectFD") return(
-    <div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
+    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
       <div style={{width:"100%",maxWidth:"420px"}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:"#6b7280",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer",marginBottom:"32px",padding:0}}>← Back</button>
-        <h2 style={{color:"#fff",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>📦 CHECK OUT</h2>
+        <h2 style={{color:"#111827",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>📦 CHECK OUT</h2>
         <p style={{color:"#6b7280",fontSize:"13px",marginBottom:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Select your funeral home</p>
         <div style={{display:"flex",flexDirection:"column",gap:"10px"}}>
           {FHS.map(fh=>{
             const count=cases.filter(c=>c.funeralHomeId===fh.id&&c.step>1&&c.step<5).length;
             if(count===0) return null;
             return(
-              <button key={fh.id} onClick={()=>{setSelFH(fh);setStep("checkout");}} style={{width:"100%",padding:"16px 20px",background:"#1a1a1a",color:"#fff",border:"2px solid #333",borderRadius:"14px",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <button key={fh.id} onClick={()=>{setSelFH(fh);setStep("checkout");}} style={{width:"100%",padding:"16px 20px",background:"#fff",color:"#111827",border:"2px solid #e5e7eb",borderRadius:"14px",fontSize:"15px",fontWeight:"700",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span>{fh.name}</span>
-                <span style={{background:"#333",borderRadius:"8px",padding:"4px 10px",fontSize:"12px",color:"#9ca3af"}}>{count}</span>
+                <span style={{background:"#f3f4f6",borderRadius:"8px",padding:"4px 10px",fontSize:"12px",color:"#6b7280"}}>{count}</span>
               </button>
             );
           })}
@@ -5894,7 +5894,7 @@ export default function App() {
         <p style={{color:"#6b7280",fontSize:"11px",marginTop:"24px",letterSpacing:"1px",textTransform:"uppercase"}}>Mortuary Support | Lumière</p>
       </div>
     );
-    if(kioskScreen==="done") return(<div style={{minHeight:"100vh",background:"#111",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}><div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div><h2 style={{color:"#fff",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked In</h2><p style={{color:"#9ca3af",fontSize:"14px",marginBottom:"32px"}}>The record has been saved successfully.</p><p style={{color:"#374151",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p><button onClick={()=>setKioskScreen("home")} style={{marginTop:"32px",padding:"14px 32px",background:"#1a1a1a",color:"#9ca3af",border:"2px solid #333",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button></div>);
+    if(kioskScreen==="done") return(<div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}><div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div><h2 style={{color:"#111827",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked In</h2><p style={{color:"#6b7280",fontSize:"14px",marginBottom:"32px"}}>The record has been saved successfully.</p><p style={{color:"#9ca3af",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p><button onClick={()=>setKioskScreen("home")} style={{marginTop:"32px",padding:"14px 32px",background:"#111827",color:"#fff",border:"none",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button></div>);
     if(kioskScreen==="checkin") return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><CheckInFlow user={{role:"guest",name:"Guest"}} cases={cases} onComplete={()=>{setKioskDone("checkin");setKioskScreen("done");}} onBack={()=>setKioskScreen("home")}/></div>);
     if(kioskScreen==="checkout") return(<GuestCheckOut cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setKioskScreen("home")}/>);
     if(kioskScreen==="login") return(<LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>);
