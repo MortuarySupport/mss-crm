@@ -3604,6 +3604,7 @@ function VehicleLog({user,onBack}){
         <div className="text-xs text-gray-400 mt-1">{filtered.length} of {logs.length} entries</div>
       </div>
       <div className="space-y-3">{filtered.map(l=>(<div key={l.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3"><div className="flex items-start justify-between gap-2"><div><div className="flex items-center gap-2 mb-1"><span className="text-sm font-black text-gray-900">{l.vehicle}</span>{l.trip_type&&<span className="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-black">{l.trip_type}</span>}<span className="text-xs text-gray-400">·</span><span className="text-sm text-gray-700">{l.driver}</span><span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 font-black">{l.total_km} km</span>{l.created_by&&l.created_by!==l.driver&&<span className="text-xs text-gray-400">logged by {l.created_by}</span>}</div><div className="text-xs text-gray-500">{new Date(l.depart_datetime).toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})} · {new Date(l.depart_datetime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})} → {new Date(l.return_datetime).toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})}</div><div className="text-xs text-gray-400 mt-0.5">{l.depart_from} → {(l.destinations||[]).join(", ")||"—"} → {l.return_location||"—"}</div></div>{l.signature&&<img src={l.signature} alt="sig" style={{height:32,borderRadius:4,border:"1px solid #e5e7eb"}}/>}</div></div>))}</div>
+      </>);})()}
     </div>
   );
 }
