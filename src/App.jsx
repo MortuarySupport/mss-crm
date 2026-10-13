@@ -5733,16 +5733,7 @@ function GuestCheckOut({cases,onUpdateCase,onBack}){
   const[step,setStep]=useState("selectFD");
   const[selFH,setSelFH]=useState(null);
   const[doneCase,setDoneCase]=useState(null);
-  const FHS=[
-    {id:"FH01",name:"Amazing Funerals"},{id:"FH02",name:"Blessed Funerals"},
-    {id:"FH03",name:"DBFF"},{id:"FH04",name:"Divine Family Funerals"},
-    {id:"FH05",name:"Farwell Funerals"},{id:"FH06",name:"Global Funerals"},
-    {id:"FH07",name:"Hansol Funerals"},{id:"FH08",name:"Kellie Hart Funerals"},
-    {id:"FH09",name:"Serenity Family Funerals"},{id:"FH10",name:"Sydney Funerals"},
-    {id:"FH11",name:"The Last Time"},{id:"FH12",name:"Timmins Funerals"},
-    {id:"FH13",name:"Tomorrow Funerals"},{id:"FH14",name:"Your Funeral Director"},
-    {id:"FH15",name:"Funerals By Design"},
-  ];
+  const FHS=FUNERAL_HOMES;
   useEffect(()=>{
     if(doneCase){const t=setTimeout(()=>onBack(),5*60*1000);return()=>clearTimeout(t);}
   },[doneCase]);
@@ -5780,7 +5771,7 @@ function GuestCheckOut({cases,onUpdateCase,onBack}){
   const guestFDUser={role:"fd",funeralHomeId:selFH.id,name:selFH.name};
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb"}}>
-      <CheckOutFlow user={guestFDUser} cases={cases} onUpdateCase={(id,updates)=>{onUpdateCase(id,updates);const c=cases.find(x=>x.id===id);if(c)setDoneCase({...c,...updates});}} onBack={()=>setStep("selectFD")}/>
+      <CheckOutFlow user={guestFDUser} cases={cases} onUpdateCase={(id,updates)=>{onUpdateCase(id,updates);}} onBack={()=>setStep("selectFD")}/>
     </div>
   );
 }
