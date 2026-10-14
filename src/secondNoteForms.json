@@ -146,6 +146,12 @@
         ],
         "prefix": "Other: "
        }
+      ],
+      "cell": [
+       130,
+       193,
+       560,
+       211
       ]
      }
     ]
@@ -197,7 +203,13 @@
        "Full Embalm": [
         "Full Embalm"
        ]
-      }
+      },
+      "cell": [
+       26,
+       258,
+       380,
+       276
+      ]
      },
      {
       "id": "drRef",
@@ -216,7 +228,14 @@
        {
         "v": "No"
        }
-      ]
+      ],
+      "cell": [
+       405,
+       258,
+       495,
+       276
+      ],
+      "cellLabel": "DR REF BY MSS: "
      },
      {
       "id": "disposition",
@@ -267,7 +286,13 @@
        "Cremation": "Cremation",
        "Repatriation": "Repatriation",
        "Above-ground Burial + Bio Seal": "Burial"
-      }
+      },
+      "cell": [
+       26,
+       292.5,
+       530,
+       310.5
+      ]
      }
     ]
    },
@@ -436,6 +461,12 @@
          547.9
         ]
        }
+      ],
+      "cell": [
+       109,
+       532,
+       141,
+       550
       ]
      },
      {
@@ -461,6 +492,12 @@
          547.9
         ]
        }
+      ],
+      "cell": [
+       279,
+       532,
+       311,
+       550
       ]
      },
      {
@@ -625,6 +662,12 @@
          616.3
         ]
        }
+      ],
+      "cell": [
+       476,
+       600.3,
+       540,
+       618.3
       ]
      },
      {
@@ -651,7 +694,13 @@
         ]
        }
       ],
-      "job": "coffinPlateColour"
+      "job": "coffinPlateColour",
+      "cell": [
+       128,
+       634.5,
+       202,
+       652.5
+      ]
      },
      {
       "id": "plateBy",
@@ -685,6 +734,12 @@
          650.5
         ]
        }
+      ],
+      "cell": [
+       226,
+       634.5,
+       359,
+       652.5
       ]
      },
      {
@@ -710,6 +765,12 @@
          650.5
         ]
        }
+      ],
+      "cell": [
+       444,
+       634.5,
+       534,
+       652.5
       ]
      },
      {
@@ -735,6 +796,12 @@
          684.6
         ]
        }
+      ],
+      "cell": [
+       104,
+       668.6,
+       193,
+       686.6
       ]
      },
      {
@@ -760,6 +827,12 @@
          684.6
         ]
        }
+      ],
+      "cell": [
+       214,
+       668.6,
+       288,
+       686.6
       ]
      },
      {
@@ -785,6 +858,12 @@
          684.6
         ]
        }
+      ],
+      "cell": [
+       312,
+       668.6,
+       400,
+       686.6
       ]
      },
      {
@@ -810,6 +889,12 @@
          684.6
         ]
        }
+      ],
+      "cell": [
+       488,
+       668.6,
+       549,
+       686.6
       ]
      },
      {
@@ -835,6 +920,12 @@
          713.2
         ]
        }
+      ],
+      "cell": [
+       278,
+       697,
+       342,
+       715
       ]
      },
      {
@@ -860,6 +951,12 @@
          742.8
         ]
        }
+      ],
+      "cell": [
+       88,
+       726.8,
+       185,
+       744.8
       ]
      },
      {
@@ -885,6 +982,12 @@
          742.8
         ]
        }
+      ],
+      "cell": [
+       382,
+       726.8,
+       481,
+       744.8
       ]
      }
     ]
@@ -952,5 +1055,867 @@
    "size": 9,
    "prefix": "Submitted: "
   }
+ },
+ "FH15": {
+  "title": "MSS 2nd Note",
+  "template": "/forms/FH15_2nd_note.pdf",
+  "fileTag": "TIMMINS",
+  "stamp": {
+   "at": [
+    234.6,
+    70,
+    148
+   ],
+   "size": 8,
+   "prefix": "Submitted: "
+  },
+  "prints": [
+   {
+    "compose": [
+     "firstName",
+     "lastName"
+    ],
+    "at": [
+     234.6,
+     88.5,
+     148,
+     11
+    ]
+   },
+   {
+    "compose": [
+     "coffinType",
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     26.5,
+     500.6,
+     198,
+     10
+    ]
+   }
+  ],
+  "sections": [
+   {
+    "title": "Deceased",
+    "fields": [
+     {
+      "id": "firstName",
+      "label": "Deceased first name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "lastName",
+      "label": "Deceased last name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false,
+      "at": [
+       234.6,
+       118.8,
+       148,
+       10
+      ]
+     },
+     {
+      "id": "dob",
+      "label": "Date of birth",
+      "type": "date",
+      "summary": false,
+      "at": [
+       234.6,
+       134.8,
+       148,
+       10
+      ]
+     },
+     {
+      "id": "age",
+      "label": "Age (auto)",
+      "type": "text",
+      "auto": "age",
+      "summary": false,
+      "at": [
+       234.6,
+       150.8,
+       148,
+       10
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Preparation & Final Disposition",
+    "fields": [
+     {
+      "id": "prep",
+      "label": "Preparation",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Basic Prep",
+        "box": [
+         234.6,
+         164.3,
+         300.1,
+         176.3
+        ]
+       },
+       {
+        "v": "Temp Embalm",
+        "boxes": [
+         [
+          303.3,
+          164.3,
+          335.6,
+          176.3
+         ],
+         [
+          234.6,
+          178.3,
+          284.7,
+          190.3
+         ]
+        ]
+       },
+       {
+        "v": "Full Embalm",
+        "box": [
+         287.8,
+         178.3,
+         359.0,
+         190.3
+        ]
+       }
+      ],
+      "job": "prepOptions",
+      "map": {
+       "Basic Prep": [
+        "Basic Prep"
+       ],
+       "Temp Embalm": [
+        "Temp Prep"
+       ],
+       "Full Embalm": [
+        "Full Embalm"
+       ]
+      },
+      "cell": [
+       231,
+       163,
+       384,
+       190.2
+      ]
+     },
+     {
+      "id": "disposition",
+      "label": "Final disposition",
+      "type": "choice",
+      "required": true,
+      "options": [
+       {
+        "v": "Burial"
+       },
+       {
+        "v": "Cremation"
+       },
+       {
+        "v": "Repatriation"
+       }
+      ],
+      "at": [
+       234.6,
+       224.6,
+       148,
+       10
+      ],
+      "job": "disposition"
+     },
+     {
+      "id": "drRef",
+      "label": "Medical referee",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "box": [
+         234.6,
+         227.1,
+         256.0,
+         239.1
+        ]
+       },
+       {
+        "v": "No",
+        "box": [
+         274.6,
+         227.1,
+         290.6,
+         239.1
+        ]
+       }
+      ],
+      "cell": [
+       231,
+       224,
+       384,
+       239.0
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Viewing Details",
+    "fields": [
+     {
+      "id": "viewingDate",
+      "label": "Viewing date",
+      "type": "date",
+      "at": [
+       26.5,
+       306.6,
+       198,
+       10
+      ],
+      "job": "viewingDate",
+      "jobAlso": {
+       "viewing": "Yes"
+      }
+     },
+     {
+      "id": "viewingTime",
+      "label": "Viewing time",
+      "type": "time",
+      "at": [
+       234.6,
+       306.6,
+       148,
+       10
+      ],
+      "job": "viewingSlot"
+     },
+     {
+      "id": "viewingLocation",
+      "label": "Viewing location",
+      "type": "place",
+      "at": [
+       391.7,
+       306.6,
+       178,
+       10
+      ],
+      "job": "viewingLocation",
+      "match": [
+       [
+        "mss|mortuary support|lumi",
+        "MSS"
+       ],
+       [
+        ".",
+        "Offsite"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Funeral Details",
+    "fields": [
+     {
+      "id": "funeralDate",
+      "label": "Funeral date",
+      "type": "date",
+      "at": [
+       26.5,
+       371.4,
+       198,
+       10
+      ],
+      "job": "funeralDate"
+     },
+     {
+      "id": "funeralTime",
+      "label": "Funeral time",
+      "type": "time",
+      "at": [
+       234.6,
+       371.4,
+       148,
+       10
+      ],
+      "job": "funeralTime"
+     },
+     {
+      "id": "funeralLocation",
+      "label": "Funeral location",
+      "type": "place",
+      "at": [
+       391.7,
+       371.4,
+       178,
+       10
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Collection Details",
+    "fields": [
+     {
+      "id": "collectionBy",
+      "label": "Collection by whom",
+      "type": "choice",
+      "options": [
+       {
+        "v": "FD"
+       },
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ],
+      "at": [
+       26.5,
+       436.1,
+       198,
+       10
+      ]
+     },
+     {
+      "id": "collectionDay",
+      "label": "Collection date",
+      "type": "date",
+      "at": [
+       234.6,
+       436.1,
+       148,
+       10
+      ],
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Collection time",
+      "type": "time",
+      "at": [
+       391.7,
+       436.1,
+       178,
+       10
+      ],
+      "job": "collectionTime"
+     }
+    ]
+   },
+   {
+    "title": "Coffin Details",
+    "fields": [
+     {
+      "id": "coffinType",
+      "label": "Coffin name",
+      "type": "text",
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "coffinSupplier",
+      "label": "Coffin supplier",
+      "type": "text",
+      "at": [
+       234.6,
+       500.6,
+       148,
+       10
+      ]
+     },
+     {
+      "id": "coffinDate",
+      "label": "Coffin date",
+      "type": "date",
+      "at": [
+       391.7,
+       500.6,
+       178,
+       10
+      ]
+     },
+     {
+      "id": "coffinExtras",
+      "label": "Coffin extras",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Crucifix - Large",
+        "p": "Crucifix (L)"
+       },
+       {
+        "v": "Crucifix - Small",
+        "p": "Crucifix (S)"
+       },
+       {
+        "v": "Name Plate - Large",
+        "p": "Name Plate (L)"
+       },
+       {
+        "v": "Name Plate - Small",
+        "p": "Name Plate (S)"
+       },
+       {
+        "v": "Gravemarker Assembly",
+        "p": "Gravemarker Assembly"
+       },
+       {
+        "v": "Name Plate Etching",
+        "p": "Plate Etching"
+       }
+      ],
+      "printLabel": "Extras: ",
+      "size": 8,
+      "lines": [
+       [
+        234.6,
+        467.1,
+        148
+       ],
+       [
+        391.7,
+        467.1,
+        178
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Name Plate",
+    "fields": [
+     {
+      "id": "plateColour",
+      "label": "Name plate",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Silver",
+        "box": [
+         26.5,
+         532.2,
+         59.2,
+         544.2
+        ]
+       },
+       {
+        "v": "Gold",
+        "box": [
+         77.7,
+         532.2,
+         105.1,
+         544.2
+        ]
+       }
+      ],
+      "job": "coffinPlateColour",
+      "cell": [
+       24,
+       530,
+       226,
+       544.1
+      ]
+     },
+     {
+      "id": "plateBy",
+      "label": "Name plate supplier",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS",
+        "box": [
+         234.6,
+         518.4,
+         260.6,
+         530.4
+        ]
+       },
+       {
+        "v": "FD",
+        "box": [
+         279.1,
+         518.4,
+         295.0,
+         530.4
+        ]
+       },
+       {
+        "v": "Coffin Supplier",
+        "boxes": [
+         [
+          313.6,
+          518.4,
+          348.4,
+          530.4
+         ],
+         [
+          234.6,
+          532.2,
+          282.5,
+          544.2
+         ]
+        ]
+       }
+      ],
+      "cell": [
+       231,
+       517,
+       384,
+       544.1
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Fittings",
+    "fields": [
+     {
+      "id": "fittings",
+      "label": "Fittings type",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Cross",
+        "box": [
+         26.5,
+         596.7,
+         60.6,
+         608.7
+        ]
+       },
+       {
+        "v": "Crucifix",
+        "box": [
+         79.2,
+         596.7,
+         123.8,
+         608.7
+        ]
+       }
+      ],
+      "cell": [
+       24,
+       593.5,
+       226,
+       608.6
+      ]
+     },
+     {
+      "id": "fittingsColour",
+      "label": "Fittings colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Silver",
+        "box": [
+         234.6,
+         596.7,
+         267.3,
+         608.7
+        ]
+       },
+       {
+        "v": "Gold",
+        "box": [
+         285.8,
+         596.7,
+         313.2,
+         608.7
+        ]
+       }
+      ],
+      "cell": [
+       231,
+       593.5,
+       384,
+       608.6
+      ]
+     },
+     {
+      "id": "fittingsBy",
+      "label": "Fittings supplier",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS",
+        "box": [
+         391.7,
+         596.7,
+         417.7,
+         608.7
+        ]
+       },
+       {
+        "v": "FD",
+        "box": [
+         436.2,
+         596.7,
+         452.1,
+         608.7
+        ]
+       }
+      ],
+      "cell": [
+       388,
+       593.5,
+       572,
+       608.6
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Jewellery, Dressing & Clothing",
+    "fields": [
+     {
+      "id": "jewellery",
+      "label": "Jewellery",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Remove & Return",
+        "box": [
+         26.5,
+         655.0,
+         127.3,
+         667.0
+        ]
+       },
+       {
+        "v": "Remain on",
+        "textAt": [
+         26.5,
+         655.5,
+         198
+        ]
+       }
+      ],
+      "cell": [
+       24,
+       640,
+       226,
+       666.9
+      ]
+     },
+     {
+      "id": "dressing",
+      "label": "Dressing or bresting",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Nil",
+        "box": [
+         234.6,
+         641.2,
+         253.2,
+         653.2
+        ]
+       },
+       {
+        "v": "Bresting",
+        "box": [
+         259.6,
+         641.2,
+         311.6,
+         653.2
+        ]
+       },
+       {
+        "v": "Full Dressing",
+        "boxes": [
+         [
+          315.1,
+          641.2,
+          336.5,
+          653.2
+         ],
+         [
+          234.6,
+          655.0,
+          285.9,
+          667.0
+         ]
+        ]
+       }
+      ],
+      "cell": [
+       231,
+       640,
+       384,
+       666.9
+      ]
+     },
+     {
+      "id": "clothing",
+      "label": "Original clothing",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Return",
+        "box": [
+         391.7,
+         655.0,
+         430.5,
+         667.0
+        ]
+       },
+       {
+        "v": "Destroy",
+        "box": [
+         448.9,
+         655.0,
+         493.8,
+         667.0
+        ]
+       }
+      ],
+      "cell": [
+       388,
+       640,
+       572,
+       666.9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Special Instructions",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Special instructions",
+      "type": "textarea",
+      "size": 8.5,
+      "lines": [
+       [
+        234.6,
+        699,
+        148
+       ],
+       [
+        234.6,
+        709,
+        148
+       ],
+       [
+        234.6,
+        719,
+        148
+       ],
+       [
+        234.6,
+        729,
+        148
+       ],
+       [
+        391.7,
+        699,
+        178
+       ],
+       [
+        391.7,
+        709,
+        178
+       ],
+       [
+        391.7,
+        719,
+        178
+       ],
+       [
+        391.7,
+        729,
+        178
+       ]
+      ]
+     }
+    ]
+   }
+  ]
  }
 }

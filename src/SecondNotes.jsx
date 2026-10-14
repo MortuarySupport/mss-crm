@@ -66,6 +66,17 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     borderColor: ink, borderWidth: 1.2,
   });
 
+  // Word-wraps text across a list of [x, lineBottom, maxWidth] lines
+  const wrap = (str, lines, size, tokens) => {
+    let li = 0, cur = "";
+    const flush = () => { if (li < lines.length && cur) { const [x, lb] = lines[li]; page.drawText(cur, { x, y: H - (lb - 7), size, font, color: ink }); } li++; cur = ""; };
+    for (const w of tokens || str.split(/\s+/)) {
+      const tryS = cur ? cur + " " + w : w;
+      if (li < lines.length && font.widthOfTextAtSize(tryS, size) > lines[li][2]) { flush(); cur = w; }
+      else cur = tryS;
+    }
+    flush();
+  };
   for (const f of allFields(form)) {
     const v = answers[f.id];
     if (isEmpty(v) || v === false) continue;
@@ -80,23 +91,26 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
       if (f.at) text(display(f, v), ...f.at);
     } else if (f.type === "choice") {
       const o = f.options.find(o => o.v === v);
-      if (o?.box) circle(o.box);
-      if (o?.textAt) text((o.prefix || "") + display(f, v, answers), ...o.textAt);
+      if (f.cell) {
+        // Show only the selected option: blank out the printed choices and write the answer
+        const [x0, t, x1, b] = f.cell;
+        page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
+        text((f.cellLabel || "") + display(f, v, answers), x0 + 2, (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, f.size || 10);
+      } else {
+        if (o?.box) circle(o.box);
+        (o?.boxes || []).forEach(circle);
+        if (o?.textAt) text((o.prefix || "") + display(f, v, answers), ...o.textAt);
+      }
       if (f.at) text((f.printLabel || "") + display(f, v, answers), ...f.at);
     } else if (f.type === "multi") {
-      if (f.at) text((f.printLabel || "") + display(f, v), f.at[0], f.at[1], f.at[2], f.size || 11);
+      const pv = v.map(x => f.options.find(o => o.v === x)?.p || x);
+      const s = (f.printLabel || "") + pv.join(", ");
+      if (f.lines) wrap(s, f.lines, f.size || 8, pv.map((x, i) => (i === 0 ? (f.printLabel || "") : "") + x + (i < pv.length - 1 ? "," : "")));
+      else if (f.at) text(s, f.at[0], f.at[1], f.at[2], f.size || 11);
     } else if (f.type === "check") {
       circle(f.box);
     } else if (f.type === "textarea") {
-      const size = 10.5, lines = f.lines;
-      let li = 0, cur = "";
-      const flush = () => { if (li < lines.length && cur) { const [x, lb] = lines[li]; page.drawText(cur, { x, y: H - (lb - 7), size, font, color: ink }); } li++; cur = ""; };
-      for (const w of String(v).split(/\s+/)) {
-        const tryS = cur ? cur + " " + w : w;
-        if (li < lines.length && font.widthOfTextAtSize(tryS, size) > lines[li][2]) { flush(); cur = w; }
-        else cur = tryS;
-      }
-      flush();
+      wrap(String(v), f.lines, f.size || 10.5);
     }
   }
   if (form.stamp) {
