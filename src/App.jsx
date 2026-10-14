@@ -5722,10 +5722,17 @@ function KioskHome({onCheckIn,onCheckOut,onLogin}){
         <MSSLogo size="lg"/>
         <p style={{color:"#9ca3af",fontSize:"12px",fontWeight:"700",letterSpacing:"3px",textTransform:"uppercase",marginTop:"12px"}}>Mortuary Support Services</p>
       </div>
-      <div style={{width:"100%",maxWidth:"380px",display:"flex",flexDirection:"column",gap:"16px"}}>
-        <button onClick={onCheckIn} style={{width:"100%",padding:"22px",background:"#111827",color:"#fff",border:"none",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>✅ CHECK IN</button>
-        <button onClick={onCheckOut} style={{width:"100%",padding:"22px",background:"#fff",color:"#111827",border:"2px solid #e5e7eb",borderRadius:"16px",fontSize:"18px",fontWeight:"900",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,0.06)"}}>📦 CHECK OUT</button>
-        <button onClick={onLogin} style={{width:"100%",padding:"16px",background:"transparent",color:"#9ca3af",border:"2px solid #e5e7eb",borderRadius:"16px",fontSize:"13px",fontWeight:"700",letterSpacing:"2px",textTransform:"uppercase",cursor:"pointer",marginTop:"8px"}}>🔐 LOGIN</button>
+      <div style={{width:"100%",maxWidth:"560px",display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"16px"}}>
+        {[
+          {label:"CHECK IN",icon:"✅",onClick:onCheckIn,bg:"#374151",fg:"#ffffff"},
+          {label:"CHECK OUT",icon:"📦",onClick:onCheckOut,bg:"#6b7280",fg:"#ffffff"},
+          {label:"LOGIN",icon:"🔐",onClick:onLogin,bg:"#e5e7eb",fg:"#1f2937"},
+        ].map(b=>(
+          <button key={b.label} onClick={b.onClick} style={{aspectRatio:"1 / 1",width:"100%",background:b.bg,color:b.fg,border:"none",borderRadius:"16px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:"10px",fontSize:"clamp(11px,3vw,17px)",fontWeight:"900",letterSpacing:"clamp(0.5px,0.4vw,2px)",whiteSpace:"nowrap",textTransform:"uppercase",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.10)"}}>
+            <span style={{fontSize:"clamp(26px,8vw,40px)",lineHeight:1}}>{b.icon}</span>
+            <span>{b.label}</span>
+          </button>
+        ))}
       </div>
       <p style={{color:"#d1d5db",fontSize:"11px",letterSpacing:"1px",textTransform:"uppercase",marginTop:"48px"}}>Lumière CRM</p>
     </div>
