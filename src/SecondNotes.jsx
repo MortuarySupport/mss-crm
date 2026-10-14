@@ -186,11 +186,14 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
   const [linking, setLinking] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const [tab, setTab] = useState("new");
 
   const form = FORMS[fhId];
   const fhName = FUNERAL_HOMES.find(f => f.id === fhId)?.name || "";
   const formFHs = FUNERAL_HOMES.filter(f => FORMS[f.id]);
-  const fhCases = useMemo(() => cases.filter(c => c.funeralHomeId === fhId && c.status === "active" && !c.checkedOut), [cases, fhId]);
+  const inCare = useMemo(() => cases.filter(c => c.status === "active" && !c.checkedOut), [cases]);
+  const fhCases = useMemo(() => inCare.filter(c => c.funeralHomeId === fhId), [inCare, fhId]);
 
   useEffect(() => { loadNotes(); }, [fhId]);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [view]);
@@ -212,15 +215,15 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   }
   const pdfUrl = path => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
   const lastName = name => (name || "Unknown").trim().split(/\s+/).filter(w => !/^\d+$/.test(w)).pop() || "Unknown";
-  const fileName = (ans) => `2nd_Note_${form.fileTag}_${(ans.lastName || lastName(ans.deceasedName)).replace(/[^a-zA-Z0-9]/g, "_")}_${fmtDate(new Date().toISOString().slice(0, 10)).replace(/\//g, "")}.pdf`;
+  const fileName = (ans, frm = form) => `2nd_Note_${frm.fileTag}_${(ans.lastName || lastName(ans.deceasedName)).replace(/[^a-zA-Z0-9]/g, "_")}_${fmtDate(new Date().toISOString().slice(0, 10)).replace(/\//g, "")}.pdf`;
   function download(bytes, name) {
     const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
     const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
-  async function applyToCase(c, ans, noteId) {
-    const { prep, conflicts } = mergeIntoJobCard(c, form, ans, { noteId, fhName, by: ans.arrangedBy || user.name });
+  async function applyToCase(c, ans, noteId, frm = form, fhN = fhName) {
+    const { prep, conflicts } = mergeIntoJobCard(c, frm, ans, { noteId, fhName: fhN, by: ans.arrangedBy || user.name });
     await updateCase(c.id, { prep });
     onUpdateCase(c.id, { prep });
     return conflicts;
@@ -283,14 +286,18 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
 
   async function linkNote(note, newCaseId) {
     const c = cases.find(x => x.id === newCaseId);
-    if (!c) return;
+    const frm = FORMS[note.funeral_home_id];
+    if (!c || !frm) return;
+    if (c.funeralHomeId !== note.funeral_home_id && !confirm(`${c.firstName} ${c.lastName} is under ${c.funeralHomeName}, but this 2nd Note is from ${note.funeral_home_name}. Assign anyway?`)) { setLinking(null); return; }
     setBusy(true);
     try {
-      const bytes = await buildPdf(form, note.answers, note.submitted_at);
-      const path = `${c.id}/${Date.now()}_${fileName(note.answers)}`;
+      const bytes = await buildPdf(frm, note.answers, note.submitted_at);
+      const path = `${c.id}/${Date.now()}_${fileName(note.answers, frm)}`;
       await uploadPdf(path, bytes);
-      await sb(`second_notes?id=eq.${note.id}`, { method: "PATCH", body: JSON.stringify({ case_id: c.id, case_ref: c.caseRef, pdf_path: path, status: "linked" }) });
-      const conflicts = await applyToCase(c, note.answers, note.id);
+      const upd = { case_id: c.id, case_ref: c.caseRef, pdf_path: path, status: "linked" };
+      if (!isFD && !note.accepted_at) Object.assign(upd, { accepted_at: new Date().toISOString(), accepted_by: user?.name || "" });
+      await sb(`second_notes?id=eq.${note.id}`, { method: "PATCH", body: JSON.stringify(upd) });
+      const conflicts = await applyToCase(c, note.answers, note.id, frm, note.funeral_home_name);
       logActivity(user, "2ND NOTE LINKED", `${note.deceased_name} → ${c.caseRef}`, c.caseRef, c.id);
       alert(`Linked to ${c.caseRef}. Job Card updated.` + (conflicts.length ? `\n\nNot applied (already set):\n• ${conflicts.join("\n• ")}` : ""));
       setLinking(null); loadNotes();
@@ -298,20 +305,100 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     setBusy(false);
   }
 
-  // ── Header / FH picker ──
+  async function acceptNote(note) {
+    setBusy(true);
+    try {
+      const upd = { accepted_at: new Date().toISOString(), accepted_by: user?.name || "" };
+      await sb(`second_notes?id=eq.${note.id}`, { method: "PATCH", body: JSON.stringify(upd) });
+      setNotes(ns => ns.map(n => n.id === note.id ? { ...n, ...upd } : n));
+      logActivity(user, "2ND NOTE ACCEPTED", `${note.funeral_home_name} 2nd Note for ${note.deceased_name}`, note.case_ref || "", note.case_id || "");
+    } catch (e) { alert("Error: " + e.message + (String(e.message).includes("accepted") ? "\n\nRun the 2nd Notes accept SQL in Supabase." : "")); }
+    setBusy(false);
+  }
+
+  const when = ts => new Date(ts).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "2-digit", month: "short", hour: "numeric", minute: "2-digit" });
+  const caseOptions = note => {
+    const mine = inCare.filter(c => c.funeralHomeId === note.funeral_home_id);
+    const other = inCare.filter(c => c.funeralHomeId !== note.funeral_home_id);
+    const opt = c => <option key={c.id} value={c.id}>{c.lastName?.toUpperCase()}, {c.firstName} — {c.caseRef}</option>;
+    return <>
+      <optgroup label={note.funeral_home_name}>{mine.map(opt)}</optgroup>
+      {other.length > 0 && <optgroup label="Other funeral homes">{other.map(opt)}</optgroup>}
+    </>;
+  };
+  function NoteCard({ n, staff }) {
+    return (
+      <div className={card + (staff && !n.accepted_at ? " border-l-4 border-l-red-500" : "")}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {staff && <div className="text-[11px] font-black uppercase tracking-widest text-gray-400">{n.funeral_home_name}</div>}
+            <div className="font-black">{n.deceased_name || "—"}</div>
+            <div className="text-xs text-gray-500">{when(n.submitted_at)} · {n.answers?.arrangedBy || n.submitted_by}</div>
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+              {n.accepted_at
+                ? <span className="text-xs font-black uppercase text-green-700">✓ Accepted{n.accepted_by ? " · " + n.accepted_by : ""}</span>
+                : staff ? <span className="text-xs font-black uppercase text-red-600">● New</span> : <span className="text-xs font-black uppercase text-gray-500">Sent · awaiting MSS</span>}
+              {n.status === "linked"
+                ? <span className="text-xs font-black uppercase text-green-700">✓ On Job Card · {n.case_ref}</span>
+                : <span className="text-xs font-black uppercase text-amber-600">⏳ Not in care yet</span>}
+            </div>
+          </div>
+          <a href={pdfUrl(n.pdf_path)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase underline whitespace-nowrap">View PDF</a>
+        </div>
+        {(staff || n.status !== "linked") && (
+          <div className="flex gap-2 mt-3">
+            {staff && !n.accepted_at && <button disabled={busy} onClick={() => acceptNote(n)} className={btn + " flex-1 bg-green-600 text-white border-green-600 text-xs py-2 disabled:opacity-50"}>✓ Accept</button>}
+            {n.status !== "linked" && linking !== n.id && <button disabled={busy} onClick={() => setLinking(n.id)} className={btn + " flex-1 border-amber-500 text-amber-700 text-xs py-2"}>{staff ? "Assign to deceased" : "Link to case now in care"}</button>}
+          </div>
+        )}
+        {n.status !== "linked" && linking === n.id && (
+          <select className={inp + " mt-3"} defaultValue="" disabled={busy} onChange={e => linkNote(n, e.target.value)}>
+            <option value="" disabled>Select deceased in our care…</option>
+            {staff ? caseOptions(n) : fhCases.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName} — {c.caseRef}</option>)}
+          </select>
+        )}
+      </div>
+    );
+  }
+
+  // ── Header ──
+  const goBack = () => {
+    if (view !== "list") return setView("list");
+    if (!isFD && picking) return setPicking(false);
+    if (!isFD && fhId) { setFhId(""); return; }
+    onBack();
+  };
   const header = (
     <div className="flex items-center justify-between mb-4">
-      <button onClick={view === "list" ? onBack : () => setView("list")} className="text-sm font-black uppercase text-gray-500 hover:text-gray-900">← Back</button>
-      <h1 className="text-lg font-black uppercase tracking-wide">📝 2nd Notes</h1>
+      <button onClick={goBack} className="text-sm font-black uppercase text-gray-500 hover:text-gray-900">← Back</button>
+      <h1 className="text-lg font-black uppercase tracking-wide">📝 {!isFD && !fhId ? "All 2nd Notes" : "2nd Notes"}</h1>
       <span className="w-12" />
     </div>
   );
+
+  // ── Staff: All 2nd Notes ──
+  if (!isFD && !fhId && !picking) {
+    const newCount = notes.filter(n => !n.accepted_at).length;
+    const shown = notes.filter(n => tab === "all" || (tab === "new" ? !n.accepted_at : !!n.accepted_at));
+    return (
+      <div className="max-w-xl mx-auto px-4 py-4">{header}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {[["new", `New${newCount ? " (" + newCount + ")" : ""}`], ["accepted", "Accepted"], ["all", "All"]].map(([k, l]) =>
+            <button key={k} onClick={() => setTab(k)} className={chip(tab === k) + " py-3"}>{l}</button>)}
+        </div>
+        {loadErr && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 mb-3">{loadErr}</div>}
+        {shown.map(n => <React.Fragment key={n.id}>{NoteCard({ n, staff: true })}</React.Fragment>)}
+        {!loadErr && !shown.length && <p className="text-center text-sm text-gray-400 py-6">{tab === "new" ? "No new 2nd Notes 🎉" : "Nothing here yet."}</p>}
+        <button onClick={() => setPicking(true)} className={btn + " w-full border-gray-900 mt-2"}>+ New 2nd Note</button>
+      </div>
+    );
+  }
 
   if (!isFD && !fhId) return (
     <div className="max-w-xl mx-auto px-4 py-4">{header}
       <div className={card}>
         <label className={lbl}>Funeral home</label>
-        <div className="flex flex-wrap gap-2">{formFHs.map(f => <button key={f.id} onClick={() => setFhId(f.id)} className={chip(false)}>{f.name}</button>)}</div>
+        <div className="flex flex-wrap gap-2">{formFHs.map(f => <button key={f.id} onClick={() => { setFhId(f.id); setPicking(false); }} className={chip(false)}>{f.name}</button>)}</div>
         {!formFHs.length && <p className="text-sm text-gray-500">No 2nd Note forms set up yet.</p>}
       </div>
     </div>
@@ -387,26 +474,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       {!isFD && <div className="flex items-center justify-between mb-3"><span className="text-sm font-black">{fhName}</span><button onClick={() => setFhId("")} className="text-xs font-black uppercase text-gray-500 underline">Change</button></div>}
       <button onClick={startNew} className={btn + " w-full bg-gray-900 text-white border-gray-900 mb-4"}>+ New 2nd Note</button>
       {loadErr && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 mb-3">{loadErr}</div>}
-      {notes.map(n => (
-        <div key={n.id} className={card}>
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="font-black">{n.deceased_name || "—"}</div>
-              <div className="text-xs text-gray-500">{new Date(n.submitted_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} · {n.submitted_by}{!fhId ? " · " + n.funeral_home_name : ""}</div>
-              <div className="mt-1">{n.status === "linked"
-                ? <span className="text-xs font-black uppercase text-green-700">✓ On Job Card · {n.case_ref}</span>
-                : <span className="text-xs font-black uppercase text-amber-600">⏳ Not in care yet</span>}</div>
-            </div>
-            <a href={pdfUrl(n.pdf_path)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase underline whitespace-nowrap">PDF</a>
-          </div>
-          {n.status !== "linked" && (linking === n.id
-            ? <select className={inp + " mt-3"} defaultValue="" disabled={busy} onChange={e => linkNote(n, e.target.value)}>
-                <option value="" disabled>Link to case…</option>
-                {fhCases.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName} — {c.caseRef}</option>)}
-              </select>
-            : <button onClick={() => setLinking(n.id)} className={btn + " w-full mt-3 border-amber-500 text-amber-700 text-xs py-2"}>Link to case now in care</button>)}
-        </div>
-      ))}
+      {notes.map(n => <React.Fragment key={n.id}>{NoteCard({ n, staff: !isFD })}</React.Fragment>)}
       {!loadErr && !notes.length && <p className="text-center text-sm text-gray-400 py-6">No 2nd Notes yet.</p>}
     </div>
   );

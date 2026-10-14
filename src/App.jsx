@@ -1294,7 +1294,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
   ].filter(b=>b.show);
   const row2=[
     {label:"📋 MY CASES",action:"mycases",show:isMSS||isFD},
-    {label:"📝 2ND NOTES",action:"secondnotes",show:isMSS||isFD},
+    {label:isFD?"📝 2ND NOTES":"📝 ALL 2ND NOTES",action:"secondnotes",show:isMSS||isFD},
     {label:"📈 REPORTS",action:"reports",show:isMSS},
     {label:"✔️ APPROVALS",action:"approvals",show:isMSS},
     {label:"🔐 LOCK CASES",action:"lockview",show:isAdmin},
