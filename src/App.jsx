@@ -3689,7 +3689,7 @@ function AshesRegister({user,cases,onBack}){
     if(!sigData){alert("Please provide a signature.");return;}
     setSaving(true);
     try{
-      const casesToProcess=manualEntry?[{id:"MANUAL",caseRef:"MANUAL",lastName:manualLastName,firstName:manualFirstName,funeralHomeName:selFH}]:selCases;
+      const casesToProcess=manualEntry?[{id:"MANUAL",caseRef:"MANUAL",lastName:manualLastName,firstName:manualFirstName,funeralHomeName:selFH,dob:manualDOB,dod:manualDOD}]:selCases;
       for(const sc of casesToProcess){
       const record={
         id:genId(),
@@ -3697,6 +3697,8 @@ function AshesRegister({user,cases,onBack}){
         case_ref:sc.caseRef,
         deceased_name:`${(sc.lastName||"").toUpperCase()}, ${sc.firstName}`,
         funeral_home:sc.funeralHomeName||selFH,
+        dob:sc.dob||null,
+        dod:sc.dod||null,
         checked_in_at:checkInDate,
         checked_in_by:staffName,
         checked_in_sig:sigData,
@@ -3896,7 +3898,7 @@ function AshesRegister({user,cases,onBack}){
                 {records.map(r=>(
                   <div key={r.id} className="bg-white border-2 border-green-300 rounded-xl p-3 text-center">
                     <div className="text-sm font-black text-gray-900 leading-tight">{r.deceased_name}</div>
-                    <div className="text-xs text-gray-400 mt-1">{r.case_ref}</div>
+                    <div className="text-xs text-gray-400 mt-1">{r.case_ref}{(r.dob||r.dod)?" · "+(r.dob?fmt(r.dob):"—")+" – "+(r.dod?fmt(r.dod):"—"):""}</div>
                     <div className="text-xs text-green-600 font-black mt-1">Storeroom</div>
                     <div className="text-xs text-gray-400 mt-1">{r.checked_in_at}</div>
                   </div>
