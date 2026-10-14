@@ -41,6 +41,7 @@ function display(f, v, ans) {
   if (f.type === "date") return fmtDate(v, f.fmt);
   if (f.type === "time") return fmtTime(v);
   if (f.type === "check") return v ? "Yes" : "";
+  if (Array.isArray(v)) return v.join(", ");
   return String(v);
 }
 
@@ -82,6 +83,8 @@ async function buildPdf(form, answers, submittedAt) {
       if (o?.box) circle(o.box);
       if (o?.textAt) text((o.prefix || "") + display(f, v, answers), ...o.textAt);
       if (f.at) text((f.printLabel || "") + display(f, v, answers), ...f.at);
+    } else if (f.type === "multi") {
+      if (f.at) text((f.printLabel || "") + display(f, v), f.at[0], f.at[1], f.at[2], f.size || 11);
     } else if (f.type === "check") {
       circle(f.box);
     } else if (f.type === "textarea") {
@@ -103,7 +106,7 @@ async function buildPdf(form, answers, submittedAt) {
     text(`${form.stamp.prefix || ""}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
   }
   for (const p of form.prints || []) {
-    const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(" ");
+    const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(p.sep || " ");
     if (s) text(s, ...p.at);
   }
   return await doc.save();
@@ -450,6 +453,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
                   {f.type === "place" && <PlaceInput value={v || ""} onChange={val => setA(f.id, val)} />}
                   {f.type === "choice" && <div className="flex flex-wrap gap-2">{f.options.map(o => <button key={o.v} type="button" onClick={() => setA(f.id, v === o.v ? "" : o.v)} className={chip(v === o.v)}>{o.v}</button>)}</div>}
                   {f.type === "choice" && f.options.find(o => o.v === v)?.other && <input className={inp + " mt-2"} placeholder="Please specify…" value={answers[f.id + "Other"] || ""} onChange={e => setA(f.id + "Other", e.target.value)} />}
+                  {f.type === "multi" && <div className="flex flex-wrap gap-2">{f.options.map(o => { const cur = v || [], on = cur.includes(o.v); return <button key={o.v} type="button" onClick={() => setA(f.id, on ? cur.filter(x => x !== o.v) : [...cur, o.v])} className={chip(on)}>{o.v}</button>; })}</div>}
                   {f.type === "check" && <button type="button" onClick={() => setA(f.id, !v)} className={chip(!!v)}>{v ? "✓ Yes" : "No"}</button>}
                 </div>
               );

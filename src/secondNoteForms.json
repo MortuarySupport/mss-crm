@@ -489,14 +489,108 @@
     "fields": [
      {
       "id": "coffinType",
-      "label": "Coffin type",
+      "label": "Coffin name",
       "type": "text",
-      "at": [
-       64,
-       616.3,
-       128
-      ],
       "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "coffinExtras",
+      "label": "Coffin extras",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Crucifix - Large"
+       },
+       {
+        "v": "Crucifix - Small"
+       },
+       {
+        "v": "Name Plate - Large"
+       },
+       {
+        "v": "Name Plate - Small"
+       },
+       {
+        "v": "Gravemarker Assembly"
+       },
+       {
+        "v": "Name Plate Etching"
+       }
+      ],
+      "at": [
+       180,
+       582.1,
+       380
+      ],
+      "printLabel": "Extras: ",
+      "size": 9
      },
      {
       "id": "coffinSupplier",
@@ -833,6 +927,19 @@
      83,
      146.1,
      245
+    ]
+   },
+   {
+    "compose": [
+     "coffinType",
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     64,
+     616.3,
+     140
     ]
    }
   ],
