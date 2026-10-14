@@ -344,14 +344,15 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   }
 
   async function linkNote(note, newCaseId) {
+    const win = !isFD && !note.accepted_at ? preOpen() : null;
     const c = cases.find(x => x.id === newCaseId);
     const frm = FORMS[note.funeral_home_id];
-    if (!c || !frm) return;
-    if (c.funeralHomeId !== note.funeral_home_id && !confirm(`${c.firstName} ${c.lastName} is under ${c.funeralHomeName}, but this 2nd Note is from ${note.funeral_home_name}. Assign anyway?`)) { setLinking(null); return; }
+    if (!c || !frm) { win?.close(); return; }
+    if (c.funeralHomeId !== note.funeral_home_id && !confirm(`${c.firstName} ${c.lastName} is under ${c.funeralHomeName}, but this 2nd Note is from ${note.funeral_home_name}. Assign anyway?`)) { win?.close(); setLinking(null); return; }
     setBusy(true);
     try {
       const taken = (await sb(`second_notes?select=id,deceased_name&case_id=eq.${c.id}`)).find(x => x.id !== note.id);
-      if (taken) { alert(`${c.firstName} ${c.lastName} already has a 2nd Note. Only one is allowed per deceased.`); setBusy(false); setLinking(null); return; }
+      if (taken) { alert(`${c.firstName} ${c.lastName} already has a 2nd Note. Only one is allowed per deceased.`); win?.close(); setBusy(false); setLinking(null); return; }
       const bytes = await buildPdf(frm, note.answers, note.submitted_at, note.edited_at);
       const path = `${c.id}/${Date.now()}_${fileName(note.answers, frm)}`;
       await uploadPdf(path, bytes);
@@ -361,20 +362,44 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       if (note.pdf_path && note.pdf_path !== path) await removePdf(note.pdf_path);
       const conflicts = await applyToCase(c, note.answers, note.id, frm, note.funeral_home_name);
       logActivity(user, "2ND NOTE LINKED", `${note.deceased_name} → ${c.caseRef}`, c.caseRef, c.id);
+      if (!isFD && !note.accepted_at) printPdf(bytes, win);
       alert(`Linked to ${c.caseRef}. Job Card updated.` + (conflicts.length ? `\n\nNot applied (already set):\n• ${conflicts.join("\n• ")}` : ""));
       setLinking(null); loadNotes();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { win?.close(); alert("Error: " + e.message); }
     setBusy(false);
   }
 
+  // Opens the browser print dialog for a 2nd Note PDF (bytes or stored path).
+  // Safari can't print a PDF inside a hidden frame, so it opens in a new tab instead.
+  const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+  const preOpen = () => (isSafari ? window.open("", "_blank") : null);
+  async function printPdf(src, win) {
+    try {
+      const bytes = typeof src === "string" ? await (await fetch(pdfUrl(src) + "?t=" + Date.now())).arrayBuffer() : src;
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      if (win) { win.location.href = url; return; }
+      const f = document.createElement("iframe");
+      f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+      f.onload = () => setTimeout(() => {
+        try { f.contentWindow.focus(); f.contentWindow.print(); }
+        catch (e) { window.open(url, "_blank"); }
+      }, 400);
+      f.src = url;
+      document.body.appendChild(f);
+      setTimeout(() => { f.remove(); URL.revokeObjectURL(url); }, 10 * 60 * 1000);
+    } catch (e) { win?.close(); alert("Accepted, but the PDF couldn't be printed: " + e.message); }
+  }
+
   async function acceptNote(note) {
+    const win = preOpen();
     setBusy(true);
     try {
       const upd = { accepted_at: new Date().toISOString(), accepted_by: user?.name || "" };
       await sb(`second_notes?id=eq.${note.id}`, { method: "PATCH", body: JSON.stringify(upd) });
       setNotes(ns => ns.map(n => n.id === note.id ? { ...n, ...upd } : n));
       logActivity(user, "2ND NOTE ACCEPTED", `${note.funeral_home_name} 2nd Note for ${note.deceased_name}`, note.case_ref || "", note.case_id || "");
-    } catch (e) { alert("Error: " + e.message + (String(e.message).includes("accepted") ? "\n\nRun the 2nd Notes accept SQL in Supabase." : "")); }
+      printPdf(note.pdf_path, win);
+    } catch (e) { win?.close(); alert("Error: " + e.message + (String(e.message).includes("accepted") ? "\n\nRun the 2nd Notes accept SQL in Supabase." : "")); }
     setBusy(false);
   }
 
@@ -407,7 +432,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
                 : <span className="text-xs font-black uppercase text-amber-600">⏳ Not in care yet</span>}
             </div>
           </div>
-          <a href={pdfUrl(n.pdf_path)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase underline whitespace-nowrap">View PDF</a>
+          <div className="flex flex-col items-end gap-1">
+            <a href={pdfUrl(n.pdf_path)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase underline whitespace-nowrap">View PDF</a>
+            {staff && <button type="button" onClick={() => printPdf(n.pdf_path, preOpen())} className="text-xs font-black uppercase underline whitespace-nowrap">🖨 Print</button>}
+          </div>
         </div>
         {(staff || isFD) && (
           <div className="flex gap-2 mt-3">
