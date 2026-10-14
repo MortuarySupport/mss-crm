@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import FORMS from "./secondNoteForms.json";
 
 // ─── 2ND NOTES ────────────────────────────────────────────────────────────────
@@ -33,8 +33,10 @@ function calcAge(dob, dod) {
   return a >= 0 ? String(a) : "";
 }
 function allFields(form) { return form.sections.flatMap(s => s.fields); }
-function display(f, v) {
+function nameOf(a) { return a.deceasedName || [a.firstName, a.lastName].filter(Boolean).join(" "); }
+function display(f, v, ans) {
   if (isEmpty(v)) return "";
+  if (f.type === "choice" && ans) { const o = f.options.find(o => o.v === v); if (o?.other && ans[f.id + "Other"]) return ans[f.id + "Other"]; }
   if (f.type === "date") return fmtDate(v, f.fmt);
   if (f.type === "time") return fmtTime(v);
   if (f.type === "check") return v ? "Yes" : "";
@@ -42,7 +44,7 @@ function display(f, v) {
 }
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
-async function buildPdf(form, answers) {
+async function buildPdf(form, answers, submittedAt) {
   const { PDFDocument, rgb, StandardFonts } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
   const tpl = await fetch(form.template);
   if (!tpl.ok) throw new Error("Form template not found: " + form.template);
@@ -72,11 +74,13 @@ async function buildPdf(form, answers) {
         const w = font.widthOfTextAtSize(part, 10);
         page.drawText(part, { x: (a + b) / 2 - w / 2, y: H - (f.at[1] - 7), size: 10, font, color: ink });
       });
-    } else if (["text", "date", "time"].includes(f.type)) {
-      text(display(f, v), ...f.at);
+    } else if (["text", "date", "time", "place"].includes(f.type)) {
+      if (f.at) text(display(f, v), ...f.at);
     } else if (f.type === "choice") {
       const o = f.options.find(o => o.v === v);
-      if (o) circle(o.box);
+      if (o?.box) circle(o.box);
+      if (o?.textAt) text((o.prefix || "") + display(f, v, answers), ...o.textAt);
+      if (f.at) text((f.printLabel || "") + display(f, v, answers), ...f.at);
     } else if (f.type === "check") {
       circle(f.box);
     } else if (f.type === "textarea") {
@@ -90,6 +94,16 @@ async function buildPdf(form, answers) {
       }
       flush();
     }
+  }
+  if (form.stamp) {
+    const t = new Date(submittedAt || Date.now());
+    const d = t.toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "2-digit", month: "2-digit", year: "numeric" });
+    const h = t.toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s/g, "").toLowerCase();
+    text(`${form.stamp.prefix || ""}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
+  }
+  for (const p of form.prints || []) {
+    const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(" ");
+    if (s) text(s, ...p.at);
   }
   return await doc.save();
 }
@@ -113,7 +127,7 @@ function mergeIntoJobCard(caseData, form, answers, meta) {
       if (f.jobAlso) Object.entries(f.jobAlso).forEach(([k, v]) => { if (isEmpty(prep[k])) prep[k] = v; });
     } else if (JSON.stringify(prep[f.job]) !== JSON.stringify(val)) {
       const kept = Array.isArray(prep[f.job]) ? prep[f.job].join(", ") : String(prep[f.job]);
-      conflicts.push(`${f.label}: 2nd Note says "${display(f, a)}", Job Card kept "${kept}"`);
+      conflicts.push(`${f.label}: 2nd Note says "${display(f, a, answers)}", Job Card kept "${kept}"`);
     }
   }
   // Append the full 2nd Note summary to Job Card comments (never overwrites)
@@ -121,7 +135,7 @@ function mergeIntoJobCard(caseData, form, answers, meta) {
   if (!(prep.comments || "").includes(marker)) {
     const lines = form.sections.map(s => s.fields
       .filter(f => f.summary !== false && !isEmpty(answers[f.id]) && answers[f.id] !== false)
-      .map(f => `${f.label}: ${display(f, answers[f.id])}`).join(" · ")).filter(Boolean);
+      .map(f => `${f.label}: ${display(f, answers[f.id], answers)}`).join(" · ")).filter(Boolean);
     const block = [
       `── ${marker} · ${meta.fhName} · ${fmtDate(new Date().toISOString().slice(0, 10))} · ${meta.by} ──`,
       ...lines,
@@ -130,6 +144,26 @@ function mergeIntoJobCard(caseData, form, answers, meta) {
     prep.comments = prep.comments ? prep.comments + "\n\n" + block : block;
   }
   return { prep, conflicts };
+}
+
+// ─── GOOGLE PLACES INPUT (typed text is kept too) ───────────────────────────
+function PlaceInput({ value, onChange }) {
+  const ref = useRef(null);
+  const cb = useRef(onChange); cb.current = onChange;
+  useEffect(() => {
+    if (!ref.current || !window.google?.maps?.places) return;
+    const ac = new window.google.maps.places.Autocomplete(ref.current, {
+      types: ["establishment", "geocode"], componentRestrictions: { country: "au" }, fields: ["name", "formatted_address"],
+    });
+    ac.addListener("place_changed", () => {
+      const p = ac.getPlace(); if (!p?.name) return;
+      const suburb = p.formatted_address?.split(",")[1]?.trim();
+      const val = p.name + (suburb && !p.name.includes(suburb) ? ", " + suburb : "");
+      ref.current.value = val; cb.current(val);
+    });
+    return () => window.google?.maps?.event?.clearInstanceListeners(ac);
+  }, []);
+  return <input ref={ref} className={inp} defaultValue={value} autoComplete="off" placeholder="Start typing a place…" onChange={e => cb.current(e.target.value)} />;
 }
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -178,7 +212,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   }
   const pdfUrl = path => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
   const lastName = name => (name || "Unknown").trim().split(/\s+/).filter(w => !/^\d+$/.test(w)).pop() || "Unknown";
-  const fileName = (ans) => `2nd_Note_${form.fileTag}_${lastName(ans.deceasedName).replace(/[^a-zA-Z0-9]/g, "_")}_${fmtDate(new Date().toISOString().slice(0, 10)).replace(/\//g, "")}.pdf`;
+  const fileName = (ans) => `2nd_Note_${form.fileTag}_${(ans.lastName || lastName(ans.deceasedName)).replace(/[^a-zA-Z0-9]/g, "_")}_${fmtDate(new Date().toISOString().slice(0, 10)).replace(/\//g, "")}.pdf`;
   function download(bytes, name) {
     const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
     const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
@@ -193,14 +227,17 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   }
 
   function startNew() {
-    setAnswers({ arrangedBy: user?.name || "" }); setCaseId(""); setErrors({}); setDone(null); setView("form");
+    const arr = allFields(form).find(f => f.id === "arrangedBy");
+    const first = (user?.name || "").split(" ")[0].toLowerCase();
+    const pre = arr?.type === "choice" ? (arr.options.find(o => o.v.toLowerCase() === first)?.v || "") : (user?.name || "");
+    setAnswers({ arrangedBy: pre }); setCaseId(""); setErrors({}); setDone(null); setView("form");
   }
   function pickCase(id) {
     setCaseId(id);
     const c = cases.find(x => x.id === id);
     if (c) {
       const age = calcAge(c.dob, c.dod);
-      setAnswers(a => ({ ...a, deceasedName: `${c.firstName || ""} ${c.lastName || ""}`.trim() + (age ? ` ${age}` : ""), dod: c.dod || "", dob: c.dob || "" }));
+      setAnswers(a => ({ ...a, firstName: c.firstName || "", lastName: c.lastName || "", dod: c.dod || "", dob: c.dob || "", age }));
     }
   }
   function setA(id, v) {
@@ -230,12 +267,12 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       await sb("second_notes", { method: "POST", body: JSON.stringify({
         id: noteId, funeral_home_id: fhId, funeral_home_name: fhName,
         case_id: c?.id || null, case_ref: c?.caseRef || null,
-        deceased_name: answers.deceasedName || "", answers, pdf_path: path,
+        deceased_name: nameOf(answers), answers, pdf_path: path,
         submitted_by: user?.name || "", submitted_role: user?.role || "",
         status: c ? "linked" : "awaiting",
       }) });
       const conflicts = c ? await applyToCase(c, answers, noteId) : [];
-      logActivity(user, "2ND NOTE", `${fhName} 2nd Note for ${answers.deceasedName}${c ? "" : " (not in care yet)"}`, c?.caseRef || "", c?.id || "");
+      logActivity(user, "2ND NOTE", `${fhName} 2nd Note for ${nameOf(answers)}${c ? "" : " (not in care yet)"}`, c?.caseRef || "", c?.id || "");
       download(bytes, name);
       setDone({ bytes, name, linked: !!c, conflicts });
       setView("done");
@@ -249,7 +286,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (!c) return;
     setBusy(true);
     try {
-      const bytes = await buildPdf(form, note.answers);
+      const bytes = await buildPdf(form, note.answers, note.submitted_at);
       const path = `${c.id}/${Date.now()}_${fileName(note.answers)}`;
       await uploadPdf(path, bytes);
       await sb(`second_notes?id=eq.${note.id}`, { method: "PATCH", body: JSON.stringify({ case_id: c.id, case_ref: c.caseRef, pdf_path: path, status: "linked" }) });
@@ -326,11 +363,13 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
               return (
                 <div key={f.id}>
                   <label className={lbl}>{f.label}{f.required && " *"} {err && <span className="text-red-500">— {err}</span>}</label>
-                  {f.type === "text" && <input className={inp} value={v || ""} readOnly={!!f.auto} onChange={e => setA(f.id, e.target.value)} />}
+                  {f.type === "text" && <input className={inp + (f.auto ? " bg-gray-50 text-gray-500" : "")} value={v || ""} readOnly={!!f.auto} placeholder={f.auto ? "Calculated from DOB & DOD" : ""} onChange={e => setA(f.id, e.target.value)} />}
                   {f.type === "date" && <input type="date" className={inp} value={v || ""} onChange={e => setA(f.id, e.target.value)} />}
                   {f.type === "time" && <input type="time" step="900" className={inp} value={v || ""} onChange={e => setA(f.id, e.target.value)} />}
                   {f.type === "textarea" && <textarea className={inp + " min-h-[90px]"} value={v || ""} onChange={e => setA(f.id, e.target.value)} />}
+                  {f.type === "place" && <PlaceInput value={v || ""} onChange={val => setA(f.id, val)} />}
                   {f.type === "choice" && <div className="flex flex-wrap gap-2">{f.options.map(o => <button key={o.v} type="button" onClick={() => setA(f.id, v === o.v ? "" : o.v)} className={chip(v === o.v)}>{o.v}</button>)}</div>}
+                  {f.type === "choice" && f.options.find(o => o.v === v)?.other && <input className={inp + " mt-2"} placeholder="Please specify…" value={answers[f.id + "Other"] || ""} onChange={e => setA(f.id + "Other", e.target.value)} />}
                   {f.type === "check" && <button type="button" onClick={() => setA(f.id, !v)} className={chip(!!v)}>{v ? "✓ Yes" : "No"}</button>}
                 </div>
               );
