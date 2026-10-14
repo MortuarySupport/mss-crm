@@ -1917,5 +1917,648 @@
     ]
    }
   ]
+ },
+ "FH04": {
+  "title": "Divine Family Funerals 2nd Note",
+  "template": "/forms/FH04_2nd_note.pdf",
+  "fileTag": "DIVINE",
+  "stamp": {
+   "at": [
+    362,
+    72,
+    200
+   ],
+   "size": 9,
+   "prefix": "Submitted: "
+  },
+  "prints": [
+   {
+    "compose": [
+     "firstName",
+     "lastName"
+    ],
+    "at": [
+     84,
+     95.1,
+     480
+    ]
+   },
+   {
+    "compose": [
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     292,
+     577.5,
+     270
+    ]
+   }
+  ],
+  "rows": [
+   {
+    "cell": [
+     26,
+     254,
+     470,
+     272
+    ],
+    "fields": [
+     "disposition",
+     "drRef"
+    ],
+    "labels": {
+     "drRef": "MSS Referee: "
+    }
+   }
+  ],
+  "sections": [
+   {
+    "title": "Deceased",
+    "fields": [
+     {
+      "id": "firstName",
+      "label": "Deceased first name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "lastName",
+      "label": "Deceased last name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false,
+      "at": [
+       115,
+       126.7,
+       200
+      ]
+     },
+     {
+      "id": "dob",
+      "label": "Date of birth",
+      "type": "date",
+      "summary": false,
+      "at": [
+       108,
+       158.3,
+       128
+      ]
+     },
+     {
+      "id": "age",
+      "label": "Age (auto)",
+      "type": "text",
+      "auto": "age",
+      "summary": false,
+      "at": [
+       270,
+       158.3,
+       60
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Preparation & Final Disposition",
+    "fields": [
+     {
+      "id": "prep",
+      "label": "Preparation",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Basic Preparation"
+       },
+       {
+        "v": "Viewing Embalm"
+       },
+       {
+        "v": "Full Embalm"
+       }
+      ],
+      "cell": [
+       26,
+       218.5,
+       372,
+       236.5
+      ],
+      "job": "prepOptions",
+      "map": {
+       "Basic Preparation": [
+        "Basic Prep"
+       ],
+       "Viewing Embalm": [
+        "Temp Prep"
+       ],
+       "Full Embalm": [
+        "Full Embalm"
+       ]
+      }
+     },
+     {
+      "id": "disposition",
+      "label": "Disposition",
+      "type": "choice",
+      "required": true,
+      "options": [
+       {
+        "v": "Cremation"
+       },
+       {
+        "v": "Burial"
+       },
+       {
+        "v": "Repatriation"
+       },
+       {
+        "v": "Above-ground Burial"
+       }
+      ],
+      "job": "disposition",
+      "map": {
+       "Cremation": "Cremation",
+       "Burial": "Burial",
+       "Repatriation": "Repatriation",
+       "Above-ground Burial": "Burial"
+      }
+     },
+     {
+      "id": "drRef",
+      "label": "MSS Referee",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Viewing Details - Dressing",
+    "fields": [
+     {
+      "id": "viewingDate",
+      "label": "Viewing date (leave blank if prior to service)",
+      "type": "date",
+      "cell": [
+       60,
+       322,
+       162,
+       340
+      ],
+      "job": "viewingDate",
+      "jobAlso": {
+       "viewing": "Yes"
+      }
+     },
+     {
+      "id": "viewingTime",
+      "label": "Viewing time",
+      "type": "time",
+      "at": [
+       205,
+       338.2,
+       85
+      ],
+      "job": "viewingSlot"
+     },
+     {
+      "id": "viewingLocation",
+      "label": "Viewing location",
+      "type": "place",
+      "at": [
+       350,
+       338.2,
+       215
+      ],
+      "job": "viewingLocation",
+      "match": [
+       [
+        "mss|mortuary support|lumi",
+        "MSS"
+       ],
+       [
+        ".",
+        "Offsite"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Funeral Details",
+    "fields": [
+     {
+      "id": "funeralDate",
+      "label": "Funeral date",
+      "type": "date",
+      "at": [
+       62,
+       409.6,
+       58
+      ],
+      "job": "funeralDate"
+     },
+     {
+      "id": "funeralTime",
+      "label": "Funeral time",
+      "type": "time",
+      "at": [
+       157,
+       409.6,
+       64
+      ],
+      "job": "funeralTime"
+     },
+     {
+      "id": "funeralLocation",
+      "label": "Funeral location",
+      "type": "place",
+      "at": [
+       279,
+       409.6,
+       285
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Collection Details",
+    "fields": [
+     {
+      "id": "collectionDay",
+      "label": "Collection date",
+      "type": "date",
+      "fmt": "day",
+      "at": [
+       62,
+       477.4,
+       105
+      ],
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Collection time",
+      "type": "time",
+      "at": [
+       205,
+       477.4,
+       100
+      ],
+      "job": "collectionTime"
+     },
+     {
+      "id": "earlyDelivery",
+      "label": "Early delivery MSS",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Y"
+       },
+       {
+        "v": "N"
+       }
+      ],
+      "at": [
+       141,
+       509.3,
+       18
+      ]
+     },
+     {
+      "id": "hearseHire",
+      "label": "Hearse hire",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Y"
+       },
+       {
+        "v": "N"
+       }
+      ],
+      "at": [
+       238,
+       509.3,
+       18
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Coffin / Casket Details",
+    "fields": [
+     {
+      "id": "coffinType",
+      "label": "Coffin name",
+      "type": "text",
+      "at": [
+       65,
+       577.5,
+       72
+      ],
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSupplier",
+      "label": "Supplier",
+      "type": "text",
+      "at": [
+       195,
+       577.5,
+       90
+      ]
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "coffinExtras",
+      "label": "Coffin extras",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Crucifix - Large"
+       },
+       {
+        "v": "Crucifix - Small"
+       },
+       {
+        "v": "Name Plate - Large"
+       },
+       {
+        "v": "Name Plate - Small"
+       },
+       {
+        "v": "Gravemarker Assembly"
+       },
+       {
+        "v": "Name Plate Etching"
+       }
+      ],
+      "at": [
+       180,
+       543.3,
+       380
+      ],
+      "printLabel": "Extras: ",
+      "size": 9
+     },
+     {
+      "id": "plateColour",
+      "label": "Name plate colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Gold"
+       },
+       {
+        "v": "Silver"
+       }
+      ],
+      "cell": [
+       128,
+       595.7,
+       203,
+       613.7
+      ],
+      "job": "coffinPlateColour"
+     },
+     {
+      "id": "plateBy",
+      "label": "Name plate by",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "Supplier"
+       },
+       {
+        "v": "DIVINE"
+       }
+      ],
+      "cell": [
+       275,
+       595.7,
+       414,
+       613.7
+      ]
+     },
+     {
+      "id": "fittings",
+      "label": "Fittings",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Cross"
+       },
+       {
+        "v": "Crucifix"
+       }
+      ],
+      "cell": [
+       132,
+       629.9,
+       222,
+       647.9
+      ]
+     },
+     {
+      "id": "fittingsColour",
+      "label": "Fittings colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Gold"
+       },
+       {
+        "v": "Silver"
+       }
+      ],
+      "cell": [
+       278,
+       629.9,
+       352,
+       648
+      ]
+     },
+     {
+      "id": "fittingsBy",
+      "label": "Fittings by",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "Supplier"
+       }
+      ],
+      "cell": [
+       381,
+       629.9,
+       469,
+       648
+      ]
+     },
+     {
+      "id": "jewellery",
+      "label": "Jewellery",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Remain"
+       },
+       {
+        "v": "Return"
+       }
+      ],
+      "cell": [
+       88,
+       664.1,
+       185,
+       682.2
+      ]
+     },
+     {
+      "id": "clothing",
+      "label": "Original clothing",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Destroy"
+       },
+       {
+        "v": "Return"
+       }
+      ],
+      "cell": [
+       379,
+       664.2,
+       478,
+       682.2
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Comments",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Comments",
+      "type": "textarea",
+      "lines": [
+       [
+        97,
+        714.2,
+        465
+       ],
+       [
+        28.3,
+        740,
+        535
+       ],
+       [
+        28.3,
+        764,
+        535
+       ],
+       [
+        28.3,
+        788,
+        535
+       ],
+       [
+        28.3,
+        812,
+        535
+       ]
+      ]
+     }
+    ]
+   }
+  ]
  }
 }

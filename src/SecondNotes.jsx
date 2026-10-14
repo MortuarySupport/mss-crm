@@ -77,9 +77,22 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     }
     flush();
   };
+  // Shared rows: several answers printed together in one blanked-out area
+  const inRow = new Set();
+  for (const r of form.rows || []) {
+    r.fields.forEach(id => inRow.add(id));
+    const parts = r.fields.map(id => {
+      const f = allFields(form).find(x => x.id === id), v = answers[id];
+      return isEmpty(v) ? "" : (r.labels?.[id] || "") + display(f, v, answers);
+    }).filter(Boolean);
+    if (!parts.length) continue;
+    const [x0, t, x1, b] = r.cell;
+    page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
+    text(parts.join("   ·   "), x0 + 2, (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, r.size || 10);
+  }
   for (const f of allFields(form)) {
     const v = answers[f.id];
-    if (isEmpty(v) || v === false) continue;
+    if (inRow.has(f.id) || isEmpty(v) || v === false) continue;
     if (f.type === "date" && f.slots) {
       const [y, m, d] = v.split("-");
       [d, m, y].forEach((part, i) => {
@@ -88,6 +101,11 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
         page.drawText(part, { x: (a + b) / 2 - w / 2, y: H - (f.at[1] - 7), size: 10, font, color: ink });
       });
     } else if (["text", "date", "time", "place"].includes(f.type)) {
+      if (f.cell) {
+        const [x0, t, x1, b] = f.cell;
+        page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
+        text(display(f, v), x0 + 2, (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, f.size || 10);
+      }
       if (f.at) text(display(f, v), ...f.at);
     } else if (f.type === "choice") {
       const o = f.options.find(o => o.v === v);
