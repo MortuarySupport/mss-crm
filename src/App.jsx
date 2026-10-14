@@ -567,7 +567,7 @@ function InlineEdit({isAdmin,value,display,onSave,type="text",options}) {
 function ApprovalsView({user,cases,onUpdateCase,onBack}){
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[]);
 
   const pendingCases=cases.filter(c=>c.checkedOut&&c.status==="pending-lock")
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
@@ -625,7 +625,7 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
 
 // ─── LOCK VIEW ────────────────────────────────────────────────────────────────
 function LockView({user,cases,onUpdateCase,onBack}){
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[]);
 
   const approvedCases=cases.filter(c=>c.status==="approved")
     .sort((a,b)=>new Date(b.checkout?.checkedOutAt||0)-new Date(a.checkout?.checkedOutAt||0));
@@ -1285,7 +1285,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
   const isMSS=user?.role==="mss"||isAdmin;
   const isTransfer=user?.role==="transfer";
   const isFD=user?.role==="fd";
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[]);
   const row1=[
     {label:"✅ CHECK IN",action:"checkin",show:true},
     {label:"🏥 MORTUARY",action:"mortuary",show:isMSS},
@@ -1452,7 +1452,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
   const sortedFH=sortAlpha(FUNERAL_HOMES,"name");
   const isAllHoursOrMSS=!form.transferredBy||(form.transferredBy?.startsWith("All Hours")||form.transferredBy?.startsWith("MSS")||form.transferredBy?.startsWith("Statewide")||form.transferredBy==="ALL");
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[step]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[step]);
 
   function setF(k,v){setForm(f=>({...f,[k]:v}));setErrors(e=>({...e,[k]:""}))}
   function togglePW(p){setF("paperwork",form.paperwork.includes(p)?form.paperwork.filter(x=>x!==p):[...form.paperwork,p]);}
@@ -2426,7 +2426,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const [selCase,setSelCase]=useState(null);
   const [showPacemakerCert,setShowPacemakerCert]=useState(false);
   const [docReload,setDocReload]=useState(0);
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[selFH?.id,selCase?.id]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[selFH?.id,selCase?.id]);
 
   const byFH={};
   cases.filter(c=>c.status==="active").forEach(c=>{if(!byFH[c.funeralHomeId])byFH[c.funeralHomeId]=[];byFH[c.funeralHomeId].push(c);});
@@ -2841,7 +2841,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const [done,setDone]=useState(false);
   const [saving,setSaving]=useState(false);
   const [checkoutTime]=useState(new Date());
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[step,selCase?.id,done]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[step,selCase?.id,done]);
 
   const isFD=user?.role==="fd";
   const currentCases=cases.filter(c=>{
@@ -3082,7 +3082,7 @@ function MyCases({user,cases,onUpdateCase}) {
   const [sortBy,setSortBy]=useState("lastName");
   const [search,setSearch]=useState("");
   const isAdmin=user?.role==="admin",isFD=user?.role==="fd",isMSS=user?.role==="mss";
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[filter]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[filter]);
   let myCases=isFD?cases.filter(c=>c.funeralHomeId===user.funeralHomeId):cases;
   const current=myCases.filter(c=>c.status==="active"&&!c.checkedOut);
   const past=myCases.filter(c=>c.checkedOut||["past","locked","pending-lock","approved"].includes(c.status));
@@ -3192,7 +3192,7 @@ function MyCases({user,cases,onUpdateCase}) {
 // ─── MY TRANSFERS ─────────────────────────────────────────────────────────────
 function MyTransfers({user,cases}) {
   const cutoff=twoWeeksAgo();
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[]);
   const myCases=cases.filter(c=>{const d=c.checkedInAt?new Date(c.checkedInAt):null;return d&&d>=cutoff;}).sort((a,b)=>new Date(b.checkedInAt)-new Date(a.checkedInAt));
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
@@ -4659,7 +4659,7 @@ function RecordsView({user,cases,onUpdateCase}) {
   const [filter,setFilter]=useState("all");
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[filter]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[filter]);
 
   async function lockCase(id){
     try{await updateCase(id,{status:"locked"});onUpdateCase(id,{status:"locked"});}
@@ -4804,7 +4804,7 @@ function MyPin({user,users}) {
 function ReportsView({cases}) {
   const [sortBy, setSortBy] = useState("checkoutDate");
   const [search, setSearch] = useState("");
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[sortBy]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[sortBy]);
 
   const SORTS = [
     ["collectionDate","COLLECTION DATE"],
@@ -5326,7 +5326,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
   const[selCaseId,setSelCaseId]=useState("");
   const[notInCareRef,setNotInCareRef]=useState("");
   const[saving,setSaving]=useState(false);
-  useEffect(()=>window.scrollTo({top:0,behavior:"smooth"}),[]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[]);
 
   const isFD=user?.role==="fd";
   const canEdit=user?.role==="admin"||user?.role==="mss"||user?.role==="fd";
