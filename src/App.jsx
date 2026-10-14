@@ -3668,7 +3668,7 @@ function AshesRegister({user,cases,onBack}){
   const fhCases=selFH?cremationCases.filter(c=>c.funeralHomeName===selFH&&!inStorageCaseIds.has(c.id)):[];
   const filteredCases=fhCases.filter(c=>!search||(c.lastName||"").toLowerCase().includes(search.toLowerCase())||(c.firstName||"").toLowerCase().includes(search.toLowerCase())||(c.caseRef||"").toLowerCase().includes(search.toLowerCase()));
 
-  function resetForm(){setSelFH("");setSelCases([]);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
+  function resetForm(){setSelFH("");setSelCases([]);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);savedImageRef.current=null;if(canvasRef.current){canvasRef.current.getContext("2d").clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
 
   // Signature canvas
   function getPos(e,canvas){
@@ -3831,7 +3831,7 @@ function AshesRegister({user,cases,onBack}){
           <div className="text-xs font-black uppercase text-gray-500 mb-2">Select Ashes in Storage</div>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {inStorage.map(r=>(
-              <button key={r.id} onClick={()=>setSelAshes(r)} className={"w-full text-left px-3 py-2 rounded-xl border-2 text-sm transition "+(selAshes?.id===r.id?"bg-gray-900 text-white border-gray-900":"border-gray-200 hover:border-gray-700")}>
+              <button key={r.id} onClick={()=>{if(selAshes?.id!==r.id)clearSig();setSelAshes(r);}} className={"w-full text-left px-3 py-2 rounded-xl border-2 text-sm transition "+(selAshes?.id===r.id?"bg-gray-900 text-white border-gray-900":"border-gray-200 hover:border-gray-700")}>
                 <div className="font-black">{r.deceased_name}</div>
                 <div className="text-xs opacity-70">{r.funeral_home} · In: {r.checked_in_at}</div>
               </button>
