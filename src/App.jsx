@@ -3791,7 +3791,7 @@ function AshesRegister({user,cases,onBack}){
           <input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm mb-2" placeholder="Search name or case ref..." value={search} onChange={e=>setSearch(e.target.value)}/>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {filteredCases.map(c=>(
-              <button key={c.id} onClick={()=>setSelCase(c)} className={"w-full text-left px-3 py-2 rounded-xl border-2 text-sm transition "+(selCase?.id===c.id?"bg-gray-900 text-white border-gray-900":"border-gray-200 hover:border-gray-700")}>
+              <button key={c.id} onClick={()=>setSelCases(p=>p.some(x=>x.id===c.id)?p.filter(x=>x.id!==c.id):[...p,c])} className={"w-full text-left px-3 py-2 rounded-xl border-2 text-sm transition "+(selCases.some(x=>x.id===c.id)?"bg-gray-900 text-white border-gray-900":"border-gray-200 hover:border-gray-700")}>
                 <div className="font-black">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
                 <div className="text-xs opacity-70">{c.caseRef} · {c.prep?.disposition}</div>
               </button>
