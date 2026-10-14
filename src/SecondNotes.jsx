@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import FORMS from "./secondNoteForms.json";
+import TimeButtons from "./TimeButtons.jsx";
 
 // ─── 2ND NOTES ────────────────────────────────────────────────────────────────
 // Each funeral home has its own form in secondNoteForms.json (fields, PDF
@@ -130,18 +131,10 @@ function mergeIntoJobCard(caseData, form, answers, meta) {
       conflicts.push(`${f.label}: 2nd Note says "${display(f, a, answers)}", Job Card kept "${kept}"`);
     }
   }
-  // Append the full 2nd Note summary to Job Card comments (never overwrites)
-  const marker = `2ND NOTE #${meta.noteId.slice(0, 6)}`;
-  if (!(prep.comments || "").includes(marker)) {
-    const lines = form.sections.map(s => s.fields
-      .filter(f => f.summary !== false && !isEmpty(answers[f.id]) && answers[f.id] !== false)
-      .map(f => `${f.label}: ${display(f, answers[f.id], answers)}`).join(" · ")).filter(Boolean);
-    const block = [
-      `── ${marker} · ${meta.fhName} · ${fmtDate(new Date().toISOString().slice(0, 10))} · ${meta.by} ──`,
-      ...lines,
-      ...(conflicts.length ? ["⚠ NOT APPLIED (Job Card already set): " + conflicts.join(" | ")] : []),
-    ].join("\n");
-    prep.comments = prep.comments ? prep.comments + "\n\n" + block : block;
+  // Only the 2nd Note's own Comments go into the Job Card comments (appended, never overwrites)
+  const note = String(answers.comments || "").trim();
+  if (note && !(prep.comments || "").includes(note)) {
+    prep.comments = prep.comments ? prep.comments.trimEnd() + "\n\n" + note : note;
   }
   return { prep, conflicts };
 }
@@ -452,7 +445,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
                   <label className={lbl}>{f.label}{f.required && " *"} {err && <span className="text-red-500">— {err}</span>}</label>
                   {f.type === "text" && <input className={inp + (f.auto ? " bg-gray-50 text-gray-500" : "")} value={v || ""} readOnly={!!f.auto} placeholder={f.auto ? "Calculated from DOB & DOD" : ""} onChange={e => setA(f.id, e.target.value)} />}
                   {f.type === "date" && <input type="date" className={inp} value={v || ""} onChange={e => setA(f.id, e.target.value)} />}
-                  {f.type === "time" && <input type="time" step="900" className={inp} value={v || ""} onChange={e => setA(f.id, e.target.value)} />}
+                  {f.type === "time" && <TimeButtons value={v || ""} onChange={val => setA(f.id, val)} />}
                   {f.type === "textarea" && <textarea className={inp + " min-h-[90px]"} value={v || ""} onChange={e => setA(f.id, e.target.value)} />}
                   {f.type === "place" && <PlaceInput value={v || ""} onChange={val => setA(f.id, val)} />}
                   {f.type === "choice" && <div className="flex flex-wrap gap-2">{f.options.map(o => <button key={o.v} type="button" onClick={() => setA(f.id, v === o.v ? "" : o.v)} className={chip(v === o.v)}>{o.v}</button>)}</div>}
