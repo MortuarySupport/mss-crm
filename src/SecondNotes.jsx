@@ -46,7 +46,7 @@ function display(f, v, ans) {
 }
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
-async function buildPdf(form, answers, submittedAt) {
+async function buildPdf(form, answers, submittedAt, editedAt) {
   const { PDFDocument, rgb, StandardFonts } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
   const tpl = await fetch(form.template);
   if (!tpl.ok) throw new Error("Form template not found: " + form.template);
@@ -100,10 +100,10 @@ async function buildPdf(form, answers, submittedAt) {
     }
   }
   if (form.stamp) {
-    const t = new Date(submittedAt || Date.now());
+    const t = new Date(editedAt || submittedAt || Date.now());
     const d = t.toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "2-digit", month: "2-digit", year: "numeric" });
     const h = t.toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s/g, "").toLowerCase();
-    text(`${form.stamp.prefix || ""}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
+    text(`${editedAt ? "Edited: " : (form.stamp.prefix || "")}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
   }
   for (const p of form.prints || []) {
     const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(p.sep || " ");
@@ -113,32 +113,47 @@ async function buildPdf(form, answers, submittedAt) {
 }
 
 // ─── JOB CARD MERGE (fills empty fields only) ────────────────────────────────
-function mergeIntoJobCard(caseData, form, answers, meta) {
+function jobVal(f, a) {
+  if (isEmpty(a)) return undefined;
+  let val = a;
+  if (f.map) val = f.map[a];
+  if (f.match) { const hit = f.match.find(([re]) => new RegExp(re, "i").test(a)); val = hit ? hit[1] : undefined; }
+  return isEmpty(val) ? undefined : val;
+}
+const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+
+// Fills empty Job Card fields. On an edit (prev = previous answers), values that
+// came from the previous version are updated too; anything MSS changed is kept.
+function mergeIntoJobCard(caseData, form, answers, meta, prev) {
   const prep = { ...(caseData.prep || {}) };
   const conflicts = [];
   for (const f of allFields(form)) {
-    const a = answers[f.id];
-    if (!f.job || isEmpty(a)) continue;
-    let val = a;
-    if (f.map) val = f.map[a];
-    if (f.match) {
-      const hit = f.match.find(([re]) => new RegExp(re, "i").test(a));
-      val = hit ? hit[1] : undefined;
+    if (!f.job) continue;
+    const val = jobVal(f, answers[f.id]);
+    const old = prev ? jobVal(f, prev[f.id]) : undefined;
+    const fromNote = old !== undefined && same(prep[f.job], old);
+    if (val === undefined) {
+      if (fromNote) prep[f.job] = Array.isArray(old) ? [] : "";
+      continue;
     }
-    if (isEmpty(val)) continue;
-    if (isEmpty(prep[f.job])) {
+    if (isEmpty(prep[f.job]) || fromNote) {
       prep[f.job] = val;
       if (f.jobAlso) Object.entries(f.jobAlso).forEach(([k, v]) => { if (isEmpty(prep[k])) prep[k] = v; });
-    } else if (JSON.stringify(prep[f.job]) !== JSON.stringify(val)) {
+    } else if (!same(prep[f.job], val)) {
       const kept = Array.isArray(prep[f.job]) ? prep[f.job].join(", ") : String(prep[f.job]);
-      conflicts.push(`${f.label}: 2nd Note says "${display(f, a, answers)}", Job Card kept "${kept}"`);
+      conflicts.push(`${f.label}: 2nd Note says "${display(f, answers[f.id], answers)}", Job Card kept "${kept}"`);
     }
   }
-  // Only the 2nd Note's own Comments go into the Job Card comments (appended, never overwrites)
+  // Only the 2nd Note's Comments go into Job Card comments. An edit replaces its previous comment.
   const note = String(answers.comments || "").trim();
-  if (note && !(prep.comments || "").includes(note)) {
-    prep.comments = prep.comments ? prep.comments.trimEnd() + "\n\n" + note : note;
+  const oldNote = String(prev?.comments || "").trim();
+  let jc = prep.comments || "";
+  if (oldNote && oldNote !== note && jc.includes(oldNote)) {
+    jc = jc.replace(oldNote, note).replace(/\n{3,}/g, "\n\n").trim();
+  } else if (note && !jc.includes(note)) {
+    jc = jc ? jc.trimEnd() + "\n\n" + note : note;
   }
+  prep.comments = jc;
   return { prep, conflicts };
 }
 
@@ -181,6 +196,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [linking, setLinking] = useState(null);
   const [picking, setPicking] = useState(false);
   const [tab, setTab] = useState("new");
@@ -197,7 +213,9 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   async function loadNotes() {
     try {
       const q = "second_notes?select=*&order=submitted_at.desc&limit=100" + (fhId ? `&funeral_home_id=eq.${fhId}` : "");
-      setNotes(await sb(q)); setLoadErr("");
+      const rows = await sb(q);
+      rows.sort((x, y) => new Date(y.edited_at || y.submitted_at) - new Date(x.edited_at || x.submitted_at));
+      setNotes(rows); setLoadErr("");
     } catch (e) { setLoadErr("2nd Notes table not set up yet. Run the setup SQL in Supabase."); }
   }
 
@@ -218,8 +236,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
 
-  async function applyToCase(c, ans, noteId, frm = form, fhN = fhName) {
-    const { prep, conflicts } = mergeIntoJobCard(c, frm, ans, { noteId, fhName: fhN, by: ans.arrangedBy || user.name });
+  async function applyToCase(c, ans, noteId, frm = form, fhN = fhName, prev = null) {
+    const { prep, conflicts } = mergeIntoJobCard(c, frm, ans, { noteId, fhName: fhN, by: ans.arrangedBy || user.name }, prev);
     await updateCase(c.id, { prep });
     onUpdateCase(c.id, { prep });
     return conflicts;
@@ -229,7 +247,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     const arr = allFields(form).find(f => f.id === "arrangedBy");
     const first = (user?.name || "").split(" ")[0].toLowerCase();
     const pre = arr?.type === "choice" ? (arr.options.find(o => o.v.toLowerCase() === first)?.v || "") : (user?.name || "");
-    setAnswers({ arrangedBy: pre }); setCaseId(""); setErrors({}); setDone(null); setView("form");
+    setAnswers({ arrangedBy: pre }); setCaseId(""); setErrors({}); setDone(null); setEditing(null); setView("form");
+  }
+  function startEdit(note) {
+    setAnswers({ ...(note.answers || {}) }); setCaseId(note.case_id || "none"); setErrors({}); setDone(null); setEditing(note); setView("form");
   }
   function pickCase(id) {
     setCaseId(id);
@@ -249,6 +270,41 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     setErrors(e => ({ ...e, [id]: undefined }));
   }
 
+  const normName = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "");
+  // One 2nd Note per deceased: same case, or same name at the same funeral home
+  async function findExisting(fhIdX, caseIdX, ans, exceptId) {
+    const rows = await sb(`second_notes?select=*&funeral_home_id=eq.${fhIdX}&limit=500`);
+    return rows.find(n => n.id !== exceptId && ((caseIdX && n.case_id === caseIdX) || (normName(n.deceased_name) && normName(n.deceased_name) === normName(nameOf(ans)))));
+  }
+  async function removePdf(path) {
+    if (!path) return;
+    try { await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, { method: "DELETE", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }); } catch (e) {}
+  }
+
+  async function submitEdit() {
+    const n = editing;
+    const c = caseId !== "none" ? cases.find(x => x.id === caseId) : null;
+    const dup = await findExisting(fhId, c?.id, answers, n.id);
+    if (dup) { alert(`Another 2nd Note already exists for ${dup.deceased_name}. Only one 2nd Note is allowed per deceased.`); return; }
+    const now = new Date().toISOString();
+    const bytes = await buildPdf(form, answers, n.submitted_at, now);
+    const name = fileName(answers);
+    const path = c ? `${c.id}/${Date.now()}_${name}` : `second-notes/${n.id}_${Date.now()}.pdf`;
+    await uploadPdf(path, bytes);
+    await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({
+      answers, deceased_name: nameOf(answers), case_id: c?.id || null, case_ref: c?.caseRef || null,
+      pdf_path: path, status: c ? "linked" : "awaiting",
+      edited_at: now, edited_by: user?.name || "", edit_count: (n.edit_count || 0) + 1,
+      accepted_at: null, accepted_by: null,
+    }) });
+    if (n.pdf_path && n.pdf_path !== path) await removePdf(n.pdf_path);
+    const conflicts = c ? await applyToCase(c, answers, n.id, form, fhName, c.id === n.case_id ? n.answers : null) : [];
+    logActivity(user, "2ND NOTE EDITED", `${fhName} 2nd Note for ${nameOf(answers)} (edit ${(n.edit_count || 0) + 1})`, c?.caseRef || "", c?.id || "");
+    download(bytes, name);
+    setDone({ bytes, name, linked: !!c, conflicts, edited: true });
+    setEditing(null); setView("done"); loadNotes();
+  }
+
   async function submit() {
     const errs = {};
     if (!caseId) errs._case = "Choose the case, or 'Not in our care yet'";
@@ -257,8 +313,15 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (Object.keys(errs).length) { alert("Please complete the highlighted fields."); return; }
     setBusy(true);
     try {
-      const noteId = crypto.randomUUID();
+      if (editing) { await submitEdit(); setBusy(false); return; }
       const c = caseId !== "none" ? cases.find(x => x.id === caseId) : null;
+      const dup = await findExisting(fhId, c?.id, answers, null);
+      if (dup) {
+        setBusy(false);
+        if (confirm(`A 2nd Note already exists for ${dup.deceased_name}. Only one is allowed per deceased.\n\nOpen it to edit instead?`)) startEdit(dup);
+        return;
+      }
+      const noteId = crypto.randomUUID();
       const bytes = await buildPdf(form, answers);
       const name = fileName(answers);
       const path = c ? `${c.id}/${Date.now()}_${name}` : `second-notes/${noteId}.pdf`;
@@ -287,12 +350,15 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (c.funeralHomeId !== note.funeral_home_id && !confirm(`${c.firstName} ${c.lastName} is under ${c.funeralHomeName}, but this 2nd Note is from ${note.funeral_home_name}. Assign anyway?`)) { setLinking(null); return; }
     setBusy(true);
     try {
-      const bytes = await buildPdf(frm, note.answers, note.submitted_at);
+      const taken = (await sb(`second_notes?select=id,deceased_name&case_id=eq.${c.id}`)).find(x => x.id !== note.id);
+      if (taken) { alert(`${c.firstName} ${c.lastName} already has a 2nd Note. Only one is allowed per deceased.`); setBusy(false); setLinking(null); return; }
+      const bytes = await buildPdf(frm, note.answers, note.submitted_at, note.edited_at);
       const path = `${c.id}/${Date.now()}_${fileName(note.answers, frm)}`;
       await uploadPdf(path, bytes);
       const upd = { case_id: c.id, case_ref: c.caseRef, pdf_path: path, status: "linked" };
       if (!isFD && !note.accepted_at) Object.assign(upd, { accepted_at: new Date().toISOString(), accepted_by: user?.name || "" });
       await sb(`second_notes?id=eq.${note.id}`, { method: "PATCH", body: JSON.stringify(upd) });
+      if (note.pdf_path && note.pdf_path !== path) await removePdf(note.pdf_path);
       const conflicts = await applyToCase(c, note.answers, note.id, frm, note.funeral_home_name);
       logActivity(user, "2ND NOTE LINKED", `${note.deceased_name} → ${c.caseRef}`, c.caseRef, c.id);
       alert(`Linked to ${c.caseRef}. Job Card updated.` + (conflicts.length ? `\n\nNot applied (already set):\n• ${conflicts.join("\n• ")}` : ""));
@@ -324,16 +390,18 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   };
   function NoteCard({ n, staff }) {
     return (
-      <div className={card + (staff && !n.accepted_at ? " border-l-4 border-l-red-500" : "")}>
+      <div className={card + (staff && !n.accepted_at ? (n.edit_count > 0 ? " border-l-4 border-l-orange-500" : " border-l-4 border-l-red-500") : "")}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             {staff && <div className="text-[11px] font-black uppercase tracking-widest text-gray-400">{n.funeral_home_name}</div>}
             <div className="font-black">{n.deceased_name || "—"}</div>
-            <div className="text-xs text-gray-500">{when(n.submitted_at)} · {n.answers?.arrangedBy || n.submitted_by}</div>
+            <div className="text-xs text-gray-500">{n.edit_count > 0 ? `Edited ${when(n.edited_at)}` : when(n.submitted_at)} · {n.answers?.arrangedBy || n.submitted_by}</div>
+            {n.edit_count > 0 && <div className="text-[11px] text-gray-400">First sent {when(n.submitted_at)} · {n.edit_count} edit{n.edit_count > 1 ? "s" : ""}</div>}
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
               {n.accepted_at
                 ? <span className="text-xs font-black uppercase text-green-700">✓ Accepted{n.accepted_by ? " · " + n.accepted_by : ""}</span>
-                : staff ? <span className="text-xs font-black uppercase text-red-600">● New</span> : <span className="text-xs font-black uppercase text-gray-500">Sent · awaiting MSS</span>}
+                : staff ? (n.edit_count > 0 ? <span className="text-xs font-black uppercase text-orange-600">✎ Edited</span> : <span className="text-xs font-black uppercase text-red-600">● New</span>)
+                : <span className="text-xs font-black uppercase text-gray-500">{n.edit_count > 0 ? "Edited · awaiting MSS" : "Sent · awaiting MSS"}</span>}
               {n.status === "linked"
                 ? <span className="text-xs font-black uppercase text-green-700">✓ On Job Card · {n.case_ref}</span>
                 : <span className="text-xs font-black uppercase text-amber-600">⏳ Not in care yet</span>}
@@ -341,8 +409,9 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
           </div>
           <a href={pdfUrl(n.pdf_path)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase underline whitespace-nowrap">View PDF</a>
         </div>
-        {(staff || n.status !== "linked") && (
+        {(staff || isFD) && (
           <div className="flex gap-2 mt-3">
+            {isFD && <button disabled={busy} onClick={() => startEdit(n)} className={btn + " flex-1 border-gray-900 text-xs py-2"}>✎ Edit</button>}
             {staff && !n.accepted_at && <button disabled={busy} onClick={() => acceptNote(n)} className={btn + " flex-1 bg-green-600 text-white border-green-600 text-xs py-2 disabled:opacity-50"}>✓ Accept</button>}
             {n.status !== "linked" && linking !== n.id && <button disabled={busy} onClick={() => setLinking(n.id)} className={btn + " flex-1 border-amber-500 text-amber-700 text-xs py-2"}>{staff ? "Assign to deceased" : "Link to case now in care"}</button>}
           </div>
@@ -374,17 +443,18 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
 
   // ── Staff: All 2nd Notes ──
   if (!isFD && !fhId && !picking) {
-    const newCount = notes.filter(n => !n.accepted_at).length;
-    const shown = notes.filter(n => tab === "all" || (tab === "new" ? !n.accepted_at : !!n.accepted_at));
+    const isNew = n => !n.accepted_at && !(n.edit_count > 0), isEdited = n => !n.accepted_at && n.edit_count > 0;
+    const newCount = notes.filter(isNew).length, editedCount = notes.filter(isEdited).length;
+    const shown = notes.filter(n => tab === "all" || (tab === "new" ? isNew(n) : tab === "edited" ? isEdited(n) : !!n.accepted_at));
     return (
       <div className="max-w-xl mx-auto px-4 py-4">{header}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {[["new", `New${newCount ? " (" + newCount + ")" : ""}`], ["accepted", "Accepted"], ["all", "All"]].map(([k, l]) =>
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          {[["new", `New${newCount ? " (" + newCount + ")" : ""}`], ["edited", `Edited${editedCount ? " (" + editedCount + ")" : ""}`], ["accepted", "Accepted"], ["all", "All"]].map(([k, l]) =>
             <button key={k} onClick={() => setTab(k)} className={chip(tab === k) + " py-3"}>{l}</button>)}
         </div>
         {loadErr && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 mb-3">{loadErr}</div>}
         {shown.map(n => <React.Fragment key={n.id}>{NoteCard({ n, staff: true })}</React.Fragment>)}
-        {!loadErr && !shown.length && <p className="text-center text-sm text-gray-400 py-6">{tab === "new" ? "No new 2nd Notes 🎉" : "Nothing here yet."}</p>}
+        {!loadErr && !shown.length && <p className="text-center text-sm text-gray-400 py-6">{tab === "new" ? "No new 2nd Notes 🎉" : tab === "edited" ? "No edited 2nd Notes" : "Nothing here yet."}</p>}
         <button onClick={() => setPicking(true)} className={btn + " w-full border-gray-900 mt-2"}>+ New 2nd Note</button>
       </div>
     );
@@ -411,7 +481,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     <div className="max-w-xl mx-auto px-4 py-4">{header}
       <div className={card + " text-center"}>
         <div className="text-5xl mb-3">✅</div>
-        <h2 className="text-xl font-black uppercase mb-2">2nd Note submitted</h2>
+        <h2 className="text-xl font-black uppercase mb-2">{done.edited ? "2nd Note updated" : "2nd Note submitted"}</h2>
         <p className="text-sm text-gray-600 mb-4">{done.linked ? "Saved to the case documents and the Job Card has been updated." : "Saved. It will be added to the Job Card once the deceased is in our care."}</p>
         {done.conflicts?.length > 0 && <div className="text-left bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs"><b>Not applied (Job Card already had a value):</b><ul className="list-disc ml-4 mt-1">{done.conflicts.map((c, i) => <li key={i}>{c}</li>)}</ul></div>}
         <div className="flex gap-2">
@@ -428,12 +498,14 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       <div className={card}>
         <div className="text-xs font-black uppercase tracking-widest text-gray-400">{fhName}</div>
         <div className="text-lg font-black">{form.title}</div>
+        {editing && <div className="mt-2 text-xs font-black uppercase text-orange-600">✎ Editing — first sent {when(editing.submitted_at)}{editing.edit_count > 0 ? ` · ${editing.edit_count} previous edit${editing.edit_count > 1 ? "s" : ""}` : ""}</div>}
       </div>
       <div className={card + (errors._case ? " border-red-400" : "")}>
         <label className={lbl}>Case {errors._case && <span className="text-red-500">— {errors._case}</span>}</label>
         <select className={inp} value={caseId} onChange={e => pickCase(e.target.value)}>
           <option value="">Select…</option>
           {fhCases.map(c => <option key={c.id} value={c.id}>{c.firstName} {c.lastName} — {c.caseRef}</option>)}
+          {editing?.case_id && !fhCases.some(c => c.id === editing.case_id) && <option value={editing.case_id}>{editing.deceased_name} — {editing.case_ref}</option>}
           <option value="none">Not in our care yet</option>
         </select>
       </div>
@@ -461,7 +533,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
           </div>
         </div>
       ))}
-      <button disabled={busy} onClick={submit} className={btn + " w-full bg-gray-900 text-white border-gray-900 disabled:opacity-50"}>{busy ? "Submitting…" : "Submit 2nd Note"}</button>
+      <button disabled={busy} onClick={submit} className={btn + " w-full bg-gray-900 text-white border-gray-900 disabled:opacity-50"}>{busy ? "Submitting…" : editing ? "Submit changes" : "Submit 2nd Note"}</button>
     </div>
   );
 
