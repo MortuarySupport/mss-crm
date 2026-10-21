@@ -9,9 +9,11 @@ function resolveForms(raw) {
     if (id.startsWith("_")) continue;
     if (!f.extends) { out[id] = f; continue; }
     const base = JSON.parse(JSON.stringify(raw[f.extends]));
-    const { extends: _x, fieldOverrides = {}, ...own } = f;
+    const { extends: _x, fieldOverrides = {}, rowOverrides = {}, nsnaOverrides = {}, ...own } = f;
     const form = { ...base, ...own };
+    if (form.nsna) form.nsna = { ...form.nsna, set: { ...form.nsna.set, ...nsnaOverrides } };
     form.sections.forEach(s => s.fields.forEach(fl => Object.assign(fl, fieldOverrides[fl.id] || {})));
+    (form.rows || []).forEach((r, i) => Object.assign(r, rowOverrides[i] || {}));
     out[id] = form;
   }
   return out;
@@ -73,7 +75,10 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
   const H = page.getSize().height;
   const ink = rgb(...INK);
 
+  // All answers print larger than their base size (base + 2, then x1.3 — e.g. 14pt -> 18pt)
+  const big = s => (s + 2) * 1.3;
   const text = (s, x, lb, maxW, size = 11) => {
+    size = Math.min(big(size), form.maxSize || 99); // tight table layouts can cap the size
     while (size > 7 && font.widthOfTextAtSize(s, size) > maxW) size -= 0.5;
     page.drawText(s, { x, y: H - (lb - 7), size, font, color: ink });
   };
@@ -85,16 +90,33 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
 
   // Word-wraps text across a list of [x, lineBottom, maxWidth] lines
   const wrap = (str, lines, size, tokens) => {
-    let li = 0, cur = "";
-    const flush = () => { if (li < lines.length && cur) { const [x, lb] = lines[li]; page.drawText(cur, { x, y: H - (lb - 7), size, font, color: ink }); } li++; cur = ""; };
-    for (const w of tokens || str.split(/\s+/)) {
-      const tryS = cur ? cur + " " + w : w;
-      if (li < lines.length && font.widthOfTextAtSize(tryS, size) > lines[li][2]) { flush(); cur = w; }
-      else cur = tryS;
-    }
-    flush();
+    // bigger, but never taller than the gap between lines; shrinks until everything fits
+    const gaps = lines.flatMap((l, i) => lines.slice(i + 1).filter(m => m[0] === l[0]).map(m => Math.abs(m[1] - l[1]))).filter(g => g > 0);
+    size = Math.min(big(size), form.maxSize || 99, gaps.length ? Math.min(...gaps) * 0.95 : 99);
+    const words = tokens || str.split(/\s+/);
+    const layout = sz => {
+      const out = []; let li = 0, cur = "";
+      for (const w of words) {
+        const tryS = cur ? cur + " " + w : w;
+        if (li < lines.length && cur && font.widthOfTextAtSize(tryS, sz) > lines[li][2]) { out.push(cur); li++; cur = w; }
+        else cur = tryS;
+      }
+      if (cur) out.push(cur);
+      return out;
+    };
+    let rows = layout(size);
+    while (size > 7 && rows.length > lines.length) rows = layout(size -= 0.5);
+    rows.slice(0, lines.length).forEach((r, i) => { const [x, lb] = lines[i]; page.drawText(r, { x, y: H - (lb - 7), size, font, color: ink }); });
   };
-  // Shared rows: several answers printed together in one blanked-out area
+  // Hide the printed option words (dotted lines stay), then write the answer
+  const blankOut = (o) => {
+    for (const [x0, t, x1, b] of o.blank || [o.cell]) page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
+  };
+  const cellText = (o, s, size) => {
+    const [x0, t, x1, b] = o.cell;
+    text(s, x0 + 2, o.dots ? b + 1 : (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, size);
+  };
+  // Shared rows: several answers printed together in one area
   const inRow = new Set();
   for (const r of form.rows || []) {
     r.fields.forEach(id => inRow.add(id));
@@ -103,9 +125,8 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
       return isEmpty(v) ? "" : (r.labels?.[id] || "") + display(f, v, answers);
     }).filter(Boolean);
     if (!parts.length) continue;
-    const [x0, t, x1, b] = r.cell;
-    page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
-    text(parts.join("   ·   "), x0 + 2, (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, r.size || 10);
+    blankOut(r);
+    cellText(r, parts.join("   ·   "), r.size || 10);
   }
   for (const f of allFields(form)) {
     const v = answers[f.id];
@@ -114,23 +135,20 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
       const [y, m, d] = v.split("-");
       [d, m, y].forEach((part, i) => {
         const [a, b] = f.slots[i];
-        const w = font.widthOfTextAtSize(part, 10);
-        page.drawText(part, { x: (a + b) / 2 - w / 2, y: H - (f.at[1] - 7), size: 10, font, color: ink });
+        let sz = big(10);
+        while (sz > 8 && font.widthOfTextAtSize(part, sz) > (b - a) + 4) sz -= 0.5;
+        const w = font.widthOfTextAtSize(part, sz);
+        page.drawText(part, { x: (a + b) / 2 - w / 2, y: H - (f.at[1] - 7), size: sz, font, color: ink });
       });
     } else if (["text", "date", "time", "place"].includes(f.type)) {
-      if (f.cell) {
-        const [x0, t, x1, b] = f.cell;
-        page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
-        text(display(f, v), x0 + 2, (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, f.size || 10);
-      }
+      if (f.cell) { blankOut(f); cellText(f, display(f, v), f.size || 10); }
       if (f.at) text(display(f, v), ...f.at);
     } else if (f.type === "choice") {
       const o = f.options.find(o => o.v === v);
       if (f.cell) {
         // Show only the selected option: blank out the printed choices and write the answer
-        const [x0, t, x1, b] = f.cell;
-        page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
-        text((f.cellLabel || "") + display(f, v, answers), x0 + 2, (t + b) / 2 + 3.5 + 7, x1 - x0 - 4, f.size || 10);
+        blankOut(f);
+        cellText(f, (f.cellLabel || "") + display(f, v, answers), f.size || 10);
       } else {
         if (o?.box) circle(o.box);
         (o?.boxes || []).forEach(circle);
@@ -155,6 +173,13 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     text(`${editedAt ? "Edited: " : (form.stamp.prefix || "")}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
   }
   for (const s of form.statics || []) text(s.text, ...s.at);
+  if (form.banner) {
+    const parts = [answers._nsna ? "MSS NSNA" : ""].concat((form.banner.fields || []).map(id => {
+      const f = allFields(form).find(x => x.id === id);
+      return f && !isEmpty(answers[id]) ? `${f.short || f.label}: ${display(f, answers[id], answers)}` : "";
+    })).filter(Boolean);
+    if (parts.length) text(parts.join("  ·  "), ...form.banner.at, form.banner.size || 9);
+  }
   for (const p of form.prints || []) {
     const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(p.sep || " ");
     if (s) text(s, ...p.at);
@@ -317,6 +342,17 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       const age = calcAge(c.dob, c.dod);
       setAnswers(a => ({ ...a, firstName: c.firstName || "", lastName: c.lastName || "", dod: c.dod || "", dob: c.dob || "", age }));
     }
+  }
+  function applyNSNA(on) {
+    setAnswers(a => {
+      const n = { ...a, _nsna: on };
+      if (on) {
+        Object.assign(n, form.nsna.set);
+        form.sections.forEach(s => { if (s.na) delete n["_na_" + s.id]; });
+      }
+      return n;
+    });
+    if (on) setErrors(e => { const n = { ...e }; Object.keys(form.nsna.set).forEach(k => delete n[k]); return n; });
   }
   function toggleNA(sec) {
     const key = "_na_" + sec.id;
@@ -595,6 +631,16 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
         <div className="text-lg font-black">{form.title}</div>
         {editing && <div className="mt-2 text-xs font-black uppercase text-orange-600">✎ Editing — first sent {when(editing.submitted_at)}{editing.edit_count > 0 ? ` · ${editing.edit_count} previous edit${editing.edit_count > 1 ? "s" : ""}` : ""}</div>}
       </div>
+      {form.nsna && (
+        <div className={card + (answers._nsna ? " border-2 border-gray-900" : "")}>
+          <label className={lbl}>Is this a MSS NSNA?</label>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => applyNSNA(true)} className={chip(answers._nsna === true) + " flex-1 py-3"}>Yes</button>
+            <button type="button" onClick={() => applyNSNA(false)} className={chip(answers._nsna === false) + " flex-1 py-3"}>No</button>
+          </div>
+          {answers._nsna && <p className="text-xs text-gray-500 mt-2">Filled in: {Object.entries(form.nsna.set).map(([id, v]) => `${allFields(form).find(f => f.id === id)?.label || id}: ${v}`).join(" · ")}. You can still change any answer below.</p>}
+        </div>
+      )}
       <div className={card + (errors._case ? " border-red-400" : "")}>
         <label className={lbl}>Case {errors._case && <span className="text-red-500">— {errors._case}</span>}</label>
         <select className={inp} value={caseId} onChange={e => pickCase(e.target.value)}>
