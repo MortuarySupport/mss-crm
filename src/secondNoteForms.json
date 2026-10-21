@@ -2487,16 +2487,17 @@
     "na": {
      "cell": [
       24,
-      527,
+      546,
       572,
       650
      ],
-     "label": "COFFIN/CASKET DETAILS:  NOT APPLICABLE",
+     "label": "NOT APPLICABLE",
      "at": [
-      28.3,
+      180,
       543.3
      ],
-     "size": 12
+     "size": 12,
+     "fade": 0.7
     }
    },
    {

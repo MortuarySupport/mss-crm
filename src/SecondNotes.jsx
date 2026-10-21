@@ -145,7 +145,8 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
   for (const sec of form.sections) {
     if (!sec.na || !answers["_na_" + sec.id]) continue;
     const [x0, t, x1, b] = sec.na.cell;
-    page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
+    // Leave the printed words in place but fade them to grey
+    page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1), opacity: sec.na.fade ?? 0.7 });
     text(sec.na.label || "NOT APPLICABLE", sec.na.at?.[0] ?? x0 + 2, sec.na.at?.[1] ?? (t + 18), x1 - x0 - 4, sec.na.size || 12);
   }
   return await doc.save();
