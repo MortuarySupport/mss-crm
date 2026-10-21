@@ -2481,7 +2481,27 @@
        469,
        648
       ]
-     },
+     }
+    ],
+    "id": "coffin",
+    "na": {
+     "cell": [
+      24,
+      527,
+      572,
+      650
+     ],
+     "label": "COFFIN/CASKET DETAILS:  NOT APPLICABLE",
+     "at": [
+      28.3,
+      543.3
+     ],
+     "size": 12
+    }
+   },
+   {
+    "title": "Jewellery & Clothing",
+    "fields": [
      {
       "id": "jewellery",
       "label": "Jewellery",

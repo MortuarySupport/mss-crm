@@ -141,6 +141,13 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(p.sep || " ");
     if (s) text(s, ...p.at);
   }
+  // Sections marked Not Applicable: blank the section on the form and say so
+  for (const sec of form.sections) {
+    if (!sec.na || !answers["_na_" + sec.id]) continue;
+    const [x0, t, x1, b] = sec.na.cell;
+    page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1) });
+    text(sec.na.label || "NOT APPLICABLE", sec.na.at?.[0] ?? x0 + 2, sec.na.at?.[1] ?? (t + 18), x1 - x0 - 4, sec.na.size || 12);
+  }
   return await doc.save();
 }
 
@@ -292,6 +299,15 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       setAnswers(a => ({ ...a, firstName: c.firstName || "", lastName: c.lastName || "", dod: c.dod || "", dob: c.dob || "", age }));
     }
   }
+  function toggleNA(sec) {
+    const key = "_na_" + sec.id;
+    setAnswers(a => {
+      const n = { ...a, [key]: !a[key] };
+      if (n[key]) sec.fields.forEach(f => { delete n[f.id]; delete n[f.id + "Other"]; });
+      return n;
+    });
+    setErrors(e => { const n = { ...e }; sec.fields.forEach(f => delete n[f.id]); return n; });
+  }
   function setA(id, v) {
     setAnswers(a => {
       const n = { ...a, [id]: v };
@@ -340,7 +356,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   async function submit() {
     const errs = {};
     if (!caseId) errs._case = "Choose the case, or 'Not in our care yet'";
-    allFields(form).forEach(f => { if (f.required && isEmpty(answers[f.id])) errs[f.id] = "Required"; });
+    form.sections.filter(s => !(s.na && answers["_na_" + s.id])).flatMap(s => s.fields).forEach(f => { if (f.required && isEmpty(answers[f.id])) errs[f.id] = "Required"; });
     setErrors(errs);
     if (Object.keys(errs).length) { alert("Please complete the highlighted fields."); return; }
     setBusy(true);
@@ -569,10 +585,13 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
           <option value="none">Not in our care yet</option>
         </select>
       </div>
-      {form.sections.map(sec => (
+      {form.sections.map(sec => { const na = !!(sec.na && answers["_na_" + sec.id]); return (
         <div key={sec.title} className={card}>
-          <p className="text-sm font-black uppercase tracking-wide mb-3">{sec.title}</p>
-          <div className="space-y-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <p className="text-sm font-black uppercase tracking-wide">{sec.title}</p>
+            {sec.na && <button type="button" onClick={() => toggleNA(sec)} className={chip(na)}>{na ? "✓ Not Applicable" : "Not Applicable"}</button>}
+          </div>
+          <div className={"space-y-4" + (na ? " opacity-30 pointer-events-none select-none" : "")} aria-disabled={na}>
             {sec.fields.map(f => {
               const v = answers[f.id], err = errors[f.id];
               return (
@@ -592,7 +611,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
             })}
           </div>
         </div>
-      ))}
+      ); })}
       <button disabled={busy} onClick={submit} className={btn + " w-full bg-gray-900 text-white border-gray-900 disabled:opacity-50"}>{busy ? "Submitting…" : editing ? "Submit changes" : "Submit 2nd Note"}</button>
     </div>
   );
