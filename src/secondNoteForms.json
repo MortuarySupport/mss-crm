@@ -5065,5 +5065,986 @@
   "nsnaOverrides": {
    "disposalLocation": "Macquarie Park Memorial Gardens"
   }
+ },
+ "FH14": {
+  "title": "Mortuary Instruction Sheet",
+  "template": "/forms/FH14_2nd_note.pdf",
+  "fileTag": "LASTTIME",
+  "maxSize": 13,
+  "stamp": {
+   "at": [
+    358,
+    87.3,
+    72
+   ],
+   "timeAt": [
+    470,
+    87.3,
+    40
+   ],
+   "size": 8
+  },
+  "banner": {
+   "at": [
+    50,
+    152,
+    240
+   ],
+   "size": 6,
+   "fields": [
+    "prep",
+    "plateBy"
+   ]
+  },
+  "prints": [
+   {
+    "compose": [
+     "dob",
+     "dod"
+    ],
+    "sep": "  –  ",
+    "at": [
+     160,
+     278.8,
+     134,
+     10
+    ]
+   },
+   {
+    "compose": [
+     "transferDate",
+     "transferTime"
+    ],
+    "sep": "  ",
+    "at": [
+     415,
+     390.9,
+     134,
+     10
+    ]
+   },
+   {
+    "compose": [
+     "coffinType",
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     160,
+     698.6,
+     134,
+     10
+    ]
+   },
+   {
+    "compose": [
+     "collectionDay",
+     "collectionTime",
+     "collectionLocation"
+    ],
+    "sep": "  ·  ",
+    "at": [
+     160,
+     106.3,
+     388,
+     10
+    ],
+    "page": 1
+   },
+   {
+    "compose": [
+     "viewingDate",
+     "viewingTime"
+    ],
+    "sep": "  ",
+    "at": [
+     415,
+     200.9,
+     134,
+     10
+    ],
+    "page": 1
+   }
+  ],
+  "sections": [
+   {
+    "title": "Issued By",
+    "fields": [
+     {
+      "id": "arrangedBy",
+      "label": "Issued by",
+      "type": "text",
+      "required": true,
+      "summary": false,
+      "at": [
+       349,
+       102.5,
+       122,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "1. The Person In Our Care",
+    "fields": [
+     {
+      "id": "firstName",
+      "label": "First name/s",
+      "type": "text",
+      "required": true,
+      "summary": false,
+      "at": [
+       160,
+       250.9,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "lastName",
+      "label": "Last name",
+      "type": "text",
+      "required": true,
+      "summary": false,
+      "at": [
+       415,
+       250.9,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "dob",
+      "label": "Date of birth",
+      "type": "date",
+      "summary": false
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "age",
+      "label": "Age at death (auto)",
+      "type": "text",
+      "auto": "age",
+      "summary": false,
+      "at": [
+       415,
+       278.8,
+       134,
+       10
+      ]
+     }
+    ]
+   },
+   {
+    "title": "2. Transfer Into Care",
+    "fields": [
+     {
+      "id": "origin",
+      "label": "Origin",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Hospital"
+       },
+       {
+        "v": "Nursing Home"
+       },
+       {
+        "v": "Coroners"
+       },
+       {
+        "v": "Home"
+       },
+       {
+        "v": "Repatriation"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ],
+      "at": [
+       160,
+       336.0,
+       388,
+       10
+      ]
+     },
+     {
+      "id": "transferFrom",
+      "label": "Transfer from (name / address)",
+      "type": "place",
+      "at": [
+       160,
+       363.4,
+       388,
+       10
+      ]
+     },
+     {
+      "id": "transferBy",
+      "label": "Initial transfer by",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "All Hours"
+       },
+       {
+        "v": "Statewide"
+       },
+       {
+        "v": "FD"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ],
+      "at": [
+       160,
+       390.9,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "transferDate",
+      "label": "Date of transfer",
+      "type": "date"
+     },
+     {
+      "id": "transferTime",
+      "label": "Time of transfer",
+      "type": "time"
+     }
+    ]
+   },
+   {
+    "title": "3. Arrangements",
+    "fields": [
+     {
+      "id": "disposition",
+      "label": "Burial / Cremation",
+      "type": "choice",
+      "required": true,
+      "options": [
+       {
+        "v": "Burial"
+       },
+       {
+        "v": "Cremation"
+       }
+      ],
+      "job": "disposition",
+      "at": [
+       168,
+       448.0,
+       127,
+       10
+      ]
+     },
+     {
+      "id": "nsnaService",
+      "label": "NSNA (no service, no attendance)",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       415,
+       448.0,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "serviceType",
+      "label": "Funeral service / memorial",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Funeral Service"
+       },
+       {
+        "v": "Memorial"
+       },
+       {
+        "v": "None"
+       }
+      ],
+      "at": [
+       168,
+       475.5,
+       127,
+       10
+      ]
+     },
+     {
+      "id": "drRef",
+      "label": "Med Ref required",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       415,
+       475.5,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "pacemaker",
+      "label": "Pacemaker / implant removal",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       },
+       {
+        "v": "N/A"
+       }
+      ],
+      "cell": [
+       166,
+       486,
+       256,
+       502.5
+      ],
+      "dots": false
+     },
+     {
+      "id": "cremPapers",
+      "label": "Cremation papers status",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Received"
+       },
+       {
+        "v": "Pending"
+       },
+       {
+        "v": "N/A"
+       }
+      ],
+      "cell": [
+       413,
+       486,
+       550,
+       502.5
+      ],
+      "dots": false
+     },
+     {
+      "id": "crematorium",
+      "label": "Crematorium",
+      "type": "place",
+      "at": [
+       168,
+       531.5,
+       127,
+       10
+      ]
+     },
+     {
+      "id": "cemetery",
+      "label": "Cemetery",
+      "type": "place",
+      "at": [
+       415,
+       531.5,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "arrangementNotes",
+      "label": "Notes",
+      "type": "text",
+      "at": [
+       168,
+       558.9,
+       382,
+       10
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Body Preparation & Name Plate",
+    "fields": [
+     {
+      "id": "prep",
+      "label": "Body preparation",
+      "type": "choice",
+      "short": "Prep",
+      "options": [
+       {
+        "v": "Nil"
+       },
+       {
+        "v": "Basic Prep"
+       },
+       {
+        "v": "Viewing Embalm"
+       },
+       {
+        "v": "Full Embalm"
+       }
+      ],
+      "job": "prepOptions",
+      "map": {
+       "Nil": [
+        "No Prep"
+       ],
+       "Basic Prep": [
+        "Basic Prep"
+       ],
+       "Viewing Embalm": [
+        "Temp Prep"
+       ],
+       "Full Embalm": [
+        "Full Embalm"
+       ]
+      }
+     },
+     {
+      "id": "plateBy",
+      "label": "Name plate supplied by",
+      "type": "choice",
+      "short": "Name plate",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "FD"
+       },
+       {
+        "v": "Coffin Supplier"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "4. Service & Timings",
+    "fields": [
+     {
+      "id": "funeralLocation",
+      "label": "Funeral venue",
+      "type": "place",
+      "at": [
+       160,
+       616.0,
+       388,
+       10
+      ]
+     },
+     {
+      "id": "funeralDate",
+      "label": "Funeral day / date",
+      "type": "date",
+      "fmt": "day",
+      "job": "funeralDate",
+      "at": [
+       160,
+       643.5,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "funeralTime",
+      "label": "Ceremony start time",
+      "type": "time",
+      "job": "funeralTime",
+      "at": [
+       415,
+       643.5,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "departTime",
+      "label": "Depart mortuary",
+      "type": "time",
+      "at": [
+       160,
+       671.0,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "arriveTime",
+      "label": "Arrive at venue",
+      "type": "time",
+      "at": [
+       415,
+       671.0,
+       134,
+       10
+      ]
+     },
+     {
+      "id": "coffinType",
+      "label": "Coffin / casket",
+      "type": "text",
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "plateWording",
+      "label": "Name plate wording",
+      "type": "text",
+      "at": [
+       415,
+       698.6,
+       134,
+       10
+      ]
+     }
+    ]
+   },
+   {
+    "title": "5. Hearse or ED Requirements",
+    "fields": [
+     {
+      "id": "vehicleType",
+      "label": "Vehicle type",
+      "type": "text",
+      "at": [
+       160,
+       78.8,
+       134,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "vehicleSupplier",
+      "label": "Supplier",
+      "type": "text",
+      "at": [
+       415,
+       78.8,
+       134,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "collectionDay",
+      "label": "Pick-up date",
+      "type": "date",
+      "fmt": "day",
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Pick-up time",
+      "type": "time",
+      "job": "collectionTime"
+     },
+     {
+      "id": "collectionLocation",
+      "label": "Pick-up location",
+      "type": "place"
+     },
+     {
+      "id": "hearseOther",
+      "label": "Other details (route, stops, end destination & times)",
+      "type": "textarea",
+      "page": 1,
+      "size": 9,
+      "lines": [
+       [
+        160,
+        131,
+        388
+       ],
+       [
+        160,
+        144,
+        388
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "6. Viewing",
+    "fields": [
+     {
+      "id": "viewing",
+      "label": "Is there a viewing?",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "job": "viewing",
+      "at": [
+       160,
+       200.9,
+       134,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "viewingDate",
+      "label": "Viewing date",
+      "type": "date",
+      "job": "viewingDate"
+     },
+     {
+      "id": "viewingTime",
+      "label": "Viewing time",
+      "type": "time",
+      "job": "viewingSlot"
+     },
+     {
+      "id": "viewingLocation",
+      "label": "Viewing location",
+      "type": "place",
+      "job": "viewingLocation",
+      "match": [
+       [
+        "mss|mortuary support|lumi",
+        "MSS"
+       ],
+       [
+        ".",
+        "Offsite"
+       ]
+      ],
+      "at": [
+       160,
+       228.4,
+       134,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "viewingAttending",
+      "label": "Who is attending (approx.)",
+      "type": "text",
+      "at": [
+       415,
+       228.4,
+       134,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "viewingNotes",
+      "label": "Viewing notes",
+      "type": "text",
+      "at": [
+       160,
+       257.2,
+       388,
+       10
+      ],
+      "page": 1
+     }
+    ]
+   },
+   {
+    "title": "7. Care & Presentation",
+    "fields": [
+     {
+      "id": "clothing",
+      "label": "Clothing",
+      "type": "text",
+      "at": [
+       160,
+       315.5,
+       388,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "clothingReceived",
+      "label": "Date clothing received",
+      "type": "date",
+      "at": [
+       160,
+       343.1,
+       134,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "glasses",
+      "label": "Glasses",
+      "type": "choice",
+      "page": 1,
+      "options": [
+       {
+        "v": "On"
+       },
+       {
+        "v": "Off"
+       },
+       {
+        "v": "N/A"
+       }
+      ],
+      "cell": [
+       413,
+       327,
+       550,
+       341
+      ],
+      "dots": false
+     },
+     {
+      "id": "clothingDetails",
+      "label": "Clothing details",
+      "type": "text",
+      "at": [
+       160,
+       371.7,
+       388,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "jewelleryItems",
+      "label": "Jewellery & personal items (list each item)",
+      "type": "text",
+      "at": [
+       160,
+       401.7,
+       388,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "jewelleryAfter",
+      "label": "Jewellery after service",
+      "type": "choice",
+      "page": 1,
+      "options": [
+       {
+        "v": "Stays with them"
+       },
+       {
+        "v": "Return to family"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ],
+      "cell": [
+       158,
+       414,
+       390,
+       428.5
+      ],
+      "dots": false
+     },
+     {
+      "id": "grooming",
+      "label": "Hair, makeup & grooming",
+      "type": "text",
+      "at": [
+       160,
+       459.3,
+       388,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "itemsInCoffin",
+      "label": "Items to place in coffin",
+      "type": "text",
+      "at": [
+       160,
+       490.0,
+       388,
+       10
+      ],
+      "page": 1
+     },
+     {
+      "id": "wishes",
+      "label": "Cultural, faith or family wishes",
+      "type": "text",
+      "at": [
+       160,
+       520.8,
+       388,
+       10
+      ],
+      "page": 1
+     }
+    ]
+   },
+   {
+    "title": "Other Instructions",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Notes for the mortuary team",
+      "type": "textarea",
+      "page": 1,
+      "size": 10,
+      "lines": [
+       [
+        160,
+        576,
+        388
+       ],
+       [
+        160,
+        590,
+        388
+       ],
+       [
+        160,
+        604,
+        388
+       ],
+       [
+        160,
+        618,
+        388
+       ],
+       [
+        160,
+        632,
+        388
+       ],
+       [
+        160,
+        646,
+        388
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "nsna": {
+   "set": {
+    "disposition": "Cremation",
+    "nsnaService": "Yes",
+    "serviceType": "None",
+    "drRef": "Yes",
+    "crematorium": "Leura Memorial Gardens",
+    "prep": "Nil",
+    "coffinColour": "Cardboard",
+    "plateBy": "MSS",
+    "transferBy": "MSS"
+   }
+  }
  }
 }

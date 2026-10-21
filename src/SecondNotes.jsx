@@ -71,7 +71,10 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
   if (!tpl.ok) throw new Error("Form template not found: " + form.template);
   const doc = await PDFDocument.load(await tpl.arrayBuffer());
   const font = await doc.embedFont(StandardFonts.HelveticaBold);
-  const page = doc.getPages()[0];
+  // Multi-page forms: anything with "page": 1 draws on the second page, etc.
+  const pages = doc.getPages();
+  let page = pages[0];
+  const on = p => { page = pages[p || 0] || pages[0]; };
   const H = page.getSize().height;
   const ink = rgb(...INK);
 
@@ -125,12 +128,14 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
       return isEmpty(v) ? "" : (r.labels?.[id] || "") + display(f, v, answers);
     }).filter(Boolean);
     if (!parts.length) continue;
+    on(r.page);
     blankOut(r);
     cellText(r, parts.join("   ·   "), r.size || 10);
   }
   for (const f of allFields(form)) {
     const v = answers[f.id];
     if (inRow.has(f.id) || isEmpty(v) || v === false) continue;
+    on(f.page);
     if (f.type === "date" && f.slots) {
       const [y, m, d] = v.split("-");
       [d, m, y].forEach((part, i) => {
@@ -170,23 +175,34 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     const t = new Date(editedAt || submittedAt || Date.now());
     const d = t.toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "2-digit", month: "2-digit", year: "numeric" });
     const h = t.toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s/g, "").toLowerCase();
-    text(`${editedAt ? "Edited: " : (form.stamp.prefix || "")}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
+    on(form.stamp.page);
+    if (form.stamp.timeAt) {
+      // date and time in separate spaces (e.g. "Date issued" / "Time")
+      text(d, ...form.stamp.at, form.stamp.size || 9);
+      text(h, ...form.stamp.timeAt, form.stamp.size || 9);
+    } else text(`${editedAt ? "Edited: " : (form.stamp.prefix || "")}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
   }
-  for (const s of form.statics || []) text(s.text, ...s.at);
+  for (const s of form.statics || []) { on(s.page); text(s.text, ...s.at); }
   if (form.banner) {
     const parts = [answers._nsna ? "MSS NSNA" : ""].concat((form.banner.fields || []).map(id => {
       const f = allFields(form).find(x => x.id === id);
       return f && !isEmpty(answers[id]) ? `${f.short || f.label}: ${display(f, answers[id], answers)}` : "";
     })).filter(Boolean);
+    on(form.banner.page);
     if (parts.length) text(parts.join("  ·  "), ...form.banner.at, form.banner.size || 9);
   }
   for (const p of form.prints || []) {
-    const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(p.sep || " ");
+    const s = p.compose.map(id => {
+      const f = allFields(form).find(x => x.id === id);
+      return isEmpty(answers[id]) ? "" : f ? display(f, answers[id], answers) : answers[id];
+    }).filter(Boolean).join(p.sep || " ");
+    on(p.page);
     if (s) text(s, ...p.at);
   }
   // Sections marked Not Applicable: blank the section on the form and say so
   for (const sec of form.sections) {
     if (!sec.na || !answers["_na_" + sec.id]) continue;
+    on(sec.na.page);
     const [x0, t, x1, b] = sec.na.cell;
     // Leave the printed words in place but fade them to grey
     page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1), opacity: sec.na.fade ?? 0.7 });
