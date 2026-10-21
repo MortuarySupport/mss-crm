@@ -129,6 +129,7 @@ const FUNERAL_HOMES = [
   { id:"FH15", name:"Timmins Funerals",                 contacts:["funeral.directors1@outlook.com"] },
   { id:"FH16", name:"Tomorrow Funerals",                contacts:["kate@tomorrowfunerals.com.au"] },
   { id:"FH17", name:"Your Funeral Director",            contacts:["nicky@yourfuneraldirector.com.au"] },
+  { id:"FH18", name:"Gold Coast Funerals Co.",          contacts:[] },
 ];
 
 const PAPERWORK_OPTIONS = ["MCCD","BO","CRA","VOD","LE"];

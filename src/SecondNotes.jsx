@@ -1,5 +1,22 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import FORMS from "./secondNoteForms.json";
+import RAW_FORMS from "./secondNoteForms.json";
+
+// Funeral homes that share a layout point at a shared form ("extends") and only
+// change their own template PDF, file tag and any field differences.
+function resolveForms(raw) {
+  const out = {};
+  for (const [id, f] of Object.entries(raw)) {
+    if (id.startsWith("_")) continue;
+    if (!f.extends) { out[id] = f; continue; }
+    const base = JSON.parse(JSON.stringify(raw[f.extends]));
+    const { extends: _x, fieldOverrides = {}, ...own } = f;
+    const form = { ...base, ...own };
+    form.sections.forEach(s => s.fields.forEach(fl => Object.assign(fl, fieldOverrides[fl.id] || {})));
+    out[id] = form;
+  }
+  return out;
+}
+const FORMS = resolveForms(RAW_FORMS);
 import TimeButtons from "./TimeButtons.jsx";
 
 // ─── 2ND NOTES ────────────────────────────────────────────────────────────────
@@ -137,6 +154,7 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     const h = t.toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit", hour12: true }).replace(/\s/g, "").toLowerCase();
     text(`${editedAt ? "Edited: " : (form.stamp.prefix || "")}${d} ${h}`, ...form.stamp.at, form.stamp.size || 9);
   }
+  for (const s of form.statics || []) text(s.text, ...s.at);
   for (const p of form.prints || []) {
     const s = p.compose.map(id => answers[id]).filter(v => !isEmpty(v)).join(p.sep || " ");
     if (s) text(s, ...p.at);

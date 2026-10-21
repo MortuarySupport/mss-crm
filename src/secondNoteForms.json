@@ -1,5 +1,5 @@
 {
- "_readme": "One entry per funeral home id. pdf boxes are [x0, top, x1, bottom] in PDF points measured from the TOP-left of the page. text fields: at=[x, lineBottom, maxWidth]. choice options: box drawn as a circle. job: Job Card (prep) key filled only when empty.",
+ "_readme": "One entry per funeral home id. pdf boxes are [x0, top, x1, bottom] in PDF points measured from the TOP-left of the page. text fields: at=[x, lineBottom, maxWidth]. choice options: box drawn as a circle. job: Job Card (prep) key filled only when empty. Entries with 'extends' reuse a shared form (keys starting with _) and only change template, fileTag and any fieldOverrides.",
  "FH02": {
   "title": "Second Notification to MSS",
   "template": "/forms/FH02_2nd_note.pdf",
@@ -2581,5 +2581,1295 @@
     ]
    }
   ]
+ },
+ "_FUNERAL_ADVICE": {
+  "title": "Funeral Advice Notice",
+  "stamp": {
+   "at": [
+    67,
+    90.5,
+    80
+   ],
+   "size": 9,
+   "prefix": ""
+  },
+  "statics": [
+   {
+    "text": "MSS",
+    "at": [
+     86,
+     63.5,
+     62,
+     9
+    ]
+   }
+  ],
+  "prints": [],
+  "rows": [
+   {
+    "cell": [
+     143,
+     308.5,
+     553,
+     321.5
+    ],
+    "fields": [
+     "prep",
+     "bioSeal"
+    ],
+    "labels": {
+     "bioSeal": "Bio-Seal: "
+    },
+    "size": 9
+   },
+   {
+    "cell": [
+     143,
+     335.5,
+     553,
+     348.5
+    ],
+    "fields": [
+     "appearance",
+     "appearanceOther"
+    ],
+    "labels": {
+     "appearanceOther": "Other: "
+    },
+    "size": 9
+   },
+   {
+    "cell": [
+     143,
+     362.5,
+     553,
+     375.5
+    ],
+    "fields": [
+     "clothing",
+     "clothesSupplied",
+     "shroud",
+     "valuables"
+    ],
+    "labels": {
+     "clothing": "Original: ",
+     "clothesSupplied": "Clothes supplied: ",
+     "shroud": "Shroud: ",
+     "valuables": "Valuables: "
+    },
+    "size": 9
+   },
+   {
+    "cell": [
+     143,
+     389.2,
+     558,
+     402.2
+    ],
+    "fields": [
+     "urns",
+     "fdCollect",
+     "urnSupplied",
+     "travelCert"
+    ],
+    "labels": {
+     "urns": "Urns: ",
+     "fdCollect": "FD to collect: ",
+     "urnSupplied": "Urn supplied: ",
+     "travelCert": "Travel Cremation Cert: "
+    },
+    "size": 9
+   },
+   {
+    "cell": [
+     324,
+     416.4,
+     558,
+     429.4
+    ],
+    "fields": [
+     "collectionDay",
+     "collectionTime",
+     "collectionLocation"
+    ],
+    "labels": {
+     "collectionDay": "Collect: "
+    },
+    "size": 9
+   },
+   {
+    "cell": [
+     143,
+     496.7,
+     277,
+     509.7
+    ],
+    "fields": [
+     "fittings"
+    ],
+    "size": 9
+   },
+   {
+    "cell": [
+     143,
+     630.9,
+     476,
+     643.9
+    ],
+    "fields": [
+     "staffDress"
+    ],
+    "size": 9
+   }
+  ],
+  "sections": [
+   {
+    "title": "Notice",
+    "fields": [
+     {
+      "id": "covid",
+      "label": "COVID",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       468,
+       63.5,
+       60,
+       9
+      ]
+     },
+     {
+      "id": "drRef",
+      "label": "Dr's Ref required",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       494,
+       90.5,
+       44,
+       9
+      ]
+     },
+     {
+      "id": "arrangedBy",
+      "label": "Arranger",
+      "type": "text",
+      "required": true,
+      "at": [
+       81,
+       135,
+       112,
+       9
+      ],
+      "summary": false
+     },
+     {
+      "id": "arrangerMobile",
+      "label": "Arranger mobile",
+      "type": "text",
+      "at": [
+       234,
+       135,
+       125,
+       9
+      ],
+      "summary": false
+     },
+     {
+      "id": "arrangerEmail",
+      "label": "Arranger email",
+      "type": "text",
+      "at": [
+       392,
+       135,
+       170,
+       9
+      ],
+      "summary": false
+     }
+    ]
+   },
+   {
+    "title": "Deceased",
+    "fields": [
+     {
+      "id": "firstName",
+      "label": "Deceased first names",
+      "type": "text",
+      "required": true,
+      "summary": false,
+      "at": [
+       148,
+       160.3,
+       195,
+       9
+      ]
+     },
+     {
+      "id": "lastName",
+      "label": "Deceased last name",
+      "type": "text",
+      "required": true,
+      "summary": false,
+      "at": [
+       381,
+       160.3,
+       165,
+       9
+      ]
+     },
+     {
+      "id": "dob",
+      "label": "Date of birth",
+      "type": "date",
+      "summary": false,
+      "at": [
+       171,
+       187.3,
+       78,
+       9
+      ]
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false,
+      "at": [
+       316,
+       187.3,
+       78,
+       9
+      ]
+     },
+     {
+      "id": "age",
+      "label": "Age (auto)",
+      "type": "text",
+      "auto": "age",
+      "summary": false,
+      "at": [
+       457,
+       187.3,
+       78,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Viewing Details",
+    "fields": [
+     {
+      "id": "viewingDate",
+      "label": "Viewing date",
+      "type": "date",
+      "at": [
+       171,
+       214,
+       45,
+       9
+      ],
+      "job": "viewingDate",
+      "jobAlso": {
+       "viewing": "Yes"
+      }
+     },
+     {
+      "id": "viewingTime",
+      "label": "Viewing time",
+      "type": "time",
+      "at": [
+       244,
+       214,
+       53,
+       9
+      ],
+      "job": "viewingSlot"
+     },
+     {
+      "id": "viewingLocation",
+      "label": "Viewing location",
+      "type": "place",
+      "at": [
+       343,
+       214,
+       212,
+       9
+      ],
+      "job": "viewingLocation",
+      "match": [
+       [
+        "mss|mortuary support|lumi",
+        "MSS"
+       ],
+       [
+        ".",
+        "Offsite"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Funeral Details",
+    "fields": [
+     {
+      "id": "funeralDate",
+      "label": "Funeral date",
+      "type": "date",
+      "at": [
+       172,
+       241.1,
+       44,
+       9
+      ],
+      "job": "funeralDate"
+     },
+     {
+      "id": "funeralTime",
+      "label": "Funeral time",
+      "type": "time",
+      "at": [
+       241,
+       241.1,
+       56,
+       9
+      ],
+      "job": "funeralTime"
+     },
+     {
+      "id": "funeralLocation",
+      "label": "Funeral location",
+      "type": "place",
+      "at": [
+       343,
+       241.1,
+       198,
+       9
+      ]
+     },
+     {
+      "id": "funeralType",
+      "label": "Funeral type",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Event Space"
+       },
+       {
+        "v": "Chapel"
+       },
+       {
+        "v": "Church"
+       },
+       {
+        "v": "Home"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ],
+      "cell": [
+       143,
+       281.6,
+       551,
+       294.6
+      ],
+      "size": 9
+     }
+    ]
+   },
+   {
+    "title": "Disposal Details",
+    "fields": [
+     {
+      "id": "disposition",
+      "label": "Disposal",
+      "type": "choice",
+      "required": true,
+      "options": [
+       {
+        "v": "Cremation"
+       },
+       {
+        "v": "Burial"
+       },
+       {
+        "v": "NSNA"
+       },
+       {
+        "v": "Repat"
+       }
+      ],
+      "cell": [
+       143,
+       254.8,
+       358,
+       267.8
+      ],
+      "size": 9,
+      "job": "disposition",
+      "map": {
+       "Cremation": "Cremation",
+       "Burial": "Burial",
+       "Repat": "Repatriation"
+      }
+     },
+     {
+      "id": "disposalLocation",
+      "label": "Disposal location",
+      "type": "place",
+      "at": [
+       405,
+       267.8,
+       152,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Body Preparation & Appearance",
+    "fields": [
+     {
+      "id": "prep",
+      "label": "Body preparation",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Nil"
+       },
+       {
+        "v": "Basic Prep"
+       },
+       {
+        "v": "Viewing Embalm (TP)"
+       },
+       {
+        "v": "Full Embalm"
+       }
+      ],
+      "job": "prepOptions",
+      "map": {
+       "Nil": [
+        "No Prep"
+       ],
+       "Basic Prep": [
+        "Basic Prep"
+       ],
+       "Viewing Embalm (TP)": [
+        "Temp Prep"
+       ],
+       "Full Embalm": [
+        "Full Embalm"
+       ]
+      }
+     },
+     {
+      "id": "bioSeal",
+      "label": "Bio-Seal",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "appearance",
+      "label": "Appearance",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Make Up"
+       },
+       {
+        "v": "Hair Lock"
+       },
+       {
+        "v": "Clean Shaven"
+       }
+      ]
+     },
+     {
+      "id": "appearanceOther",
+      "label": "Appearance – other",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "title": "Clothing",
+    "fields": [
+     {
+      "id": "clothing",
+      "label": "Original clothing",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Keep"
+       },
+       {
+        "v": "Destroy"
+       }
+      ]
+     },
+     {
+      "id": "clothesSupplied",
+      "label": "Clothes supplied",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "shroud",
+      "label": "Shroud",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "valuables",
+      "label": "Valuables",
+      "type": "text"
+     }
+    ]
+   },
+   {
+    "title": "Ashes Instructions",
+    "fields": [
+     {
+      "id": "urns",
+      "label": "Urns",
+      "type": "text"
+     },
+     {
+      "id": "fdCollect",
+      "label": "FD to collect",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "urnSupplied",
+      "label": "Urn being supplied",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "travelCert",
+      "label": "Travel cremation cert",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Hearse & Collection",
+    "fields": [
+     {
+      "id": "hearse",
+      "label": "Hearse",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Mercy"
+       },
+       {
+        "v": "Betty"
+       },
+       {
+        "v": "Harry"
+       },
+       {
+        "v": "Van"
+       },
+       {
+        "v": "FD"
+       },
+       {
+        "v": "ED"
+       }
+      ],
+      "cell": [
+       143,
+       416.4,
+       323,
+       429.4
+      ],
+      "size": 9
+     },
+     {
+      "id": "collectionDay",
+      "label": "Collect date",
+      "type": "date",
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Collect time",
+      "type": "time",
+      "job": "collectionTime"
+     },
+     {
+      "id": "collectionLocation",
+      "label": "Collect location",
+      "type": "place"
+     }
+    ]
+   },
+   {
+    "title": "Coffin Details",
+    "fields": [
+     {
+      "id": "coffinType",
+      "label": "Coffin style",
+      "type": "text",
+      "at": [
+       172,
+       455.9,
+       85,
+       9
+      ],
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "at": [
+       287,
+       455.9,
+       28,
+       9
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "at": [
+       347,
+       455.9,
+       76,
+       9
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "coffinSupplier",
+      "label": "Coffin supplier",
+      "type": "text",
+      "at": [
+       469,
+       455.9,
+       88,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Name Plate & Fittings",
+    "fields": [
+     {
+      "id": "plateStyle",
+      "label": "Name plate style",
+      "type": "text",
+      "at": [
+       172,
+       482.6,
+       64,
+       9
+      ]
+     },
+     {
+      "id": "plateQty",
+      "label": "Name plate qty",
+      "type": "text",
+      "at": [
+       277,
+       482.6,
+       28,
+       9
+      ]
+     },
+     {
+      "id": "plateColour",
+      "label": "Name plate colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Gold"
+       },
+       {
+        "v": "Silver"
+       }
+      ],
+      "at": [
+       346,
+       482.6,
+       76,
+       9
+      ],
+      "job": "coffinPlateColour"
+     },
+     {
+      "id": "plateSupplier",
+      "label": "Name plate supplier",
+      "type": "text",
+      "at": [
+       468,
+       482.6,
+       88,
+       9
+      ]
+     },
+     {
+      "id": "fittings",
+      "label": "Fittings",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Cross"
+       },
+       {
+        "v": "Crucifix"
+       }
+      ]
+     },
+     {
+      "id": "fittingsColour",
+      "label": "Fittings colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Gold"
+       },
+       {
+        "v": "Silver"
+       }
+      ],
+      "at": [
+       339,
+       509.6,
+       76,
+       9
+      ]
+     },
+     {
+      "id": "fittingsSupplier",
+      "label": "Fittings supplier",
+      "type": "text",
+      "at": [
+       461,
+       509.6,
+       88,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Burial Requirements",
+    "fields": [
+     {
+      "id": "graveMarker",
+      "label": "Grave marker",
+      "type": "text",
+      "at": [
+       212,
+       536.4,
+       63,
+       9
+      ]
+     },
+     {
+      "id": "burialPlate",
+      "label": "Burial name plate",
+      "type": "text",
+      "at": [
+       347,
+       536.4,
+       68,
+       9
+      ]
+     },
+     {
+      "id": "burialSupplier",
+      "label": "Burial supplier",
+      "type": "text",
+      "at": [
+       463,
+       536.4,
+       88,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Flowers",
+    "fields": [
+     {
+      "id": "flowerType",
+      "label": "Flower type",
+      "type": "text",
+      "at": [
+       205,
+       563.4,
+       138,
+       9
+      ]
+     },
+     {
+      "id": "flowerColours",
+      "label": "Flower colours",
+      "type": "text",
+      "at": [
+       398,
+       563.4,
+       52,
+       9
+      ]
+     },
+     {
+      "id": "flowerBudget",
+      "label": "Flower budget",
+      "type": "text",
+      "at": [
+       488,
+       563.4,
+       56,
+       9
+      ]
+     },
+     {
+      "id": "coffinCover",
+      "label": "Coffin cover",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       205,
+       590.2,
+       22,
+       9
+      ]
+     },
+     {
+      "id": "plinths",
+      "label": "Plinths",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       265,
+       590.2,
+       22,
+       9
+      ]
+     },
+     {
+      "id": "deliverTo",
+      "label": "Deliver to",
+      "type": "place",
+      "at": [
+       329,
+       590.2,
+       119,
+       9
+      ]
+     },
+     {
+      "id": "pickUpTime",
+      "label": "Pick up time",
+      "type": "time",
+      "at": [
+       527,
+       590.2,
+       25,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Pall-Bearers & Staff",
+    "fields": [
+     {
+      "id": "pallIn",
+      "label": "Pall-bearers in",
+      "type": "text",
+      "at": [
+       159,
+       616.9,
+       50,
+       9
+      ]
+     },
+     {
+      "id": "pallOut",
+      "label": "Pall-bearers out",
+      "type": "text",
+      "at": [
+       236,
+       616.9,
+       60,
+       9
+      ]
+     },
+     {
+      "id": "pallTrolley",
+      "label": "Trolley / hand",
+      "type": "text",
+      "at": [
+       364,
+       616.9,
+       70,
+       9
+      ]
+     },
+     {
+      "id": "pallGraveside",
+      "label": "Graveside",
+      "type": "text",
+      "at": [
+       486,
+       616.9,
+       66,
+       9
+      ]
+     },
+     {
+      "id": "staffDress",
+      "label": "Staff dress",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Blk/Blk"
+       },
+       {
+        "v": "Cream/Blk"
+       },
+       {
+        "v": "Blue/Blue"
+       },
+       {
+        "v": "Blue/Pink"
+       },
+       {
+        "v": "Smart/Casual"
+       }
+      ]
+     },
+     {
+      "id": "tie",
+      "label": "Tie",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ],
+      "at": [
+       492,
+       643.9,
+       38,
+       9
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Comments",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Comments",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        92,
+        670.7,
+        455
+       ],
+       [
+        37,
+        684.2,
+        512
+       ],
+       [
+        37,
+        697.7,
+        512
+       ],
+       [
+        37,
+        711.0,
+        512
+       ],
+       [
+        37,
+        724.5,
+        512
+       ],
+       [
+        37,
+        738.0,
+        512
+       ],
+       [
+        37,
+        751.5,
+        512
+       ],
+       [
+        37,
+        764.7,
+        512
+       ],
+       [
+        37,
+        778.2,
+        512
+       ],
+       [
+        37,
+        791.7,
+        512
+       ],
+       [
+        37,
+        805.0,
+        512
+       ]
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "FH13": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH13_2nd_note.pdf",
+  "fileTag": "SFC"
+ },
+ "FH09": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH09_2nd_note.pdf",
+  "fileTag": "HIGHLAND",
+  "fieldOverrides": {
+   "hearse": {
+    "options": [
+     {
+      "v": "Mercy"
+     },
+     {
+      "v": "Betty"
+     },
+     {
+      "v": "Harry"
+     },
+     {
+      "v": "PSA"
+     },
+     {
+      "v": "ED"
+     }
+    ]
+   }
+  }
+ },
+ "FH18": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH18_2nd_note.pdf",
+  "fileTag": "GOLDCOAST"
+ },
+ "FH11": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH11_2nd_note.pdf",
+  "fileTag": "OTR"
+ },
+ "FH05": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH05_2nd_note.pdf",
+  "fileTag": "FAREWELL"
+ },
+ "FH01": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH01_2nd_note.pdf",
+  "fileTag": "AMAZING",
+  "fieldOverrides": {
+   "hearse": {
+    "options": [
+     {
+      "v": "Mercy"
+     },
+     {
+      "v": "Betty"
+     },
+     {
+      "v": "Harry"
+     },
+     {
+      "v": "PSA"
+     },
+     {
+      "v": "ED"
+     }
+    ]
+   }
+  }
+ },
+ "FH06": {
+  "extends": "_FUNERAL_ADVICE",
+  "template": "/forms/FH06_2nd_note.pdf",
+  "fileTag": "FBD",
+  "fieldOverrides": {
+   "hearse": {
+    "options": [
+     {
+      "v": "Mercy"
+     },
+     {
+      "v": "Betty"
+     },
+     {
+      "v": "Harry"
+     },
+     {
+      "v": "PSA"
+     },
+     {
+      "v": "ED"
+     }
+    ]
+   }
+  }
  }
 }
