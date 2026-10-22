@@ -65,7 +65,7 @@ function display(f, v, ans) {
 }
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
-async function buildPdf(form, answers, submittedAt, editedAt) {
+async function buildPdf(form, answers, submittedAt, editedAt, version) {
   const { PDFDocument, rgb, StandardFonts } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
   const tpl = await fetch(form.template);
   if (!tpl.ok) throw new Error("Form template not found: " + form.template);
@@ -207,6 +207,20 @@ async function buildPdf(form, answers, submittedAt, editedAt) {
     // Leave the printed words in place but fade them to grey
     page.drawRectangle({ x: x0, y: H - b, width: x1 - x0, height: b - t, color: rgb(1, 1, 1), opacity: sec.na.fade ?? 0.7 });
     text(sec.na.label || "NOT APPLICABLE", sec.na.at?.[0] ?? x0 + 2, sec.na.at?.[1] ?? (t + 18), x1 - x0 - 4, sec.na.size || 12);
+  }
+  // Edited versions: "Vers#2 | 01/10/2026 | 13:55" in the top-right corner of every page
+  if (version > 0 && editedAt) {
+    const t = new Date(editedAt);
+    const d = t.toLocaleDateString("en-AU", { timeZone: "Australia/Sydney", day: "2-digit", month: "2-digit", year: "numeric" });
+    const hm = t.toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "2-digit", minute: "2-digit", hour12: false });
+    const label = `Vers#${version} | ${d} | ${hm}`;
+    const size = form.version?.size || 10, red = rgb(0.75, 0.05, 0.05);
+    for (const pg of pages) {
+      const { width } = pg.getSize(), w = font.widthOfTextAtSize(label, size);
+      const [x, y] = form.version?.at || [width - w - 14, 14];
+      pg.drawRectangle({ x: x - 3, y: H - y - 3, width: w + 6, height: size + 4, color: rgb(1, 1, 1) });
+      pg.drawText(label, { x, y: H - y, size, font, color: red });
+    }
   }
   return await doc.save();
 }
@@ -414,7 +428,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     const dup = await findExisting(fhId, c?.id, answers, n.id);
     if (dup) { alert(`Another 2nd Note already exists for ${dup.deceased_name}. Only one 2nd Note is allowed per deceased.`); return; }
     const now = new Date().toISOString();
-    const bytes = await buildPdf(form, answers, n.submitted_at, now);
+    const bytes = await buildPdf(form, answers, n.submitted_at, now, (n.edit_count || 0) + 1);
     const name = fileName(answers);
     const path = c ? `${c.id}/${Date.now()}_${name}` : `second-notes/${n.id}_${Date.now()}.pdf`;
     await uploadPdf(path, bytes);
@@ -484,7 +498,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     try {
       const taken = (await sb(`second_notes?select=id,deceased_name&case_id=eq.${c.id}`)).find(x => x.id !== note.id);
       if (taken) { alert(`${c.firstName} ${c.lastName} already has a 2nd Note. Only one is allowed per deceased.`); win?.close(); setBusy(false); setLinking(null); return; }
-      const bytes = await buildPdf(frm, note.answers, note.submitted_at, note.edited_at);
+      const bytes = await buildPdf(frm, note.answers, note.submitted_at, note.edited_at, note.edit_count || 0);
       const path = `${c.id}/${Date.now()}_${fileName(note.answers, frm)}`;
       await uploadPdf(path, bytes);
       const upd = { case_id: c.id, case_ref: c.caseRef, pdf_path: path, status: "linked" };
