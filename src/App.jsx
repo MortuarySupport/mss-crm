@@ -1569,7 +1569,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           <p className="text-gray-400 text-xs mt-2">{fmtDT(submitted.checkedInAt)}</p>
         </div>
         <DocumentSection caseId={submitted.id} funeralHomeName={submitted.funeralHomeName} lastName={submitted.lastName} dod={submitted.dod}/>
-        {/* EMAIL DISABLED — <a href={`mailto:${to}?subject=${subj}&body=${body}`} className={`${s.btnDark} block text-center w-full mb-3 mt-4`}>📧 Send Notification</a> */}
+        <a href={`mailto:${to}?subject=${subj}&body=${body}`} className={`${s.btnDark} block text-center w-full mb-3 mt-4`}>📧 Send Notification to FD & Mortuary</a>
         <p className="text-xs text-gray-400 text-center mb-5">To: {to}</p>
         <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full`}>← BACK TO HOME</button>
       </div>
