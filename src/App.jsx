@@ -1500,6 +1500,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     if(!form.sex) e.sex="Required";
     if(!form.transferFrom) e.transferFrom="Required";
     if(!form.transferDate) e.transferDate="Required";
+    if(!isTransfer&&!form.transferredBy) e.transferredBy="Please choose who transferred (company and person)";
     if(!form.nilVals&&!form.vals) e.valuables="Please select NIL VALS or VALS";
     if(form.vals&&!form.valsText.trim()) e.valuables="Please describe the valuables";
     if(!isFD&&selFH==="OTHER"&&otherFHName.trim().length<4) e.otherFHName="Min 4 characters";
@@ -2899,6 +2900,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   // Get case-specific disposition options
   const caseDisposition=selCase?.prep?.disposition;
   const availableDispositions=caseDisposition?[caseDisposition]:DISPOSITION_OPTIONS;
+  useEffect(()=>{if(caseDisposition)setDisposition(caseDisposition);},[selCase?.id,caseDisposition]);
 
   // Check if case has valuables (from check in OR mortuary)
   const checkInValuables=selCase&&selCase.valuables&&selCase.valuables!=="Nil"&&selCase.valuables!=="";
@@ -5910,7 +5912,7 @@ export default function App() {
       events.forEach(e=>window.removeEventListener(e,reset));
     };
   },[user]);
-  function handleComplete(r){setCases(prev=>[r,...prev]);setAction(null);window.scrollTo({top:0,behavior:"smooth"});}
+  function handleComplete(r){setCases(prev=>[r,...prev]);window.scrollTo({top:0,behavior:"smooth"});}
   function handleUpdateCase(id,updates){setCases(prev=>prev.map(c=>c.id===id?{...c,...updates}:c));}
   function handlePinUpdate(uid,pin){setUsers(prev=>prev.map(u=>u.id===uid?{...u,pin}:u));}
   function handleAddBooking(b){setCalendarBookings(prev=>[...prev,b]);}
