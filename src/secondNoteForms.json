@@ -7083,5 +7083,807 @@
     "serviceKind": "None"
    }
   }
+ },
+ "FH08": {
+  "title": "2nd Notification",
+  "template": "/forms/FH08_2nd_note.pdf",
+  "fileTag": "HANSOL",
+  "stamp": {
+   "at": [
+    493,
+    779,
+    64
+   ],
+   "size": 7
+  },
+  "banner": {
+   "into": "comments",
+   "fields": [
+    "disposalLocation",
+    "drRef",
+    "transferBy"
+   ]
+  },
+  "prints": [
+   {
+    "compose": [
+     "firstName",
+     "lastName"
+    ],
+    "at": [
+     89,
+     145,
+     468
+    ]
+   },
+   {
+    "compose": [
+     "coffinType",
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     65,
+     507,
+     209
+    ]
+   },
+   {
+    "compose": [
+     "arrangedBy"
+    ],
+    "at": [
+     103,
+     779,
+     162,
+     9
+    ]
+   }
+  ],
+  "sections": [
+   {
+    "title": "Completed By",
+    "fields": [
+     {
+      "id": "arrangedBy",
+      "label": "Completed by (your name)",
+      "type": "text",
+      "required": true,
+      "summary": false
+     }
+    ]
+   },
+   {
+    "title": "Deceased Details",
+    "fields": [
+     {
+      "id": "firstName",
+      "label": "First name/s",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "lastName",
+      "label": "Last name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false,
+      "at": [
+       102,
+       169,
+       132
+      ]
+     },
+     {
+      "id": "dob",
+      "label": "Date of birth",
+      "type": "date",
+      "summary": false,
+      "at": [
+       313,
+       169,
+       136
+      ]
+     },
+     {
+      "id": "age",
+      "label": "Age (auto)",
+      "type": "text",
+      "auto": "age",
+      "summary": false,
+      "at": [
+       491,
+       169,
+       66
+      ]
+     },
+     {
+      "id": "sex",
+      "label": "Sex",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Male",
+        "tick": [
+         66,
+         176,
+         75,
+         185
+        ]
+       },
+       {
+        "v": "Female",
+        "tick": [
+         113.6,
+         176,
+         122.6,
+         185
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Preparation & Final Disposition",
+    "fields": [
+     {
+      "id": "prep",
+      "label": "Preparation",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Nil",
+        "textAt": [
+         422,
+         242.9,
+         135
+        ]
+       },
+       {
+        "v": "Basic Preparation",
+        "tick": [
+         126,
+         230,
+         135,
+         239
+        ]
+       },
+       {
+        "v": "Viewing Embalm",
+        "tick": [
+         236,
+         230,
+         245,
+         239
+        ]
+       },
+       {
+        "v": "Full Embalm",
+        "tick": [
+         341.7,
+         230,
+         350.7,
+         239
+        ]
+       }
+      ],
+      "job": "prepOptions",
+      "map": {
+       "Nil": [
+        "No Prep"
+       ],
+       "Basic Preparation": [
+        "Basic Prep"
+       ],
+       "Viewing Embalm": [
+        "Temp Prep"
+       ],
+       "Full Embalm": [
+        "Full Embalm"
+       ]
+      }
+     },
+     {
+      "id": "disposition",
+      "label": "Disposition",
+      "type": "choice",
+      "required": true,
+      "options": [
+       {
+        "v": "Burial",
+        "tick": [
+         126,
+         252,
+         135,
+         261
+        ]
+       },
+       {
+        "v": "Cremation",
+        "tick": [
+         185.3,
+         252,
+         194.3,
+         261
+        ]
+       },
+       {
+        "v": "Repatriation",
+        "tick": [
+         264.1,
+         252,
+         273.1,
+         261
+        ]
+       },
+       {
+        "v": "Above-ground Burial",
+        "tick": [
+         350.3,
+         252,
+         359.3,
+         261
+        ]
+       }
+      ],
+      "job": "disposition",
+      "map": {
+       "Burial": "Burial",
+       "Cremation": "Cremation",
+       "Repatriation": "Repatriation",
+       "Above-ground Burial": "Burial"
+      }
+     },
+     {
+      "id": "disposalLocation",
+      "label": "Crematorium / cemetery",
+      "type": "place",
+      "short": "Crematorium/Cemetery"
+     },
+     {
+      "id": "drRef",
+      "label": "Dr Ref required",
+      "type": "choice",
+      "short": "Dr Ref",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "transferBy",
+      "label": "Transfer by",
+      "type": "choice",
+      "short": "Transfer",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "All Hours"
+       },
+       {
+        "v": "Hansol"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Viewing Details",
+    "fields": [
+     {
+      "id": "viewingDate",
+      "label": "Viewing date",
+      "type": "date",
+      "at": [
+       64,
+       321,
+       120
+      ],
+      "job": "viewingDate",
+      "jobAlso": {
+       "viewing": "Yes"
+      }
+     },
+     {
+      "id": "viewingTime",
+      "label": "Viewing time",
+      "type": "time",
+      "at": [
+       230,
+       321,
+       69
+      ],
+      "job": "viewingSlot"
+     },
+     {
+      "id": "viewingLocation",
+      "label": "Viewing location",
+      "type": "place",
+      "at": [
+       362,
+       321,
+       195
+      ],
+      "job": "viewingLocation",
+      "match": [
+       [
+        "mss|mortuary support|lumi",
+        "MSS"
+       ],
+       [
+        ".",
+        "Offsite"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Funeral Details",
+    "fields": [
+     {
+      "id": "funeralDate",
+      "label": "Funeral date",
+      "type": "date",
+      "at": [
+       64,
+       375,
+       120
+      ],
+      "job": "funeralDate"
+     },
+     {
+      "id": "funeralTime",
+      "label": "Funeral time",
+      "type": "time",
+      "at": [
+       230,
+       375,
+       69
+      ],
+      "job": "funeralTime"
+     },
+     {
+      "id": "funeralLocation",
+      "label": "Funeral location",
+      "type": "place",
+      "at": [
+       362,
+       375,
+       195
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Collection Details",
+    "fields": [
+     {
+      "id": "collectionDay",
+      "label": "Collection date",
+      "type": "date",
+      "fmt": "day",
+      "at": [
+       64,
+       429,
+       120
+      ],
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Collection time",
+      "type": "time",
+      "at": [
+       230,
+       429,
+       69
+      ],
+      "job": "collectionTime"
+     },
+     {
+      "id": "earlyDelivery",
+      "label": "Early delivery",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         126,
+         438,
+         135,
+         447
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         169.4,
+         438,
+         178.4,
+         447
+        ]
+       }
+      ]
+     },
+     {
+      "id": "hearseHire",
+      "label": "Hearse hire",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         356,
+         438,
+         365,
+         447
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         399.4,
+         438,
+         408.4,
+         447
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Coffin / Casket Details",
+    "fields": [
+     {
+      "id": "coffinType",
+      "label": "Coffin type",
+      "type": "text",
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "coffinSupplier",
+      "label": "Coffin supplier",
+      "type": "text",
+      "at": [
+       330,
+       507,
+       227
+      ]
+     },
+     {
+      "id": "plateColour",
+      "label": "Name plate",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Gold",
+        "tick": [
+         126,
+         516,
+         135,
+         525
+        ]
+       },
+       {
+        "v": "Silver",
+        "tick": [
+         173.1,
+         516,
+         182.1,
+         525
+        ]
+       }
+      ],
+      "job": "coffinPlateColour"
+     },
+     {
+      "id": "plateBy",
+      "label": "Name plate supplied by",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS",
+        "tick": [
+         356,
+         516,
+         365,
+         525
+        ]
+       },
+       {
+        "v": "Supplier",
+        "tick": [
+         403.6,
+         516,
+         412.6,
+         525
+        ]
+       },
+       {
+        "v": "Other",
+        "tick": [
+         465.4,
+         516,
+         474.4,
+         525
+        ]
+       }
+      ]
+     },
+     {
+      "id": "fittings",
+      "label": "Fittings",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Cross",
+        "tick": [
+         126,
+         538,
+         135,
+         547
+        ]
+       },
+       {
+        "v": "Crucifix",
+        "tick": [
+         177.8,
+         538,
+         186.8,
+         547
+        ]
+       }
+      ]
+     },
+     {
+      "id": "fittingsColour",
+      "label": "Fittings finish",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Gold",
+        "tick": [
+         356,
+         538,
+         365,
+         547
+        ]
+       },
+       {
+        "v": "Silver",
+        "tick": [
+         403.1,
+         538,
+         412.1,
+         547
+        ]
+       }
+      ]
+     },
+     {
+      "id": "fittingsBy",
+      "label": "Fittings supplied by",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Hansol",
+        "tick": [
+         356,
+         560,
+         365,
+         569
+        ]
+       },
+       {
+        "v": "MSS",
+        "tick": [
+         412.6,
+         560,
+         421.6,
+         569
+        ]
+       },
+       {
+        "v": "Supplier",
+        "tick": [
+         460.2,
+         560,
+         469.2,
+         569
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Personal Effects",
+    "fields": [
+     {
+      "id": "jewellery",
+      "label": "Jewellery",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Remain",
+        "tick": [
+         126,
+         614,
+         135,
+         623
+        ]
+       },
+       {
+        "v": "Return",
+        "tick": [
+         185.7,
+         614,
+         194.7,
+         623
+        ]
+       }
+      ]
+     },
+     {
+      "id": "clothing",
+      "label": "Original clothing",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Destroy",
+        "tick": [
+         376,
+         614,
+         385,
+         623
+        ]
+       },
+       {
+        "v": "Return",
+        "tick": [
+         435.7,
+         614,
+         444.7,
+         623
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Comments",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Comments",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        38,
+        683,
+        520
+       ],
+       [
+        38,
+        705,
+        520
+       ],
+       [
+        38,
+        727,
+        520
+       ],
+       [
+        38,
+        749,
+        520
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "nsna": {
+   "set": {
+    "disposition": "Cremation",
+    "disposalLocation": "Leura Memorial Gardens",
+    "drRef": "Yes",
+    "prep": "Nil",
+    "coffinColour": "Cardboard",
+    "plateBy": "MSS",
+    "transferBy": "MSS"
+   }
+  }
  }
 }
