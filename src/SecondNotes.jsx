@@ -80,9 +80,10 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
   const ink = rgb(...INK);
 
   // All answers print larger than their base size (base + 2, then x1.3 — e.g. 14pt -> 18pt)
-  const big = s => (s + 2) * 1.3;
+  const FONT = 13; // one size for everything written onto the forms
   const text = (s, x, lb, maxW, size = 11) => {
-    size = Math.min(big(size), form.maxSize || 99); // tight table layouts can cap the size
+    // Every answer prints at one size (FONT, or the form's own fontSize); it only shrinks if it won't fit its space
+    size = Math.min(form.fontSize || FONT, form.maxSize || 99);
     while (size > 7 && font.widthOfTextAtSize(s, size) > maxW) size -= 0.5;
     page.drawText(s, { x, y: H - (lb - 7), size, font, color: ink });
   };
@@ -102,7 +103,7 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
   const wrap = (str, lines, size, tokens) => {
     // bigger, but never taller than the gap between lines; shrinks until everything fits
     const gaps = lines.flatMap((l, i) => lines.slice(i + 1).filter(m => m[0] === l[0]).map(m => Math.abs(m[1] - l[1]))).filter(g => g > 0);
-    size = Math.min(big(size), form.maxSize || 99, gaps.length ? Math.min(...gaps) * 0.95 : 99);
+    size = Math.min(form.fontSize || FONT, form.maxSize || 99, gaps.length ? Math.min(...gaps) * 0.95 : 99);
     const words = tokens || str.split(/\s+/);
     const layout = sz => {
       const out = []; let li = 0, cur = "";
@@ -147,7 +148,7 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
       const [y, m, d] = v.split("-");
       [d, m, y].forEach((part, i) => {
         const [a, b] = f.slots[i];
-        let sz = big(10);
+        let sz = Math.min(form.fontSize || FONT, form.maxSize || 99);
         while (sz > 8 && font.widthOfTextAtSize(part, sz) > (b - a) + 4) sz -= 0.5;
         const w = font.widthOfTextAtSize(part, sz);
         page.drawText(part, { x: (a + b) / 2 - w / 2, y: H - (f.at[1] - 7), size: sz, font, color: ink });
