@@ -1569,7 +1569,15 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           <p className="text-gray-400 text-xs mt-2">{fmtDT(submitted.checkedInAt)}</p>
         </div>
         <DocumentSection caseId={submitted.id} funeralHomeName={submitted.funeralHomeName} lastName={submitted.lastName} dod={submitted.dod}/>
-        <a href={`mailto:${to}?subject=${subj}&body=${body}`} className={`${s.btnDark} block text-center w-full mb-3 mt-4`}>📧 Send Notification to FD & Mortuary</a>
+        <button type="button" onClick={async()=>{
+          let docs=[];try{docs=(await listDocuments(submitted.id)).filter(d=>d.name&&!d.name.endsWith("/"));}catch(e){}
+          const nice=n=>n.replace(/^\d+_/,"").replace(/\.[^.]+$/,"").replace(/_/g," ");
+          const links=docs.length?`\n─────────────────────────────\nDOCUMENTS RECEIVED AT CHECK-IN (click to open)\n─────────────────────────────\n`+docs.map(d=>`${nice(d.name)}:\n${encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}`).join("\n\n")+"\n":"";
+          let text=buildCheckInEmail(submitted);
+          text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
+          window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
+        }} className={`${s.btnDark} block text-center w-full mb-3 mt-4`}>📧 Send Notification to FD & Mortuary</button>
+        <p className="text-xs text-gray-400 text-center -mt-1 mb-2">Documents above are included in the email as links</p>
         <p className="text-xs text-gray-400 text-center mb-5">To: {to}</p>
         <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full`}>← BACK TO HOME</button>
       </div>
@@ -5912,7 +5920,7 @@ export default function App() {
       </div>
     );
     if(kioskScreen==="done") return(<div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}><div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div><h2 style={{color:"#111827",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked In</h2><p style={{color:"#6b7280",fontSize:"14px",marginBottom:"32px"}}>The record has been saved successfully.</p><p style={{color:"#9ca3af",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p><button onClick={()=>setKioskScreen("home")} style={{marginTop:"32px",padding:"14px 32px",background:"#111827",color:"#fff",border:"none",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button></div>);
-    if(kioskScreen==="checkin") return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><CheckInFlow user={{role:"guest",name:"Guest"}} cases={cases} onComplete={()=>{setKioskDone("checkin");setKioskScreen("done");}} onBack={()=>setKioskScreen("home")}/></div>);
+    if(kioskScreen==="checkin") return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><CheckInFlow user={{role:"guest",name:"Guest"}} cases={cases} onComplete={r=>{setCases(prev=>[r,...prev]);}} onBack={()=>setKioskScreen("home")}/></div>);
     if(kioskScreen==="checkout") return(<GuestCheckOut cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setKioskScreen("home")}/>);
     if(kioskScreen==="login") return(<LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>);
     return(<KioskHome onCheckIn={()=>setKioskScreen("checkin")} onCheckOut={()=>setKioskScreen("checkout")} onLogin={()=>setKioskScreen("login")}/>);
