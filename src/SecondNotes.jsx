@@ -370,7 +370,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   }
 
   async function applyToCase(c, ans, noteId, frm = form, fhN = fhName, prev = null) {
-    const { prep, conflicts } = mergeIntoJobCard(c, frm, ans, { noteId, fhName: fhN, by: ans.arrangedBy || user.name }, prev);
+    // Merge into the latest saved Job Card, not this screen's older copy
+    let latest = c;
+    try { const rows = await sb(`cases?id=eq.${c.id}&select=prep`); if (rows && rows[0]) latest = { ...c, prep: rows[0].prep || {} }; } catch (e) {}
+    const { prep, conflicts } = mergeIntoJobCard(latest, frm, ans, { noteId, fhName: fhN, by: ans.arrangedBy || user.name }, prev);
     await updateCase(c.id, { prep });
     onUpdateCase(c.id, { prep });
     return conflicts;

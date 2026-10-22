@@ -2525,8 +2525,24 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   async function upd(id,updates){
     try{
-      const existingCase=cases.find(x=>x.id===id);
-      const changeDescs=describeChanges(updates,existingCase);
+      const local=cases.find(x=>x.id===id);
+      // Always start from the latest saved copy (a 2nd Note or another device may have changed it)
+      let fresh=local;
+      try{const rows=await sb(`cases?id=eq.${id}&select=*`);if(rows&&rows[0])fresh=dbToCase(rows[0]);}catch(e){}
+      const merged={};
+      Object.keys(updates).forEach(k=>{
+        const nv=updates[k];
+        if(["prep","billable","otherUsed","statusItems"].includes(k)&&nv&&typeof nv==="object"&&!Array.isArray(nv)){
+          const base=local?.[k]||{},out={...(fresh?.[k]||{})};
+          new Set([...Object.keys(base),...Object.keys(nv)]).forEach(key=>{
+            if(JSON.stringify(base[key])!==JSON.stringify(nv[key])){ if(nv[key]===undefined) delete out[key]; else out[key]=nv[key]; }
+          });
+          merged[k]=out;
+        } else merged[k]=nv;
+      });
+      updates=merged;
+      const existingCase=fresh;
+      const changeDescs=describeChanges(updates,local);
       const newChange={
         at:new Date().toISOString(),
         by:user?.name||"Unknown",
@@ -2537,8 +2553,8 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       const pendingChanges=[...existingChanges,newChange];
       const fullUpdates={...updates,pendingChanges};
       await updateCase(id,caseToDb({...existingCase,...fullUpdates}));
-      onUpdateCase(id,fullUpdates);
-      setSelCase(p=>p?.id===id?{...p,...fullUpdates}:p);
+      onUpdateCase(id,{...existingCase,...fullUpdates});
+      setSelCase(p=>p?.id===id?{...existingCase,...fullUpdates}:p);
       logActivity(user,"MORTUARY UPDATE","Updated case "+(existingCase?.caseRef||id),existingCase?.caseRef,id);
     }catch(err){alert("Save error: "+err.message);}
   }
@@ -2622,7 +2638,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     </div>
   );
 
-  const c=selCase,prep=c.prep||{},billable=c.billable||{},otherUsed=c.otherUsed||{},statusItems=c.statusItems||{};
+  const c=cases.find(x=>x.id===selCase.id)||selCase,prep=c.prep||{},billable=c.billable||{},otherUsed=c.otherUsed||{},statusItems=c.statusItems||{};
   const updPrep=(k,v)=>upd(c.id,{prep:{...prep,[k]:v}});
   const updPrepMulti=(updates)=>upd(c.id,{prep:{...prep,...updates}});
   const updBill=(k,v)=>upd(c.id,{billable:{...billable,[k]:v}});
@@ -5836,6 +5852,10 @@ export default function App() {
     }catch(e){alert("Error: "+e.message);}
   }
   const [cases,setCases]=useState([]);
+  useEffect(()=>{
+    const iv=setInterval(()=>{getCases().then(c=>{if(Array.isArray(c))setCases(c.map(dbToCase));}).catch(()=>{});},20000);
+    return()=>clearInterval(iv);
+  },[]);
   const [calendarBookings,setCalendarBookings]=useState([]);
   const [vehicleBookings,setVehicleBookings]=useState([]);
   const [loading,setLoading]=useState(true);
