@@ -349,7 +349,15 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     setAnswers({ arrangedBy: pre }); setCaseId(""); setErrors({}); setDone(null); setEditing(null); setView("form");
   }
   function startEdit(note) {
-    setAnswers({ ...(note.answers || {}) }); setCaseId(note.case_id || "none"); setErrors({}); setDone(null); setEditing(note); setView("form");
+    const a = { ...(note.answers || {}) };
+    // Older notes stored one "deceasedName" - split it into the first/last name fields
+    if (!a.firstName && !a.lastName && (a.deceasedName || note.deceased_name)) {
+      const parts = String(a.deceasedName || note.deceased_name).trim().split(/\s+/).filter(w => !/^\d+$/.test(w));
+      a.lastName = parts.length > 1 ? parts.pop() : "";
+      a.firstName = parts.join(" ");
+    }
+    if (!isFD) setFhId(note.funeral_home_id);   // staff/admin edit from the All 2nd Notes list
+    setAnswers(a); setCaseId(note.case_id || "none"); setErrors({}); setDone(null); setEditing(note); setView("form");
   }
   function pickCase(id) {
     setCaseId(id);
@@ -414,7 +422,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       answers, deceased_name: nameOf(answers), case_id: c?.id || null, case_ref: c?.caseRef || null,
       pdf_path: path, status: c ? "linked" : "awaiting",
       edited_at: now, edited_by: user?.name || "", edit_count: (n.edit_count || 0) + 1,
-      accepted_at: null, accepted_by: null,
+      // An FD edit goes back to MSS for acceptance; an edit by MSS staff/admin is accepted straight away
+      ...(isFD ? { accepted_at: null, accepted_by: null } : { accepted_at: now, accepted_by: user?.name || "" }),
     }) });
     if (n.pdf_path && n.pdf_path !== path) await removePdf(n.pdf_path);
     const conflicts = c ? await applyToCase(c, answers, n.id, form, fhName, c.id === n.case_id ? n.answers : null) : [];
@@ -429,7 +438,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (!caseId) errs._case = "Choose the case, or 'Not in our care yet'";
     form.sections.filter(s => !(s.na && answers["_na_" + s.id])).flatMap(s => s.fields).forEach(f => { if (f.required && isEmpty(answers[f.id])) errs[f.id] = "Required"; });
     setErrors(errs);
-    if (Object.keys(errs).length) { alert("Please complete the highlighted fields."); return; }
+    if (Object.keys(errs).length) {
+      const names = Object.keys(errs).map(k => k === "_case" ? "Case" : allFields(form).find(f => f.id === k)?.label || k);
+      alert("Please complete: " + names.join(", ")); return;
+    }
     setBusy(true);
     try {
       if (editing) { await submitEdit(); setBusy(false); return; }
@@ -558,7 +570,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
         </div>
         {(staff || isFD) && (
           <div className="flex gap-2 mt-3">
-            {isFD && <button disabled={busy} onClick={() => startEdit(n)} className={btn + " flex-1 border-gray-900 text-xs py-2"}>✎ Edit</button>}
+            <button disabled={busy} onClick={() => startEdit(n)} className={btn + " flex-1 border-gray-900 text-xs py-2"}>✎ Edit</button>
             {staff && !n.accepted_at && <button disabled={busy} onClick={() => acceptNote(n)} className={btn + " flex-1 bg-green-600 text-white border-green-600 text-xs py-2 disabled:opacity-50"}>✓ Accept</button>}
             {n.status !== "linked" && linking !== n.id && <button disabled={busy} onClick={() => setLinking(n.id)} className={btn + " flex-1 border-amber-500 text-amber-700 text-xs py-2"}>{staff ? "Assign to deceased" : "Link to case now in care"}</button>}
           </div>
