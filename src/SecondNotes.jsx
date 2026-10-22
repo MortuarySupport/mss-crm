@@ -85,6 +85,12 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
     while (size > 7 && font.widthOfTextAtSize(s, size) > maxW) size -= 0.5;
     page.drawText(s, { x, y: H - (lb - 7), size, font, color: ink });
   };
+  // Tick mark inside a printed checkbox [x0, top, x1, bottom]
+  const tick = ([x0, t, x1, b]) => {
+    const w = x1 - x0, mid = { x: x0 + w * 0.4, y: H - b + 1.2 };
+    page.drawLine({ start: { x: x0 + 1.2, y: H - (t + b) / 2 + 0.5 }, end: mid, thickness: 1.8, color: ink });
+    page.drawLine({ start: mid, end: { x: x1 + 2, y: H - t - 3 }, thickness: 1.8, color: ink });
+  };
   const circle = ([x0, t, x1, b]) => page.drawEllipse({
     x: (x0 + x1) / 2, y: H - (t + b + 1) / 2,
     xScale: (x1 - x0) / 2 + 3, yScale: (b - t) / 2 + 1,
@@ -134,7 +140,7 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
   }
   for (const f of allFields(form)) {
     const v = answers[f.id];
-    if (inRow.has(f.id) || isEmpty(v) || v === false) continue;
+    if (inRow.has(f.id) || f.id === form.banner?.into || isEmpty(v) || v === false) continue;
     on(f.page);
     if (f.type === "date" && f.slots) {
       const [y, m, d] = v.split("-");
@@ -158,9 +164,11 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
         if (o?.box) circle(o.box);
         (o?.boxes || []).forEach(circle);
         if (o?.textAt) text((o.prefix || "") + display(f, v, answers), ...o.textAt);
+        if (o?.tick) tick(o.tick);
       }
       if (f.at) text((f.printLabel || "") + display(f, v, answers), ...f.at);
     } else if (f.type === "multi") {
+      v.forEach(x => { const o = f.options.find(o => o.v === x); if (o?.tick) tick(o.tick); });
       const pv = v.map(x => f.options.find(o => o.v === x)?.p || x);
       const s = (f.printLabel || "") + pv.join(", ");
       if (f.lines) wrap(s, f.lines, f.size || 8, pv.map((x, i) => (i === 0 ? (f.printLabel || "") : "") + x + (i < pv.length - 1 ? "," : "")));
@@ -189,7 +197,15 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
       return f && !isEmpty(answers[id]) ? `${f.short || f.label}: ${display(f, answers[id], answers)}` : "";
     })).filter(Boolean);
     on(form.banner.page);
-    if (parts.length) text(parts.join("  ·  "), ...form.banner.at, form.banner.size || 9);
+    const into = form.banner.into && allFields(form).find(x => x.id === form.banner.into);
+    if (into) {
+      // Print these answers at the start of another box (e.g. "Other instructions"), followed by its own text
+      const own = isEmpty(answers[into.id]) ? [] : String(answers[into.id]).split(/\s+/);
+      // keep each answer (e.g. "Transfer: All Hours") together on one line
+      const tokens = [...parts.map((p, i) => p + (i < parts.length - 1 || own.length ? "  ·" : "")), ...own];
+      on(into.page);
+      if (tokens.length) wrap(tokens.join(" "), into.lines, into.size || 10.5, tokens);
+    } else if (parts.length) text(parts.join("  ·  "), ...form.banner.at, form.banner.size || 9);
   }
   for (const p of form.prints || []) {
     const s = p.compose.map(id => {

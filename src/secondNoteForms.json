@@ -6053,5 +6053,1035 @@
     "transferBy": "MSS"
    }
   }
+ },
+ "FH17": {
+  "title": "Mortuary Dressing Instructions",
+  "template": "/forms/FH17_2nd_note.pdf",
+  "fileTag": "YFD",
+  "stamp": {
+   "at": [
+    493,
+    812.8,
+    64
+   ],
+   "size": 7
+  },
+  "banner": {
+   "into": "comments",
+   "fields": [
+    "disposition",
+    "disposalLocation",
+    "drRef",
+    "plateBy",
+    "transferBy"
+   ]
+  },
+  "prints": [
+   {
+    "compose": [
+     "firstName",
+     "lastName"
+    ],
+    "at": [
+     142,
+     155,
+     252
+    ]
+   },
+   {
+    "compose": [
+     "coffinType",
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     130,
+     197,
+     205
+    ]
+   },
+   {
+    "compose": [
+     "serviceKind",
+     "funeralDate",
+     "funeralTime"
+    ],
+    "sep": "  ·  ",
+    "at": [
+     193,
+     311,
+     364
+    ]
+   },
+   {
+    "compose": [
+     "collectionDay",
+     "collectionTime"
+    ],
+    "sep": "  ",
+    "at": [
+     133,
+     333,
+     424
+    ]
+   },
+   {
+    "compose": [
+     "arrangedBy"
+    ],
+    "at": [
+     103,
+     812.8,
+     162,
+     9
+    ]
+   }
+  ],
+  "sections": [
+   {
+    "title": "Arrangement",
+    "fields": [
+     {
+      "id": "arrangementNo",
+      "label": "YFD arrangement no.",
+      "type": "text",
+      "at": [
+       138,
+       109,
+       146
+      ]
+     },
+     {
+      "id": "arrangedBy",
+      "label": "YFD contact (your name)",
+      "type": "text",
+      "required": true,
+      "summary": false,
+      "at": [
+       368,
+       109,
+       190
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Deceased Details",
+    "fields": [
+     {
+      "id": "firstName",
+      "label": "First name/s",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "lastName",
+      "label": "Last name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "sex",
+      "label": "Sex",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Male",
+        "tick": [
+         408,
+         140,
+         417,
+         149
+        ]
+       },
+       {
+        "v": "Female",
+        "tick": [
+         450.5,
+         140,
+         459.5,
+         149
+        ]
+       }
+      ]
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "bags",
+      "label": "Number of bags",
+      "type": "text",
+      "at": [
+       113,
+       176,
+       72
+      ]
+     },
+     {
+      "id": "jewelleryReceipt",
+      "label": "Jewellery receipt provided",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         336,
+         161,
+         345,
+         170
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         374.5,
+         161,
+         383.5,
+         170
+        ]
+       },
+       {
+        "v": "N/A",
+        "tick": [
+         409,
+         161,
+         418,
+         170
+        ]
+       }
+      ]
+     },
+     {
+      "id": "coffinType",
+      "label": "Coffin / casket",
+      "type": "text",
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "fittings",
+      "label": "Cross / Crucifix",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Cross"
+       },
+       {
+        "v": "Crucifix"
+       },
+       {
+        "v": "None"
+       }
+      ],
+      "at": [
+       430,
+       197,
+       128
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Care & Preparation",
+    "fields": [
+     {
+      "id": "infectious",
+      "label": "Infectious",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         98,
+         228,
+         107,
+         237
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         136.5,
+         228,
+         145.5,
+         237
+        ]
+       }
+      ]
+     },
+     {
+      "id": "infection",
+      "label": "Infection (if yes)",
+      "type": "text",
+      "at": [
+       241,
+       243,
+       317
+      ]
+     },
+     {
+      "id": "prep",
+      "label": "Preparation",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Nil",
+        "textAt": [
+         352,
+         262.9,
+         200
+        ]
+       },
+       {
+        "v": "Basic Prep",
+        "tick": [
+         106,
+         250,
+         115,
+         259
+        ]
+       },
+       {
+        "v": "TP",
+        "tick": [
+         180.5,
+         250,
+         189.5,
+         259
+        ]
+       },
+       {
+        "v": "Full Embalm",
+        "tick": [
+         223,
+         250,
+         232,
+         259
+        ]
+       },
+       {
+        "v": "Repat",
+        "tick": [
+         304,
+         250,
+         313,
+         259
+        ]
+       }
+      ],
+      "job": "prepOptions",
+      "map": {
+       "Nil": [
+        "No Prep"
+       ],
+       "Basic Prep": [
+        "Basic Prep"
+       ],
+       "TP": [
+        "Temp Prep"
+       ],
+       "Full Embalm": [
+        "Full Embalm"
+       ],
+       "Repat": [
+        "Repatriation"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "title": "Disposal & Transfer",
+    "fields": [
+     {
+      "id": "disposition",
+      "label": "Disposition",
+      "type": "choice",
+      "short": "Disposal",
+      "options": [
+       {
+        "v": "Cremation"
+       },
+       {
+        "v": "Burial"
+       },
+       {
+        "v": "Repatriation"
+       }
+      ],
+      "job": "disposition"
+     },
+     {
+      "id": "disposalLocation",
+      "label": "Crematorium / cemetery",
+      "type": "place",
+      "short": "At"
+     },
+     {
+      "id": "drRef",
+      "label": "Dr Ref required",
+      "type": "choice",
+      "short": "Dr Ref",
+      "options": [
+       {
+        "v": "Yes"
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "plateBy",
+      "label": "Name plate supplied by",
+      "type": "choice",
+      "short": "Name plate",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "YFD"
+       },
+       {
+        "v": "Coffin Supplier"
+       }
+      ]
+     },
+     {
+      "id": "transferBy",
+      "label": "Transfer by",
+      "type": "choice",
+      "short": "Transfer",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "All Hours"
+       },
+       {
+        "v": "YFD"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Viewing / Service & Transfer",
+    "fields": [
+     {
+      "id": "serviceKind",
+      "label": "Viewing or service",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Viewing"
+       },
+       {
+        "v": "Service"
+       },
+       {
+        "v": "Viewing & Service"
+       },
+       {
+        "v": "None"
+       }
+      ]
+     },
+     {
+      "id": "funeralDate",
+      "label": "Day / date",
+      "type": "date",
+      "fmt": "day",
+      "job": "funeralDate"
+     },
+     {
+      "id": "funeralTime",
+      "label": "Time",
+      "type": "time",
+      "job": "funeralTime"
+     },
+     {
+      "id": "collectionDay",
+      "label": "Hearse pick-up date",
+      "type": "date",
+      "fmt": "day",
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Hearse pick-up time",
+      "type": "time",
+      "job": "collectionTime"
+     },
+     {
+      "id": "collectionLocation",
+      "label": "Pick-up location / destination",
+      "type": "place",
+      "at": [
+       174,
+       355,
+       385
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Dressing Checklist",
+    "fields": [
+     {
+      "id": "clothingItems",
+      "label": "Clothing",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Trousers",
+        "tick": [
+         42,
+         400.6,
+         51,
+         409.6
+        ]
+       },
+       {
+        "v": "Jacket / Coat",
+        "tick": [
+         42,
+         414.2,
+         51,
+         423.2
+        ]
+       },
+       {
+        "v": "Shirt",
+        "tick": [
+         42,
+         427.8,
+         51,
+         436.8
+        ]
+       },
+       {
+        "v": "Dress",
+        "tick": [
+         42,
+         441.4,
+         51,
+         450.4
+        ]
+       },
+       {
+        "v": "Skirt",
+        "tick": [
+         42,
+         455.0,
+         51,
+         464.0
+        ]
+       },
+       {
+        "v": "Blouse / T-Shirt",
+        "tick": [
+         42,
+         468.6,
+         51,
+         477.6
+        ]
+       },
+       {
+        "v": "Shorts",
+        "tick": [
+         42,
+         482.2,
+         51,
+         491.2
+        ]
+       },
+       {
+        "v": "Vest",
+        "tick": [
+         42,
+         495.8,
+         51,
+         504.8
+        ]
+       },
+       {
+        "v": "Jumper / Cardigan",
+        "tick": [
+         42,
+         509.4,
+         51,
+         518.4
+        ]
+       },
+       {
+        "v": "PJs / Nightgown",
+        "tick": [
+         42,
+         523.0,
+         51,
+         532.0
+        ]
+       },
+       {
+        "v": "Dressing Gown",
+        "tick": [
+         42,
+         536.6,
+         51,
+         545.6
+        ]
+       }
+      ]
+     },
+     {
+      "id": "underwearItems",
+      "label": "Underwear",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Underpants",
+        "tick": [
+         216.4,
+         400.6,
+         225.4,
+         409.6
+        ]
+       },
+       {
+        "v": "Bra",
+        "tick": [
+         216.4,
+         414.2,
+         225.4,
+         423.2
+        ]
+       },
+       {
+        "v": "Singlet",
+        "tick": [
+         216.4,
+         427.8,
+         225.4,
+         436.8
+        ]
+       },
+       {
+        "v": "Slip",
+        "tick": [
+         216.4,
+         441.4,
+         225.4,
+         450.4
+        ]
+       },
+       {
+        "v": "Pantihose",
+        "tick": [
+         216.4,
+         455.0,
+         225.4,
+         464.0
+        ]
+       },
+       {
+        "v": "Socks / Knee-Hi's",
+        "tick": [
+         216.4,
+         468.6,
+         225.4,
+         477.6
+        ]
+       }
+      ]
+     },
+     {
+      "id": "footwearItems",
+      "label": "Footwear",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Shoes / Boots",
+        "tick": [
+         216.4,
+         501.8,
+         225.4,
+         510.8
+        ]
+       },
+       {
+        "v": "Slippers",
+        "tick": [
+         216.4,
+         515.4,
+         225.4,
+         524.4
+        ]
+       },
+       {
+        "v": "Thongs",
+        "tick": [
+         216.4,
+         529.0,
+         225.4,
+         538.0
+        ]
+       }
+      ]
+     },
+     {
+      "id": "accessoryItems",
+      "label": "Accessories",
+      "type": "multi",
+      "options": [
+       {
+        "v": "Tie",
+        "tick": [
+         390.9,
+         400.6,
+         399.9,
+         409.6
+        ]
+       },
+       {
+        "v": "Belt",
+        "tick": [
+         390.9,
+         414.2,
+         399.9,
+         423.2
+        ]
+       },
+       {
+        "v": "Hanky",
+        "tick": [
+         390.9,
+         427.8,
+         399.9,
+         436.8
+        ]
+       },
+       {
+        "v": "Suspenders",
+        "tick": [
+         390.9,
+         441.4,
+         399.9,
+         450.4
+        ]
+       },
+       {
+        "v": "Scarf",
+        "tick": [
+         390.9,
+         455.0,
+         399.9,
+         464.0
+        ]
+       },
+       {
+        "v": "Hat / Cap / Beanie",
+        "tick": [
+         390.9,
+         468.6,
+         399.9,
+         477.6
+        ]
+       },
+       {
+        "v": "Glasses",
+        "tick": [
+         390.9,
+         482.2,
+         399.9,
+         491.2
+        ]
+       },
+       {
+        "v": "Dentures",
+        "tick": [
+         390.9,
+         495.8,
+         399.9,
+         504.8
+        ]
+       },
+       {
+        "v": "Rosary Beads",
+        "tick": [
+         390.9,
+         509.4,
+         399.9,
+         518.4
+        ]
+       },
+       {
+        "v": "Pillow / Blanket",
+        "tick": [
+         390.9,
+         523.0,
+         399.9,
+         532.0
+        ]
+       },
+       {
+        "v": "Aftershave / Perfume",
+        "tick": [
+         390.9,
+         536.6,
+         399.9,
+         545.6
+        ]
+       },
+       {
+        "v": "Cosmetics",
+        "tick": [
+         390.9,
+         550.2,
+         399.9,
+         559.2
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Make Up / Hair / Cosmetics",
+    "fields": [
+     {
+      "id": "photoAttached",
+      "label": "Photo attached",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         118,
+         593.8,
+         127,
+         602.8
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         156.5,
+         593.8,
+         165.5,
+         602.8
+        ]
+       }
+      ]
+     },
+     {
+      "id": "makeupNotes",
+      "label": "Make up / hair / cosmetics notes",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        38,
+        624.8,
+        520
+       ],
+       [
+        38,
+        642.8,
+        520
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Appearance",
+    "fields": [
+     {
+      "id": "cleanShaven",
+      "label": "Clean shaven",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         108,
+         673.8,
+         117,
+         682.8
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         158.5,
+         673.8,
+         167.5,
+         682.8
+        ]
+       }
+      ]
+     },
+     {
+      "id": "partialShave",
+      "label": "Partial shave",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         287,
+         673.8,
+         296,
+         682.8
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         325.5,
+         673.8,
+         334.5,
+         682.8
+        ]
+       }
+      ]
+     },
+     {
+      "id": "appearanceNotes",
+      "label": "Please specify",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        102,
+        708.8,
+        455
+       ],
+       [
+        38,
+        726.8,
+        520
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Other Instructions / Items",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Other instructions / items",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        38,
+        768.8,
+        520
+       ],
+       [
+        38,
+        788.8,
+        520
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "nsna": {
+   "set": {
+    "disposition": "Cremation",
+    "disposalLocation": "Leura Memorial Gardens",
+    "drRef": "Yes",
+    "prep": "Nil",
+    "coffinColour": "Cardboard",
+    "plateBy": "MSS",
+    "transferBy": "MSS",
+    "serviceKind": "None"
+   }
+  }
  }
 }
