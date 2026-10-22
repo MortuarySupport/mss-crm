@@ -7885,5 +7885,936 @@
     "transferBy": "MSS"
    }
   }
+ },
+ "FH07": {
+  "title": "Mortuary Preparation & Notification Form",
+  "template": "/forms/FH07_2nd_note.pdf",
+  "fileTag": "GLOBAL",
+  "stamp": {
+   "at": [
+    493,
+    768,
+    64
+   ],
+   "size": 7
+  },
+  "banner": {
+   "into": "comments",
+   "fields": [
+    "disposalLocation",
+    "transferBy"
+   ]
+  },
+  "prints": [
+   {
+    "compose": [
+     "firstName",
+     "lastName"
+    ],
+    "at": [
+     85,
+     204,
+     277
+    ]
+   },
+   {
+    "compose": [
+     "viewingDate"
+    ],
+    "fmt": "weekday",
+    "at": [
+     192.5,
+     424,
+     70
+    ]
+   },
+   {
+    "compose": [
+     "funeralDate"
+    ],
+    "fmt": "weekday",
+    "at": [
+     192.5,
+     460,
+     70
+    ]
+   },
+   {
+    "compose": [
+     "collectionDay"
+    ],
+    "fmt": "weekday",
+    "at": [
+     192.5,
+     496,
+     70
+    ]
+   },
+   {
+    "compose": [
+     "coffinType",
+     "coffinSize",
+     "coffinColour"
+    ],
+    "sep": " · ",
+    "at": [
+     107,
+     562,
+     227
+    ]
+   },
+   {
+    "compose": [
+     "arrangedBy"
+    ],
+    "at": [
+     103,
+     768,
+     162,
+     9
+    ]
+   },
+   {
+    "compose": [
+     "arrangedBy"
+    ],
+    "at": [
+     420.5,
+     518,
+     137
+    ]
+   }
+  ],
+  "sections": [
+   {
+    "title": "Notification",
+    "fields": [
+     {
+      "id": "arrangedBy",
+      "label": "Office contact (your name)",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "notification",
+      "label": "Notification",
+      "type": "choice",
+      "options": [
+       {
+        "v": "First",
+        "tick": [
+         121,
+         127,
+         130,
+         136
+        ]
+       },
+       {
+        "v": "Second",
+        "tick": [
+         169.5,
+         127,
+         178.5,
+         136
+        ]
+       },
+       {
+        "v": "Final",
+        "tick": [
+         231,
+         127,
+         240,
+         136
+        ]
+       }
+      ]
+     },
+     {
+      "id": "disposition",
+      "label": "Service type",
+      "type": "choice",
+      "required": true,
+      "options": [
+       {
+        "v": "Crypt",
+        "tick": [
+         121,
+         145,
+         130,
+         154
+        ]
+       },
+       {
+        "v": "Burial",
+        "tick": [
+         173.5,
+         145,
+         182.5,
+         154
+        ]
+       },
+       {
+        "v": "Cremation",
+        "tick": [
+         227.5,
+         145,
+         236.5,
+         154
+        ]
+       }
+      ],
+      "job": "disposition",
+      "map": {
+       "Crypt": "Burial",
+       "Burial": "Burial",
+       "Cremation": "Cremation"
+      }
+     },
+     {
+      "id": "drRef",
+      "label": "MSS to Medical Referee",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         300,
+         145,
+         309,
+         154
+        ]
+       },
+       {
+        "v": "No"
+       }
+      ]
+     },
+     {
+      "id": "disposalLocation",
+      "label": "Crematorium / cemetery",
+      "type": "place",
+      "short": "Crematorium/Cemetery"
+     },
+     {
+      "id": "transferBy",
+      "label": "Transfer into care by",
+      "type": "choice",
+      "short": "Transfer",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "All Hours"
+       },
+       {
+        "v": "Global"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Deceased Details",
+    "fields": [
+     {
+      "id": "title",
+      "label": "Title",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Master",
+        "tick": [
+         374.3,
+         189,
+         383.3,
+         198
+        ]
+       },
+       {
+        "v": "Miss",
+        "tick": [
+         422.8,
+         189,
+         431.8,
+         198
+        ]
+       },
+       {
+        "v": "Mrs",
+        "tick": [
+         462.3,
+         189,
+         471.3,
+         198
+        ]
+       },
+       {
+        "v": "Mr",
+        "tick": [
+         498.3,
+         189,
+         507.3,
+         198
+        ]
+       }
+      ]
+     },
+     {
+      "id": "firstName",
+      "label": "First name/s",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "lastName",
+      "label": "Last name",
+      "type": "text",
+      "required": true,
+      "summary": false
+     },
+     {
+      "id": "dob",
+      "label": "Date of birth (for age)",
+      "type": "date",
+      "summary": false
+     },
+     {
+      "id": "dod",
+      "label": "Date of death",
+      "type": "date",
+      "required": true,
+      "summary": false,
+      "at": [
+       102,
+       224,
+       232
+      ]
+     },
+     {
+      "id": "age",
+      "label": "Age (auto)",
+      "type": "text",
+      "auto": "age",
+      "summary": false,
+      "at": [
+       376,
+       224,
+       181
+      ]
+     },
+     {
+      "id": "transferFrom",
+      "label": "Transfer from",
+      "type": "place",
+      "at": [
+       105,
+       244,
+       452
+      ]
+     },
+     {
+      "id": "valuables",
+      "label": "Valuables",
+      "type": "text",
+      "at": [
+       86,
+       264,
+       248
+      ]
+     },
+     {
+      "id": "valuablesAction",
+      "label": "Valuables: return / leave on",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Return"
+       },
+       {
+        "v": "Leave on"
+       }
+      ],
+      "at": [
+       434,
+       264,
+       123
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Mortuary Preparation Required",
+    "fields": [
+     {
+      "id": "prep",
+      "label": "Preparation",
+      "type": "choice",
+      "options": [
+       {
+        "v": "No Prep",
+        "tick": [
+         36,
+         293,
+         45,
+         302
+        ]
+       },
+       {
+        "v": "Basic Preparation",
+        "tick": [
+         97,
+         293,
+         106,
+         302
+        ]
+       },
+       {
+        "v": "Viewing Preparation",
+        "tick": [
+         196,
+         293,
+         205,
+         302
+        ]
+       },
+       {
+        "v": "Temporary Embalming",
+        "tick": [
+         304.6,
+         293,
+         313.6,
+         302
+        ]
+       },
+       {
+        "v": "Full Embalming",
+        "tick": [
+         423.6,
+         293,
+         432.6,
+         302
+        ]
+       }
+      ],
+      "job": "prepOptions",
+      "map": {
+       "No Prep": [
+        "No Prep"
+       ],
+       "Basic Preparation": [
+        "Basic Prep"
+       ],
+       "Viewing Preparation": [
+        "Basic Prep"
+       ],
+       "Temporary Embalming": [
+        "Temp Prep"
+       ],
+       "Full Embalming": [
+        "Full Embalm"
+       ]
+      }
+     },
+     {
+      "id": "pacemaker",
+      "label": "Pacemaker (for cremation only)",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         181,
+         311,
+         190,
+         320
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         227.5,
+         311,
+         236.5,
+         320
+        ]
+       }
+      ]
+     },
+     {
+      "id": "breasting",
+      "label": "Breasting / clothing",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        129.5,
+        346,
+        428
+       ],
+       [
+        38,
+        364,
+        520
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Viewing",
+    "fields": [
+     {
+      "id": "viewingDate",
+      "label": "Viewing date",
+      "type": "date",
+      "at": [
+       63.5,
+       424,
+       92
+      ],
+      "job": "viewingDate",
+      "jobAlso": {
+       "viewing": "Yes"
+      }
+     },
+     {
+      "id": "viewingTime",
+      "label": "Viewing time",
+      "type": "time",
+      "at": [
+       304,
+       424,
+       70
+      ],
+      "job": "viewingSlot"
+     },
+     {
+      "id": "viewingLocation",
+      "label": "Viewing place",
+      "type": "place",
+      "at": [
+       418.5,
+       424,
+       139
+      ],
+      "job": "viewingLocation",
+      "match": [
+       [
+        "mss|mortuary support|lumi",
+        "MSS"
+       ],
+       [
+        ".",
+        "Offsite"
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Funeral",
+    "fields": [
+     {
+      "id": "funeralDate",
+      "label": "Funeral date",
+      "type": "date",
+      "at": [
+       63.5,
+       460,
+       92
+      ],
+      "job": "funeralDate"
+     },
+     {
+      "id": "funeralTime",
+      "label": "Funeral time",
+      "type": "time",
+      "at": [
+       304,
+       460,
+       70
+      ],
+      "job": "funeralTime"
+     },
+     {
+      "id": "funeralLocation",
+      "label": "Funeral place",
+      "type": "place",
+      "at": [
+       418.5,
+       460,
+       139
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Collection",
+    "fields": [
+     {
+      "id": "collectionDay",
+      "label": "Collection date",
+      "type": "date",
+      "at": [
+       63.5,
+       496,
+       92
+      ],
+      "job": "collectionDate"
+     },
+     {
+      "id": "collectionTime",
+      "label": "Collection time",
+      "type": "time",
+      "at": [
+       304,
+       496,
+       70
+      ],
+      "job": "collectionTime"
+     },
+     {
+      "id": "collectionBy",
+      "label": "Collection by",
+      "type": "choice",
+      "options": [
+       {
+        "v": "MSS"
+       },
+       {
+        "v": "All Hours"
+       },
+       {
+        "v": "Global"
+       },
+       {
+        "v": "Other",
+        "other": true
+       }
+      ],
+      "at": [
+       406.5,
+       496,
+       151
+      ]
+     },
+     {
+      "id": "earlyDeliveryTo",
+      "label": "Early delivery to",
+      "type": "text",
+      "at": [
+       117,
+       518,
+       217
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Coffin / Casket",
+    "fields": [
+     {
+      "id": "coffinType",
+      "label": "Coffin / casket",
+      "type": "text",
+      "job": "coffinName"
+     },
+     {
+      "id": "coffinSize",
+      "label": "Coffin size",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Under"
+       },
+       {
+        "v": "Std"
+       },
+       {
+        "v": "OS1"
+       },
+       {
+        "v": "OS2"
+       },
+       {
+        "v": "OS3"
+       },
+       {
+        "v": "OS4"
+       },
+       {
+        "v": "OS5"
+       },
+       {
+        "v": "Baby"
+       },
+       {
+        "v": "Infant"
+       }
+      ],
+      "job": "coffinSize"
+     },
+     {
+      "id": "coffinColour",
+      "label": "Coffin colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Maple"
+       },
+       {
+        "v": "Teak"
+       },
+       {
+        "v": "Rosewood"
+       },
+       {
+        "v": "White"
+       },
+       {
+        "v": "Black"
+       },
+       {
+        "v": "Timber"
+       },
+       {
+        "v": "Cardboard"
+       },
+       {
+        "v": "NSNA"
+       }
+      ],
+      "job": "coffinColour"
+     },
+     {
+      "id": "handlesFittings",
+      "label": "Handles & fittings",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Silver",
+        "tick": [
+         440,
+         547,
+         449,
+         556
+        ]
+       },
+       {
+        "v": "Gold",
+        "tick": [
+         488.5,
+         547,
+         497.5,
+         556
+        ]
+       }
+      ]
+     },
+     {
+      "id": "nameplateRequired",
+      "label": "Nameplate required",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         176,
+         567,
+         185,
+         576
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         217.5,
+         567,
+         226.5,
+         576
+        ]
+       }
+      ]
+     },
+     {
+      "id": "plateColour",
+      "label": "Nameplate colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Silver",
+        "tick": [
+         351,
+         567,
+         360,
+         576
+        ]
+       },
+       {
+        "v": "Gold",
+        "tick": [
+         399.5,
+         567,
+         408.5,
+         576
+        ]
+       }
+      ],
+      "job": "coffinPlateColour"
+     },
+     {
+      "id": "crossRequired",
+      "label": "Cross / crucifix required",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         176,
+         585,
+         185,
+         594
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         217.5,
+         585,
+         226.5,
+         594
+        ]
+       }
+      ]
+     },
+     {
+      "id": "crossColour",
+      "label": "Cross / crucifix colour",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Silver",
+        "tick": [
+         351,
+         585,
+         360,
+         594
+        ]
+       },
+       {
+        "v": "Gold",
+        "tick": [
+         399.5,
+         585,
+         408.5,
+         594
+        ]
+       }
+      ]
+     },
+     {
+      "id": "religiousCrossType",
+      "label": "Religious cross type",
+      "type": "text",
+      "at": [
+       136,
+       620,
+       421
+      ]
+     },
+     {
+      "id": "casketCover",
+      "label": "Casket cover / flowers (delivered to MSS)",
+      "type": "choice",
+      "options": [
+       {
+        "v": "Yes",
+        "tick": [
+         176,
+         625,
+         185,
+         634
+        ]
+       },
+       {
+        "v": "No",
+        "tick": [
+         217.5,
+         625,
+         226.5,
+         634
+        ]
+       }
+      ]
+     },
+     {
+      "id": "casketCoverDetails",
+      "label": "Casket cover details",
+      "type": "text",
+      "at": [
+       101.5,
+       658,
+       232
+      ]
+     },
+     {
+      "id": "casketCoverExtra",
+      "label": "Casket cover + (extra)",
+      "type": "text",
+      "at": [
+       364.3,
+       658,
+       193
+      ]
+     }
+    ]
+   },
+   {
+    "title": "Special Notes & Instructions",
+    "fields": [
+     {
+      "id": "comments",
+      "label": "Special notes & instructions",
+      "type": "textarea",
+      "size": 9,
+      "lines": [
+       [
+        38,
+        702,
+        520
+       ],
+       [
+        38,
+        722,
+        520
+       ],
+       [
+        38,
+        742,
+        520
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "nsna": {
+   "set": {
+    "disposition": "Cremation",
+    "drRef": "Yes",
+    "disposalLocation": "Leura Memorial Gardens",
+    "prep": "No Prep",
+    "coffinColour": "Cardboard",
+    "nameplateRequired": "Yes",
+    "transferBy": "MSS"
+   }
+  }
  }
 }

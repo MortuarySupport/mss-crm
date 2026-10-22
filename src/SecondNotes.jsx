@@ -32,6 +32,7 @@ const isEmpty = v => v == null || v === "" || (Array.isArray(v) && v.length === 
 function fmtDate(iso, style) {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
+  if (style === "weekday") return new Date(iso + "T12:00:00").toLocaleDateString("en-AU", { weekday: "long" });
   if (style === "day") {
     const wd = new Date(iso + "T12:00:00").toLocaleDateString("en-AU", { weekday: "short" });
     return `${wd} ${d}/${m}/${y}`;
@@ -210,7 +211,9 @@ async function buildPdf(form, answers, submittedAt, editedAt, version) {
   for (const p of form.prints || []) {
     const s = p.compose.map(id => {
       const f = allFields(form).find(x => x.id === id);
-      return isEmpty(answers[id]) ? "" : f ? display(f, answers[id], answers) : answers[id];
+      if (isEmpty(answers[id])) return "";
+      if (p.fmt && f?.type === "date") return fmtDate(answers[id], p.fmt);   // e.g. print the weekday of a date
+      return f ? display(f, answers[id], answers) : answers[id];
     }).filter(Boolean).join(p.sep || " ");
     on(p.page);
     if (s) text(s, ...p.at);
