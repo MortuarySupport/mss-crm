@@ -5758,8 +5758,8 @@ class ErrorBoundary extends React.Component{
 // ─── KIOSK HOME ──────────────────────────────────────────────────────────────
 function KioskHome({onCheckIn,onCheckOut,onLogin}){
   return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px"}}>
-      <div style={{marginBottom:"48px",textAlign:"center"}}>
+    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start",padding:"48px 24px 24px"}}>
+      <div style={{marginBottom:"32px",textAlign:"center"}}>
         <MSSLogo size="lg"/>
         <p style={{color:"#9ca3af",fontSize:"12px",fontWeight:"700",letterSpacing:"3px",textTransform:"uppercase",marginTop:"12px"}}>Mortuary Support Services</p>
       </div>
