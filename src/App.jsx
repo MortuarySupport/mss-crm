@@ -1044,7 +1044,7 @@ function GooglePlacesInput({value,onChange,placeholder}){
     return()=>window.google?.maps?.event?.clearInstanceListeners(ac);
   },[]);
   return(
-    <input ref={inputRef} className={s.inp} placeholder={placeholder||"Start typing..."} defaultValue={value} autoComplete="off"/>
+    <input ref={inputRef} className={s.inp} placeholder={placeholder||"Start typing..."} defaultValue={value} autoComplete="off" onChange={e=>onChange(e.target.value)}/>
   );
 }
 
@@ -1376,7 +1376,7 @@ Email: info@mortuarysupport.com.au`;
 function buildCheckInEmail(r) {
   const needsMccd = r.paperwork && (r.paperwork.includes("VOD") || r.paperwork.includes("LE"));
   const mccdWarning = needsMccd ? `\n⚠️ IMPORTANT: Please obtain the MCCD from the doctor and email it through to us — we cannot prepare the deceased until we receive it.` : "";
-  return `Hi ${r.funeralHomeName} Team,\n\nThis is to notify you that ${r.firstName} ${r.lastName} has been checked into MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${r.firstName} ${r.lastName}\nDOB: ${fmt(r.dob)} | DOD: ${fmt(r.dod)} | Age: ${r.ageAtDeath ?? "—"} | Sex: ${r.sex || "—"}\nCase Reference: ${r.caseRef}\n\n─────────────────────────────\nTRANSFER DETAILS\n─────────────────────────────\nTransferred From: ${r.transferredFrom || "—"}\nTransferred By: ${r.transferredBy || "—"}\nTransfer Date: ${fmt(r.transferDate)}\n\n─────────────────────────────\nON ARRIVAL\n─────────────────────────────\nPaperwork Received: ${r.paperwork || "None"}\nValuables: ${r.valuables || "Nil"}\nSize: ${r.size || "—"} | Fridge: ${r.fridge || "—"} | Weight: ${r.weight || "—"}\n${mccdWarning}\nPlease also send through the 2nd note with preparation instructions when you can.\n\nTheir current status is: NOT STARTED\nYou will receive an email notification once they are ready for collection.${MSS_FOOTER}`;
+  return `Hi ${r.funeralHomeName} Team,\n\nThis is to notify you that ${r.firstName} ${r.lastName} has been checked into Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nFirst Name: ${r.firstName}    Last Name: ${r.lastName}\nDOB: ${fmt(r.dob)} | DOD: ${fmt(r.dod)} | Age: ${r.ageAtDeath ?? "—"} | Sex: ${r.sex || "—"}\nCase Reference: ${r.caseRef}\n\n─────────────────────────────\nTRANSFER DETAILS\n─────────────────────────────\nTransferred From: ${r.transferredFrom || "—"}\nTransferred By: ${r.transferredBy || "—"}\nTransfer Date: ${fmt(r.transferDate)}\nTime: ${r.transferTime || "—"}\n\n─────────────────────────────\nON ARRIVAL WE RECEIVED\n─────────────────────────────\nPaperwork Received: ${r.paperwork || "None"}\nValuables: ${r.valuables || "Nil"}\n\n─────────────────────────────\nDETAILS OF ${(r.firstName+" "+r.lastName).toUpperCase()}\n─────────────────────────────\nSize: ${r.size || "—"} | Weight: ${r.weight || "—"}\n${mccdWarning}\nPlease go to the website and enter the 2nd note with preparation instructions when you can.\n\nTheir current status is: NOT STARTED${MSS_FOOTER}`;
 }
 
 function buildCompletedEmail(c, prep, billable, otherUsed) {
@@ -1460,7 +1460,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const [saving,setSaving]=useState(false);
   useEffect(()=>{if(submitted)window.scrollTo({top:0,behavior:"smooth"});},[submitted]);
   const [scanOpen,setScanOpen]=useState(false);
-  const [form,setForm]=useState({firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false});
+  const [form,setForm]=useState({firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),transferTime:new Date().toTimeString().slice(0,5),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false});
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
   const sortedFH=sortAlpha(FUNERAL_HOMES,"name");
   const isAllHoursOrMSS=!form.transferredBy||(form.transferredBy?.startsWith("All Hours")||form.transferredBy?.startsWith("MSS")||form.transferredBy?.startsWith("Statewide")||form.transferredBy==="ALL");
@@ -1519,13 +1519,13 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       id:genId(),caseRef,firstName:form.firstName,lastName:form.lastName,
       dob:form.dob,dod:form.dod,sex:form.sex,ageAtDeath:age,
       transferredFrom:getTransferDisplay(),transferredBy:isTransfer?user.name:form.transferredBy,
-      transferPersonName:"",transferDate:form.transferDate,
+      transferPersonName:"",transferDate:form.transferDate,transferTime:form.transferTime,
       valuables:getValuablesDisplay(),paperwork:form.paperwork.join(", "),size:form.size,fridge:form.fridge,weight:form.weight,pacemaker:form.pacemaker||false,
       funeralHomeId:fhId,funeralHomeName:fhName,
       checkedInBy:user.name,checkedInRole:checkinRole,
       checkedInAt:new Date().toISOString(),
       status:"active",prepStatus:"not-started",step:1,checkedOut:false,
-      prep:{},billable:{},otherUsed:{},statusItems:{},
+      prep:form.transferTime?{transferTime:form.transferTime}:{},billable:{},otherUsed:{},statusItems:{},
     };
     try {
       await insertCase(caseToDb(record));
@@ -1667,6 +1667,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               </Field>
             )}
             <Field label="Transfer Date" required><input type="date" className={s.inp} value={form.transferDate} onChange={e=>setF("transferDate",e.target.value)} max={today()}/></Field>
+            <Field label="Transfer Time"><input type="time" className={s.inp} value={form.transferTime||""} onChange={e=>setF("transferTime",e.target.value)}/></Field>
             <Field label="Valuables / Items" required>
               <ValuablesPicker
                 nilVals={form.nilVals} vals={form.vals} valsText={form.valsText}
