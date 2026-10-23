@@ -1457,6 +1457,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const [otherFHName,setOtherFHName]=useState("");
   const [errors,setErrors]=useState({});
   const [submitted,setSubmitted]=useState(null);
+  const [emailOpened,setEmailOpened]=useState(false);
   const [saving,setSaving]=useState(false);
   useEffect(()=>{if(submitted)window.scrollTo({top:0,behavior:"smooth"});},[submitted]);
   const [scanOpen,setScanOpen]=useState(false);
@@ -1577,9 +1578,13 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           let text=buildCheckInEmail(submitted);
           text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
           window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
-        }} className={`${s.btnDark} block text-center w-full mb-3 mt-4`}>📧 Send Notification to FD & Mortuary</button>
-        <p className="text-xs text-gray-400 text-center -mt-1 mb-2">Documents above are included in the email as links</p>
-        <p className="text-xs text-gray-400 text-center mb-5">To: {to}</p>
+          setEmailOpened(true);
+        }} className={`block w-full mt-5 mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 animate-pulse"}`}>
+          {emailOpened?"✓ Email opened — tap to send again":"📧 Send Notification Email to FD & Mortuary"}
+          <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened?"Make sure you press Send in your mail program":"Required — opens your mail program, then press Send"}</span>
+        </button>
+        <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
+        <p className="text-xs text-gray-400 text-center mb-6">To: {to}</p>
         <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full`}>← BACK TO HOME</button>
       </div>
     );
