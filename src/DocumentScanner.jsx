@@ -81,6 +81,20 @@ function processFrame(video, rotation, doCrop, doEnhance) {
   return { url: out.toDataURL("image/jpeg", JPEG_Q), w: ow, h: oh };
 }
 
+// Smaller copy of each page for reading (fewer tokens, faster)
+function forReading(p) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 1568 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+    };
+    img.onerror = reject; img.src = p.url;
+  });
+}
+
 async function pagesToPdf(pages) {
   const { PDFDocument } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
   const doc = await PDFDocument.create();
@@ -95,12 +109,12 @@ async function pagesToPdf(pages) {
   return doc.save();
 }
 
-export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave, onClose, prefixLabel = true }) {
+export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave, onClose, prefixLabel = true, readLabels = [], onRead, lockedLabels = [] }) {
   const videoRef = useRef(null), streamRef = useRef(null);
   const [cams, setCams] = useState([]);
   const [camId, setCamId] = useState(store.get());
   const [err, setErr] = useState("");
-  const [label, setLabel] = useState(defaultLabel || labels[0]);
+  const [label, setLabel] = useState(defaultLabel || labels.find(l => !lockedLabels.includes(l)) || labels[0]);
   const [rotation, setRotation] = useState(0);
   const [crop, setCrop] = useState(true);
   const [clean, setClean] = useState(true);
@@ -157,6 +171,9 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
       const safe = s => String(s || "").replace(/[^a-zA-Z0-9]/g, "_");
       const name = `${prefixLabel ? safe(label) + "_" : ""}${safe(fileBase?.fh || "FD")}_${safe(fileBase?.lastName || "Unknown")}_${fileBase?.dod ? fileBase.dod.split("-").reverse().join("") : ""}.pdf`.replace(/_\.pdf$/, ".pdf");
       await onSave(new File([bytes], name, { type: "application/pdf" }), label);
+      if (onRead && readLabels.includes(label)) {
+        try { const imgs = await Promise.all(pages.slice(0, 3).map(forReading)); onRead(imgs, label); } catch (e) {}
+      }
       stop(); onClose();
     } catch (e) { alert("Couldn't save the scan: " + e.message); }
     setBusy(false);
@@ -194,7 +211,11 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
           </div>
           <div>
             <div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Document</div>
-            <div className="flex flex-wrap gap-2 mb-4">{labels.map(l => <button key={l} onClick={() => setLabel(l)} className={chip(label === l)}>{l}</button>)}</div>
+            <div className="flex flex-wrap gap-2 mb-2">{labels.map(l => lockedLabels.includes(l)
+              ? <button key={l} disabled title="Scan the death paperwork first" className={chip(false) + " opacity-30 cursor-not-allowed"}>🔒 {l}</button>
+              : <button key={l} onClick={() => setLabel(l)} className={chip(label === l)}>{l}</button>)}</div>
+            {lockedLabels.length > 0 && <p className="text-xs font-bold text-red-600 mb-2">Scan ONE of these first: {readLabels.join(" or ")}. Other documents unlock after that.</p>}
+            {readLabels.length > 0 && <p className="text-xs text-gray-500 mb-4">{readLabels.includes(label) ? "✨ The details on this document will be read and filled in for you to check." : "This document is saved only (not read)."}</p>}
             <div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Pages ({pages.length})</div>
             <div className="space-y-2 max-h-[46vh] overflow-y-auto">
               {pages.map((p, i) => (
@@ -211,7 +232,7 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
               {!pages.length && <p className="text-xs text-gray-400">No pages yet. Capture each page in order.</p>}
             </div>
             <button onClick={save} disabled={!pages.length || busy} className="w-full mt-4 py-3 rounded-xl bg-gray-900 text-white font-black uppercase disabled:opacity-40">
-              {busy ? "Saving…" : `Save ${label} (${pages.length} page${pages.length === 1 ? "" : "s"})`}
+              {busy ? "Saving…" : `${onRead && readLabels.includes(label) ? "Save & Read Details" : "Save " + label} (${pages.length} page${pages.length === 1 ? "" : "s"})`}
             </button>
           </div>
         </div>

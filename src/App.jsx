@@ -212,6 +212,9 @@ const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD"];
 function genId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
 function fmt(iso) { if(!iso) return "—"; const[y,m,d]=iso.split("-"); return`${d}/${m}/${y}`; }
 function fmtDT(iso) { if(!iso) return "—"; return new Date(iso).toLocaleString("en-AU"); }
+// Calendar dates with the day, e.g. "23rd October 2026 Friday"
+function fmtDayLong(iso){ if(!iso) return "—"; const x=new Date(String(iso).slice(0,10)+"T12:00:00"); if(isNaN(x)) return iso; const d=x.getDate(); const o=(d%100>=11&&d%100<=13)?"th":({1:"st",2:"nd",3:"rd"}[d%10]||"th"); return `${d}${o} ${x.toLocaleDateString("en-AU",{month:"long"})} ${x.getFullYear()} ${x.toLocaleDateString("en-AU",{weekday:"long"})}`; }
+function fmtDTDay(iso){ if(!iso) return "—"; const x=new Date(iso); if(isNaN(x)) return iso; const ymd=x.toLocaleDateString("en-CA",{timeZone:"Australia/Sydney"}); return fmtDayLong(ymd)+" "+x.toLocaleTimeString("en-AU",{timeZone:"Australia/Sydney",hour:"2-digit",minute:"2-digit",hour12:false}); }
 function calcAge(dob,dod) {
   if(!dob||!dod) return null;
   const b=new Date(dob),d=new Date(dod);
@@ -603,7 +606,7 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2"><div className="text-xl font-black text-gray-900 uppercase">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/></div>
-                <div className="text-xs font-bold text-gray-400 uppercase mt-1">{c.caseRef} · {c.funeralHomeName} · Checked Out: {fmtDT(c.checkout?.checkedOutAt)}</div>
+                <div className="text-xs font-bold text-gray-400 uppercase mt-1">{c.caseRef} · {c.funeralHomeName} · Checked Out: {fmtDTDay(c.checkout?.checkedOutAt)}</div>
               </div>
               <span className="text-xs bg-amber-100 text-amber-700 border border-amber-300 rounded-full px-2 py-0.5 font-black uppercase flex-shrink-0">Pending</span>
             </div>
@@ -992,7 +995,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
           <div><span className="text-gray-500 text-xs">Paperwork: </span><span className="font-bold text-gray-900 text-xs">{c.paperwork||"None"}</span></div>
           <div><span className="text-gray-500 text-xs">Disposition: </span>{isAdmin?<InlineEdit isAdmin value={prep.disposition} onSave={v=>savePrep("disposition",v)} options={DISPOSITION_OPTIONS}/>:<span className="font-bold text-gray-900 text-xs">{prep.disposition||"—"}</span>}</div>
           <div><span className="text-gray-500 text-xs">Preparation: </span><span className="font-bold text-gray-900 text-xs">{prepShorts}</span></div>
-          <div><span className="text-gray-500 text-xs">Collection: </span>{isAdmin?<InlineEdit isAdmin value={prep.collectionDate} onSave={v=>savePrep("collectionDate",v)} type="date" display={fmt(prep.collectionDate)}/>:<span className="font-bold text-gray-900 text-xs">{fmt(prep.collectionDate)||"—"}</span>}</div>
+          <div><span className="text-gray-500 text-xs">Collection: </span>{isAdmin?<InlineEdit isAdmin value={prep.collectionDate} onSave={v=>savePrep("collectionDate",v)} type="date" display={fmtDayLong(prep.collectionDate)}/>:<span className="font-bold text-gray-900 text-xs">{fmtDayLong(prep.collectionDate)||"—"}</span>}</div>
           <div><span className="text-gray-500 text-xs">Funeral Director: </span>{isAdmin?<InlineEdit isAdmin value={c.funeralHomeName} onSave={v=>save("funeral_home_name",v)}/>:<span className="font-bold text-gray-900 text-xs">{c.funeralHomeName||"—"}</span>}</div>
         </div>
       </div>
@@ -1043,6 +1046,7 @@ function GooglePlacesInput({value,onChange,placeholder}){
     });
     return()=>window.google?.maps?.event?.clearInstanceListeners(ac);
   },[]);
+  React.useEffect(()=>{if(inputRef.current&&inputRef.current.value!==(value||""))inputRef.current.value=value||"";},[value]);
   return(
     <input ref={inputRef} className={s.inp} placeholder={placeholder||"Start typing..."} defaultValue={value} autoComplete="off" onChange={e=>onChange(e.target.value)}/>
   );
@@ -1197,7 +1201,7 @@ function ViewingSection({prep,updPrepMulti,bookedSlots}) {
                   </div>
                   {vDate&&(
                     <div>
-                      <div className={s.label}>Time Slot — {fmt(vDate)}</div>
+                      <div className={s.label}>Time Slot — {fmtDayLong(vDate)}</div>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
                         {VIEWING_SLOTS.map(sl=>{const key=`${vDate}_${sl}`;const booked=bookedSlots.has(key);const selected=vSlot===key;return <button key={sl} type="button" disabled={booked&&!selected} onClick={()=>updPrepMulti({viewingSlot:selected?"":key})} className={`py-2 rounded-xl border-2 text-sm font-bold transition ${selected?"bg-green-600 text-white border-green-600":booked?"bg-gray-100 text-gray-300 border-gray-100 cursor-not-allowed":"bg-white text-gray-700 border-gray-200 hover:border-green-500"}`}>{sl}</button>;})}
                       </div>
@@ -1376,7 +1380,7 @@ Email: info@mortuarysupport.com.au`;
 function buildCheckInEmail(r) {
   const needsMccd = r.paperwork && (r.paperwork.includes("VOD") || r.paperwork.includes("LE"));
   const mccdWarning = needsMccd ? `\n⚠️ IMPORTANT: Please obtain the MCCD from the doctor and email it through to us — we cannot prepare the deceased until we receive it.` : "";
-  return `Hi ${r.funeralHomeName} Team,\n\nThis is to notify you that ${r.firstName} ${r.lastName} has been checked into Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nFirst Name: ${r.firstName}    Last Name: ${r.lastName}\nDOB: ${fmt(r.dob)} | DOD: ${fmt(r.dod)} | Age: ${r.ageAtDeath ?? "—"} | Sex: ${r.sex || "—"}\nCase Reference: ${r.caseRef}\n\n─────────────────────────────\nTRANSFER DETAILS\n─────────────────────────────\nTransferred From: ${r.transferredFrom || "—"}\nTransferred By: ${r.transferredBy || "—"}\nTransfer Date: ${fmt(r.transferDate)}\nTime: ${r.transferTime || "—"}\n\n─────────────────────────────\nON ARRIVAL WE RECEIVED\n─────────────────────────────\nPaperwork Received: ${r.paperwork || "None"}\nValuables: ${r.valuables || "Nil"}\n\n─────────────────────────────\nDETAILS OF ${(r.firstName+" "+r.lastName).toUpperCase()}\n─────────────────────────────\nSize: ${r.size || "—"} | Weight: ${r.weight || "—"}\n${mccdWarning}\nPlease go to the website and enter the 2nd note with preparation instructions when you can.\n\nTheir current status is: NOT STARTED${MSS_FOOTER}`;
+  return `Hi ${r.funeralHomeName} Team,\n\nThis is to notify you that ${r.firstName} ${r.lastName} has been checked into Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nFirst Name: ${r.firstName}    Last Name: ${r.lastName}\nDOB: ${fmt(r.dob)} | DOD: ${fmt(r.dod)} | Age: ${r.ageAtDeath ?? "—"} | Sex: ${r.sex || "—"}\nCase Reference: ${r.caseRef}\n\n─────────────────────────────\nTRANSFER DETAILS\n─────────────────────────────\nTransferred From: ${r.transferredFrom || "—"}\nTransferred By: ${r.transferredBy || "—"}\nTransfer Date: ${fmtDayLong(r.transferDate)}\nTime: ${r.transferTime || "—"}\n\n─────────────────────────────\nON ARRIVAL WE RECEIVED\n─────────────────────────────\nPaperwork Received: ${r.paperwork || "None"}\nValuables: ${r.valuables || "Nil"}\n\n─────────────────────────────\nDETAILS OF ${(r.firstName+" "+r.lastName).toUpperCase()}\n─────────────────────────────\nSize: ${r.size || "—"} | Weight: ${r.weight || "—"}\n${mccdWarning}\nPlease go to the website and enter the 2nd note with preparation instructions when you can.\n\nTheir current status is: NOT STARTED${MSS_FOOTER}`;
 }
 
 function buildCompletedEmail(c, prep, billable, otherUsed) {
@@ -1384,9 +1388,9 @@ function buildCompletedEmail(c, prep, billable, otherUsed) {
   const billableList = Object.keys(billable || {}).filter(k => billable[k]).join(", ") || "None";
   const otherList = Object.keys(otherUsed || {}).filter(k => otherUsed[k]).join(", ") || "None";
   const viewingDetail = prep.viewing === "Yes"
-    ? `Yes${prep.viewingLocation ? " — " + prep.viewingLocation : ""}${prep.viewingHost ? " (Hosted by " + prep.viewingHost + ")" : ""}${prep.viewingSlot ? " @ " + prep.viewingSlot.split("_")[1] : ""}`
+    ? `Yes${prep.viewingLocation ? " — " + prep.viewingLocation : ""}${prep.viewingHost ? " (Hosted by " + prep.viewingHost + ")" : ""}${prep.viewingSlot ? " @ " + fmtDayLong(prep.viewingSlot.split("_")[0]) + " " + prep.viewingSlot.split("_")[1] : ""}`
     : prep.viewing || "—";
-  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection/Delivery Date: ${fmt(prep.collectionDate) || "—"}\nFuneral Date: ${fmt(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\n─────────────────────────────\nITEMS USED\n─────────────────────────────\n${otherList}\n\n─────────────────────────────\nBILLABLE ITEMS\n─────────────────────────────\n${billableList}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
+  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection/Delivery Date: ${fmtDayLong(prep.collectionDate) || "—"}\nFuneral Date: ${fmtDayLong(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\n─────────────────────────────\nITEMS USED\n─────────────────────────────\n${otherList}\n\n─────────────────────────────\nBILLABLE ITEMS\n─────────────────────────────\n${billableList}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
 }
 
 function buildCheckOutEmail(c, coData) {
@@ -1414,7 +1418,7 @@ DOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: $
 ─────────────────────────────
 CHECK IN DETAILS
 ─────────────────────────────
-Checked In: ${fmtDT(c.checkedInAt)} by ${c.checkedInBy || "—"}
+Checked In: ${fmtDTDay(c.checkedInAt)} by ${c.checkedInBy || "—"}
 Transferred From: ${c.transferredFrom || "—"}
 Transferred By: ${c.transferredBy || "—"}
 Paperwork: ${c.paperwork || "None"}
@@ -1427,8 +1431,8 @@ PREPARATION
 Preparation: ${prepList}
 Disposition: ${prep.disposition || "—"}
 Viewing: ${prep.viewing || "—"}${prep.viewingLocation ? " — " + prep.viewingLocation : ""}
-Collection/Delivery Date: ${fmt(prep.collectionDate) || "—"}
-Funeral Date: ${fmt(prep.funeralDate) || "—"}
+Collection/Delivery Date: ${fmtDayLong(prep.collectionDate) || "—"}
+Funeral Date: ${fmtDayLong(prep.funeralDate) || "—"}
 Comments: ${prep.comments || "None"}
 
 ─────────────────────────────
@@ -1444,7 +1448,7 @@ BILLABLE ITEMS
 ─────────────────────────────
 CHECK OUT DETAILS
 ─────────────────────────────
-Checked Out: ${fmtDT(c.checkout?.checkedOutAt)} by ${c.checkout?.signedName || "—"}
+Checked Out: ${fmtDTDay(c.checkout?.checkedOutAt)} by ${c.checkout?.signedName || "—"}
 Destination: ${c.checkout?.destination || "—"}
 ${MSS_FOOTER}`;
 }
@@ -1461,7 +1465,56 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const [saving,setSaving]=useState(false);
   useEffect(()=>{if(submitted)window.scrollTo({top:0,behavior:"smooth"});},[submitted]);
   const [scanOpen,setScanOpen]=useState(false);
+  const [ocr,setOcr]=useState({status:"",msg:""});
+  const formRef=React.useRef(null);
+  const lastScanRef=React.useRef(null);
+  const READ_LABELS=["MCCD","Coroners BO","LE","VOD"];
+  const DOC_NAME={MCCD:"MCCD","Coroners BO":"Coroner's BO",LE:"Life Extinct (LE)",VOD:"VOD",CRA:"CRA",Other:"different document",OTHER:"other document"};
+  const [noDeathDoc,setNoDeathDoc]=useState(false);
+  useEffect(()=>{if(ocr.status&&ocr.status!=="reading")document.getElementById("ocr-banner")?.scrollIntoView({behavior:"smooth",block:"center"});},[ocr.status]);
+  const pwOf=l=>l==="Coroners BO"?"BO":l;
+  function relabelDoc(doc,newLabel){
+    setForm(f=>{
+      const docs=(f.checkInDocs||[]).map(d=>d===doc?{...d,label:newLabel}:d);
+      let pw=f.paperwork.filter(p=>p!==pwOf(doc.label)||docs.some(d=>pwOf(d.label)===p));
+      if(PAPERWORK_OPTIONS.includes(pwOf(newLabel))&&!pw.includes(pwOf(newLabel))) pw=[...pw,pwOf(newLabel)];
+      return {...f,checkInDocs:docs,paperwork:pw};
+    });
+  }
+  async function readDocument(images,label){
+    setOcr({status:"reading",msg:`Reading ${label}…`});
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),25000);
+    try{
+      const r=await fetch("/api/read-document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label,images}),signal:ctl.signal});
+      const j=await r.json().catch(()=>({}));
+      if(r.status===503){setOcr({status:"off",msg:"Auto-read isn't switched on yet. The document was saved — please type the details."});return;}
+      if(!r.ok) throw new Error(j.error||("Error "+r.status));
+      const det=j.docType||"";
+      if(det&&det!==label){setOcr({status:"confirm",label,detected:det,fields:j.fields||{},doc:lastScanRef.current});return;}
+      applyRead(j.fields||{},label);
+    }catch(e){
+      setOcr({status:"error",msg:e.name==="AbortError"?"Reading took too long. The document was saved — please type the details.":"Couldn't read the document ("+e.message+"). It was saved — please type the details."});
+    }finally{clearTimeout(t);}
+  }
+  function applyRead(fl,label){
+    {const names={firstName:"first name",lastName:"last name",dob:"DOB",dod:"DOD",sex:"sex",transferFrom:"transferred from"};
+      const f=formRef.current||{};const u={};
+        ["firstName","lastName","dob","dod","sex"].forEach(k=>{if(fl[k]&&!String(f[k]||"").trim()){u[k]=fl[k];}});
+        if(u.dob&&u.dob>today()) delete u.dob; if(u.dod&&u.dod>today()) delete u.dod;
+        if(label!=="Coroners BO"&&!f.transferFrom&&(fl.placeType||fl.placeOfDeath)){
+          const type=TRANSFER_FROM_OPTIONS.includes(fl.placeType)?fl.placeType:"Other";
+          u.transferFrom=type;u.transferFromSub=type==="Home"?"":(fl.placeOfDeath||"");
+        }
+      const filled=Object.keys(u).filter(k=>names[k]).map(k=>names[k]);
+      if(filled.length){setForm(p=>({...p,...u}));setErrors(e=>{const n={...e};Object.keys(u).forEach(k=>delete n[k]);return n;});}
+      setOcr(filled.length
+        ?{status:"done",msg:`Filled from ${label}: ${filled.join(", ")}. Please check these against the document.`}
+        :{status:"none",msg:`Couldn't read any new details clearly from the ${label}. Please type them in.`});
+    }
+  }
   const [form,setForm]=useState({firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),transferTime:new Date().toTimeString().slice(0,5),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false});
+  formRef.current=form;
+  const deathDocDone=noDeathDoc||(form.checkInDocs||[]).some(d=>READ_LABELS.includes(d.label));
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
   const sortedFH=sortAlpha(FUNERAL_HOMES,"name");
   const isAllHoursOrMSS=!form.transferredBy||(form.transferredBy?.startsWith("All Hours")||form.transferredBy?.startsWith("MSS")||form.transferredBy?.startsWith("Statewide")||form.transferredBy==="ALL");
@@ -1568,7 +1621,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           <h2 className="text-2xl font-black text-gray-900 mb-1">Checked In ✓</h2>
           <p className="text-4xl font-black text-gray-900 mt-3 mb-1 tracking-widest">{submitted.caseRef}</p>
           <p className="text-green-700 font-semibold">{submitted.firstName} {submitted.lastName}</p>
-          <p className="text-gray-400 text-xs mt-2">{fmtDT(submitted.checkedInAt)}</p>
+          <p className="text-gray-400 text-xs mt-2">{fmtDTDay(submitted.checkedInAt)}</p>
         </div>
         <DocumentSection caseId={submitted.id} funeralHomeName={submitted.funeralHomeName} lastName={submitted.lastName} dod={submitted.dod}/>
         <button type="button" onClick={async()=>{
@@ -1635,6 +1688,18 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             <span className="text-base font-bold text-gray-900">{isFD?user.name:selFH==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===selFH)?.name}</span>
           </div>}
 
+          {ocr.status&&<div id="ocr-banner" className={`rounded-xl border-2 px-4 py-3 mb-4 text-sm font-bold flex items-start justify-between gap-3 ${ocr.status==="reading"?"bg-blue-50 border-blue-300 text-blue-800":ocr.status==="confirm"?"bg-red-50 border-red-400 text-red-900":ocr.status==="done"?"bg-amber-50 border-amber-400 text-amber-900":"bg-gray-50 border-gray-300 text-gray-700"}`}>
+            {ocr.status==="confirm"
+              ?<div className="flex-1">
+                <p>⚠️ That looks like a {DOC_NAME[ocr.detected]||ocr.detected}, not a {DOC_NAME[ocr.label]||ocr.label}. Please confirm.</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button type="button" onClick={()=>applyRead(ocr.fields,ocr.label)} className="px-3 py-2 rounded-lg bg-gray-900 text-white text-xs font-black uppercase">It is a {DOC_NAME[ocr.label]||ocr.label}</button>
+                  <button type="button" onClick={()=>{const nl=ocr.detected==="Other"?"OTHER":ocr.detected;if(ocr.doc)relabelDoc(ocr.doc,nl);if(READ_LABELS.includes(nl))applyRead(ocr.fields,nl);else setOcr({status:"none",msg:`Saved as ${DOC_NAME[nl]||nl}. Now scan the MCCD, Coroner's BO, LE or VOD.`});}} className="px-3 py-2 rounded-lg bg-white border-2 border-gray-900 text-gray-900 text-xs font-black uppercase">Change to {DOC_NAME[ocr.detected]||ocr.detected}</button>
+                </div>
+              </div>
+              :<span>{ocr.status==="reading"?"⏳ ":ocr.status==="done"?"✨ ":"ℹ️ "}{ocr.msg}</span>}
+            {ocr.status!=="reading"&&ocr.status!=="confirm"&&<button type="button" onClick={()=>setOcr({status:"",msg:""})} className="text-xs font-black uppercase opacity-60 hover:opacity-100">✕</button>}
+          </div>}
           <div className={s.card}>
             <p className={s.section}>Deceased Details</p>
             <div className="grid grid-cols-2 gap-3">
@@ -1671,7 +1736,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
                 {errors.transferredBy&&<p className="text-red-500 text-xs mt-1">{errors.transferredBy}</p>}
               </Field>
             )}
-            <Field label="Transfer Date" required><input type="date" className={s.inp} value={form.transferDate} onChange={e=>setF("transferDate",e.target.value)} max={today()}/></Field>
+            <Field label="Transfer Date" required><input type="date" className={s.inp} value={form.transferDate} onChange={e=>setF("transferDate",e.target.value)} max={today()}/>{form.transferDate&&<p className="text-xs font-black text-gray-700 mt-1">{fmtDayLong(form.transferDate)}</p>}</Field>
             <Field label="Transfer Time"><input type="time" className={s.inp} value={form.transferTime||""} onChange={e=>setF("transferTime",e.target.value)}/></Field>
             <Field label="Valuables / Items" required>
               <ValuablesPicker
@@ -1688,8 +1753,8 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
           <div className={s.card}>
             <div className="flex items-center justify-between gap-2"><p className={s.section}>Paperwork Received</p><button type="button" onClick={()=>setScanOpen(true)} className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase hover:bg-gray-700">📷 Scan Paperwork</button></div>
-            {scanOpen&&<DocumentScanner labels={["MCCD","BO","CRA","VOD","LE","Coroners BO","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
-              prefixLabel={false} onSave={(file,lbl)=>{setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),{label:lbl,name:file.name,file}],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
+            {scanOpen&&<DocumentScanner labels={["MCCD","BO","CRA","VOD","LE","Coroners BO","OTHER"]} readLabels={READ_LABELS} onRead={readDocument} lockedLabels={deathDocDone?[]:["BO","CRA","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
+              prefixLabel={false} onSave={(file,lbl)=>{setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name:file.name,file})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
             {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mb-2">✓ {(form.checkInDocs||[]).length} document{(form.checkInDocs||[]).length>1?"s":""} ready to save with this check-in (see Documents below)</p>}
             <div className="flex flex-wrap gap-3">
               {PAPERWORK_OPTIONS.map(p=><button key={p} type="button" onClick={()=>togglePW(p)} className={`px-5 py-3 rounded-xl border-2 text-base font-bold transition ${form.paperwork.includes(p)?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-500 border-gray-300 hover:border-gray-700"}`}>{p}</button>)}
@@ -1735,13 +1800,13 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               </div>
             ))}
             <div className="flex gap-2 mb-2 flex-wrap">
-              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>(
-                <label key={lbl} className="cursor-pointer">
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file}]);}e.target.value="";}}/>
-                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">+ {lbl}</span>
-                </label>
-              ))}
+              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>{const locked=!deathDocDone&&!READ_LABELS.includes(lbl);return(
+                <label key={lbl} className={locked?"cursor-not-allowed opacity-30":"cursor-pointer"} title={locked?"Scan the death paperwork first":""}>
+                  <input type="file" disabled={locked} accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){setF("checkInDocs",[...(form.checkInDocs||[]),{label:lbl,name:file.name,file}]);}e.target.value="";}}/>
+                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">{locked?"🔒":"+"} {lbl}</span>
+                </label>);})}
             </div>
+            {!deathDocDone&&<p className="text-xs text-gray-500">Scan ONE of these first: MCCD, Coroner's BO, LE or VOD. Other documents unlock after that. <button type="button" onClick={()=>setNoDeathDoc(true)} className="underline font-bold text-gray-700">No death paperwork with this body</button></p>}
           </div>
 
           <button onClick={submit} disabled={saving} className={`${s.btnDark} w-full text-lg py-4 disabled:opacity-40`}>{saving?"Saving…":"Submit Check-In →"}</button>
@@ -2261,7 +2326,7 @@ function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
   const si=statusItems||{};
   const b=billable||{};
   function fmt(d){if(!d)return"—";const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y;}
-  const checkinStr=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+  const checkinStr=c.checkedInAt?fmtDTDay(c.checkedInAt):"—";
   
   // Build services list with codes
   const serviceMap={
@@ -2376,8 +2441,8 @@ ${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE 
 
 <div class="grid3">
   <div class="box"><div class="box-title">Disposition</div><div class="box-value">${prep.disposition||"—"}</div></div>
-  <div class="box"><div class="box-title">Collection</div><div class="box-value">${fmt(prep.collectionDate)}${prep.collectionTime?" @ "+prep.collectionTime:""}</div></div>
-  <div class="box"><div class="box-title">Funeral Date</div><div class="box-value">${fmt(prep.funeralDate)}${prep.funeralTime?" @ "+prep.funeralTime:""}</div></div>
+  <div class="box"><div class="box-title">Collection</div><div class="box-value">${fmtDayLong(prep.collectionDate)}${prep.collectionTime?" @ "+prep.collectionTime:""}</div></div>
+  <div class="box"><div class="box-title">Funeral Date</div><div class="box-value">${fmtDayLong(prep.funeralDate)}${prep.funeralTime?" @ "+prep.funeralTime:""}</div></div>
 </div>
 
 <div class="grid2">
@@ -2400,7 +2465,7 @@ ${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE 
   <div class="section">
     <div class="section-title">Viewing</div>
     <div class="box-value">${prep.viewing||"—"}</div>
-    ${prep.viewing==="Yes"?`<div style="font-size:10px;color:#555;margin-top:3px;">${prep.viewingSlot?prep.viewingSlot.split("_").join(" @ "):""}${prep.viewingDuration?" ("+prep.viewingDuration+")":""} &nbsp; ${prep.viewingLocation||""}</div>`:""}
+    ${prep.viewing==="Yes"?`<div style="font-size:10px;color:#555;margin-top:3px;">${prep.viewingSlot?fmtDayLong(prep.viewingSlot.split("_")[0])+" @ "+prep.viewingSlot.split("_")[1]:""}${prep.viewingDuration?" ("+prep.viewingDuration+")":""} &nbsp; ${prep.viewingLocation||""}</div>`:""}
   </div>
 </div>
 
@@ -2576,7 +2641,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <h2 className="text-2xl font-black text-gray-900 mb-3">Mortuary</h2>
       {newJobs.length>0&&(<div className="mb-8"><div className="flex items-center gap-3 mb-4"><span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"/><h3 className="text-sm font-black uppercase tracking-widest text-gray-700">New Jobs — {newJobs.length} case{newJobs.length>1?"s":""}</h3>
             <button onClick={async()=>{if(!window.confirm("Accept all "+newJobs.length+" new jobs?")) return;const now=new Date().toISOString();for(const x of newJobs){try{await updateCase(x.id,{accepted_at:now,prep_status:"not-started"});onUpdateCase(x.id,{acceptedAt:now,prepStatus:"not-started"});}catch(e){alert("Error: "+e.message);break;}}}} className="text-xs font-black uppercase tracking-widest text-white bg-green-600 hover:bg-green-700 rounded-lg px-3 py-1.5 transition">✅ ACCEPT ALL</button>
-            <button onClick={()=>{const w=window.open("","_blank");w.document.write("<html><head><title>New Jobs</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}h2{margin-bottom:16px}</style></head><body><h2>New Jobs — "+new Date().toLocaleDateString("en-AU")+"</h2><table><tr><th>Case Ref</th><th>Deceased</th><th>Funeral Director</th><th>Checked In</th></tr>"+newJobs.map(x=>"<tr><td>"+x.caseRef+"</td><td>"+(x.lastName||"").toUpperCase()+", "+x.firstName+"</td><td>"+(x.funeralHomeName||"")+"</td><td>"+(x.checkedInAt?new Date(x.checkedInAt).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—")+"</td></tr>").join("")+"</table></body></html>");w.document.close();w.print();}} className="text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">🖨 PRINT LIST</button></div><div className="space-y-3">{newJobs.map(x=>(<div key={x.id} className="bg-white border-2 border-green-400 rounded-2xl p-5"><div className="flex items-start justify-between gap-4"><div><div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName}</div><div className="text-sm text-gray-500 mt-0.5">{x.caseRef} · {x.funeralHomeName}</div><div className="text-xs text-gray-400 mt-0.5">Checked in: {x.checkedInAt?new Date(x.checkedInAt).toLocaleString("en-AU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—"}</div></div><button onClick={async()=>{try{await updateCase(x.id,{accepted_at:new Date().toISOString(),prep_status:"not-started"});onUpdateCase(x.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}catch(e){alert(e.message);}}} className="shrink-0 px-5 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">ACCEPT</button></div></div>))}</div><div className="border-t-2 border-gray-100 my-6"/></div>)}
+            <button onClick={()=>{const w=window.open("","_blank");w.document.write("<html><head><title>New Jobs</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}h2{margin-bottom:16px}</style></head><body><h2>New Jobs — "+new Date().toLocaleDateString("en-AU")+"</h2><table><tr><th>Case Ref</th><th>Deceased</th><th>Funeral Director</th><th>Checked In</th></tr>"+newJobs.map(x=>"<tr><td>"+x.caseRef+"</td><td>"+(x.lastName||"").toUpperCase()+", "+x.firstName+"</td><td>"+(x.funeralHomeName||"")+"</td><td>"+(x.checkedInAt?fmtDTDay(x.checkedInAt):"—")+"</td></tr>").join("")+"</table></body></html>");w.document.close();w.print();}} className="text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">🖨 PRINT LIST</button></div><div className="space-y-3">{newJobs.map(x=>(<div key={x.id} className="bg-white border-2 border-green-400 rounded-2xl p-5"><div className="flex items-start justify-between gap-4"><div><div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName}</div><div className="text-sm text-gray-500 mt-0.5">{x.caseRef} · {x.funeralHomeName}</div><div className="text-xs text-gray-400 mt-0.5">Checked in: {x.checkedInAt?fmtDTDay(x.checkedInAt):"—"}</div></div><button onClick={async()=>{try{await updateCase(x.id,{accepted_at:new Date().toISOString(),prep_status:"not-started"});onUpdateCase(x.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}catch(e){alert(e.message);}}} className="shrink-0 px-5 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">ACCEPT</button></div></div>))}</div><div className="border-t-2 border-gray-100 my-6"/></div>)}
       {changedCases.length>0&&<div className="mb-6">
         <div className="flex items-center gap-2 mb-3"><span className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"/><span className="text-sm font-black uppercase tracking-widest text-orange-600">Changes Made — {changedCases.length}</span></div>
         <div className="space-y-3">
@@ -2694,7 +2759,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           <Field label="Collection/Delivery Date">
             <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrepMulti({collectionDate:e.target.value,funeralDate:prep.sameDates?e.target.value:prep.funeralDate})}/>
             {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
-            {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
+            {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmtDayLong(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
           </Field>
           <div className="flex items-center gap-3">
             <button type="button" onClick={()=>updPrepMulti({sameDates:!prep.sameDates,funeralDate:!prep.sameDates?prep.collectionDate:prep.funeralDate,funeralTime:!prep.sameDates?prep.collectionTime:prep.funeralTime})} className={`inline-flex px-4 py-2 rounded-xl border-2 text-xs font-black uppercase transition ${prep.sameDates?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700"}`}>
@@ -2706,7 +2771,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           <Field label="Funeral Date">
             <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)}/>
             {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
-            {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmt(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
+            {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmtDayLong(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
           </Field>
           )}
         </div>
@@ -3009,7 +3074,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
           <div className="bg-gray-900 text-white rounded-2xl px-5 py-3 mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-gray-400">Check Out Date & Time</p>
-              <p className="text-base font-black">{fmtDT(checkoutTime.toISOString())}</p>
+              <p className="text-base font-black">{fmtDTDay(checkoutTime.toISOString())}</p>
             </div>
           </div>
 
@@ -3101,7 +3166,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
           {/* Signature */}
           <div className={s.card}>
             <p className={s.section}>SIGN OFF {errors.signature&&<span className="text-red-500 text-xs ml-2 normal-case">({errors.signature})</span>}</p>
-            <p className="text-xs font-bold text-gray-500 uppercase mb-3">Signed by: <span className="text-gray-900">{user.name}</span> · {fmtDT(checkoutTime.toISOString())}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase mb-3">Signed by: <span className="text-gray-900">{user.name}</span> · {fmtDTDay(checkoutTime.toISOString())}</p>
             <Field label="PRINT FULL NAME" required>
               <input className={`${s.inp} text-lg font-bold uppercase`}
                 placeholder="Type your full name…"
@@ -3220,7 +3285,7 @@ function MyCases({user,cases,onUpdateCase}) {
            </div>
            <div className="text-base font-black text-gray-900 mb-1">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
            <div className="text-xs text-gray-500 mb-1">{c.funeralHomeName}</div>
-           {c.prep?.collectionDate&&<div className="text-xs text-gray-400 mb-2">Collection: {c.prep.collectionDate}</div>}
+           {c.prep?.collectionDate&&<div className="text-xs text-gray-400 mb-2">Collection: {fmtDayLong(c.prep.collectionDate)}</div>}
            {c.prep?.disposition&&<div className="text-xs text-gray-400 mb-2">{c.prep.disposition}</div>}
            <div className="flex flex-wrap gap-1 mb-2">
              {isMSS&&c.checkedOut&&c.status==="pending-lock"&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-2 py-1 font-black uppercase">APPROVE</button>}
@@ -3252,8 +3317,8 @@ function MyTransfers({user,cases}) {
             <div className="text-xl font-black text-gray-900 mb-3">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
               <div><span className="text-gray-500">Funeral Director: </span><span className="font-bold text-gray-900">{c.funeralHomeName||"—"}</span></div>
-              <div><span className="text-gray-500">Check In: </span><span className="font-bold text-gray-900">{fmtDT(c.checkedInAt)}</span></div>
-              <div><span className="text-gray-500">Check Out: </span><span className="font-bold text-gray-900">{c.checkout?.checkedOutAt?fmtDT(c.checkout.checkedOutAt):"—"}</span></div>
+              <div><span className="text-gray-500">Check In: </span><span className="font-bold text-gray-900">{fmtDTDay(c.checkedInAt)}</span></div>
+              <div><span className="text-gray-500">Check Out: </span><span className="font-bold text-gray-900">{c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"—"}</span></div>
               <div><span className="text-gray-500">Collected From: </span><span className="font-bold text-gray-900">{c.transferredFrom||"—"}</span></div>
               <div><span className="text-gray-500">Delivered To: </span><span className="font-bold text-gray-900">{c.checkout?.destination||"—"}</span></div>
             </div>
@@ -3429,7 +3494,7 @@ function InvoicingView({user,cases,onUpdateCase}){
         <div className="bg-gray-900 text-white rounded-2xl px-6 py-5 mb-6">
           <div className="text-xs font-black uppercase tracking-widest text-gray-400 mb-1">Invoice Summary</div>
           <div className="text-2xl font-black">{(selCase.lastName||"").toUpperCase()}, {selCase.firstName}</div>
-          <div className="text-sm text-gray-400 mt-1">{selCase.caseRef} · {selCase.funeralHomeName} · Checked in: {fmtDT(selCase.checkedInAt)}</div>
+          <div className="text-sm text-gray-400 mt-1">{selCase.caseRef} · {selCase.funeralHomeName} · Checked in: {fmtDTDay(selCase.checkedInAt)}</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-6">
           <table className="w-full text-sm">
@@ -3493,7 +3558,7 @@ function InvoicingView({user,cases,onUpdateCase}){
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2"><div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><CasePresenceDot caseId={c.id} currentUserId={user?.id||user?.name}/></div>
-                  <div className="text-sm text-gray-500 mt-1">{c.caseRef} · {c.funeralHomeName} · Checked in: {fmtDT(c.checkedInAt)}</div>
+                  <div className="text-sm text-gray-500 mt-1">{c.caseRef} · {c.funeralHomeName} · Checked in: {fmtDTDay(c.checkedInAt)}</div>
                 </div>
                 <div className="text-xs font-black text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">READY TO INVOICE</div>
               </div>
@@ -4274,7 +4339,7 @@ function NewCheckInsView({cases,user,onAction}){
              <div>
                <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
                <div className="text-sm text-gray-500 mt-0.5">{c.caseRef} · {c.funeralHomeName}</div>
-               <div className="text-xs text-gray-400 mt-0.5">{c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):""} · by {c.checkedInBy||"—"}</div>
+               <div className="text-xs text-gray-400 mt-0.5">{c.checkedInAt?fmtDTDay(c.checkedInAt):""} · by {c.checkedInBy||"—"}</div>
              </div>
              <button onClick={()=>onAction("mortuary")} className="shrink-0 px-4 py-2 rounded-xl bg-green-600 text-white font-black text-xs uppercase hover:bg-green-700 transition">VIEW</button>
            </div>
@@ -4602,7 +4667,7 @@ function VehicleCalendarView({user,cases,vehicleBookings,onAddVehicleBooking,onU
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="text-xs font-black uppercase text-gray-500 mb-1">Date</div>
-                  <input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobDate} onChange={e=>setJobDate(e.target.value)}/>
+                  <input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobDate} onChange={e=>setJobDate(e.target.value)}/>{jobDate&&<p className="text-xs font-black text-gray-700 mt-1">{fmtDayLong(jobDate)}</p>}
                 </div>
                 <div>
                   <div className="text-xs font-black uppercase text-gray-500 mb-1">Start Time</div>
@@ -4661,7 +4726,7 @@ function VehicleCalendarView({user,cases,vehicleBookings,onAddVehicleBooking,onU
             </div>
             <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
               <div className="font-black text-gray-900">{showCompleteModal.jobType}</div>
-              <div className="text-gray-500">{showCompleteModal.caseLabel||"TBC"} · {showCompleteModal.date} {showCompleteModal.time}</div>
+              <div className="text-gray-500">{showCompleteModal.caseLabel||"TBC"} · {fmtDayLong(showCompleteModal.date)} {showCompleteModal.time}</div>
               <div className="text-gray-500">{(showCompleteModal.staff||[]).join(", ")}</div>
             </div>
             <div className="space-y-4">
@@ -4756,9 +4821,9 @@ function RecordsView({user,cases,onUpdateCase}) {
             </div>
             <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)}/>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-500 mt-3">
-              <span>In: <span className="text-gray-800 font-medium">{fmtDT(c.checkedInAt)}</span></span>
+              <span>In: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkedInAt)}</span></span>
               <span>By: <span className="text-gray-800 font-medium">{c.checkedInBy}</span></span>
-              {c.checkedOut&&<><span>Out: <span className="text-gray-800 font-medium">{fmtDT(c.checkout?.checkedOutAt)}</span></span><span>Signed: <span className="text-gray-800 font-medium">{c.checkout?.signedName}</span></span></>}
+              {c.checkedOut&&<><span>Out: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkout?.checkedOutAt)}</span></span><span>Signed: <span className="text-gray-800 font-medium">{c.checkout?.signedName}</span></span></>}
             </div>
             <DocumentSection caseId={c.id} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
           </div>
@@ -4975,7 +5040,7 @@ function ReportsView({cases}) {
 
   function getSortLabel(c, key) {
     switch(key) {
-      case "checkoutDate":  return c.checkout?.checkedOutAt ? fmtDT(c.checkout.checkedOutAt) : "Not checked out";
+      case "checkoutDate":  return c.checkout?.checkedOutAt ? fmtDTDay(c.checkout.checkedOutAt) : "Not checked out";
       case "prepType":      return (c.prep?.prepOptions||[]).map(p=>PREP_OPTIONS.find(x=>x.label===p)?.short||p).join(", ") || "No Prep";
       case "funeralDir":    return c.funeralHomeName || "—";
       case "transferTeam":  return c.transferredBy || "—";
@@ -5070,8 +5135,8 @@ function ReportsView({cases}) {
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-0.5 text-xs text-gray-500 ml-6">
                         <span>FD: <span className="text-gray-800 font-medium">{c.funeralHomeName||"—"}</span></span>
-                        <span>In: <span className="text-gray-800 font-medium">{fmtDT(c.checkedInAt)}</span></span>
-                        <span>Out: <span className="text-gray-800 font-medium">{c.checkout?.checkedOutAt?fmtDT(c.checkout.checkedOutAt):"—"}</span></span>
+                        <span>In: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkedInAt)}</span></span>
+                        <span>Out: <span className="text-gray-800 font-medium">{c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"—"}</span></span>
                         <span>Prep: <span className="text-gray-800 font-medium">{(c.prep?.prepOptions||[]).map(p=>PREP_OPTIONS.find(x=>x.label===p)?.short||p).join(", ")||"—"}</span></span>
                         <span>Transfer: <span className="text-gray-800 font-medium">{c.transferredBy||"—"}</span></span>
                         <span>DOD: <span className="text-gray-800 font-medium">{fmt(c.dod)}</span></span>
@@ -5281,7 +5346,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Date</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobDate} onChange={e=>setJobDate(e.target.value)}/></div>
+                <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Date</div><input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobDate} onChange={e=>setJobDate(e.target.value)}/>{jobDate&&<p className="text-xs font-black text-gray-700 mt-1">{fmtDayLong(jobDate)}</p>}</div>
                 <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Start Time</div><input type="time" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobTime} onChange={e=>setJobTime(e.target.value)}/></div>
               </div>
               <div><div className="text-xs font-black uppercase text-gray-500 mb-1">Duration (hours)</div><input type="number" min="0.5" max="12" step="0.5" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={jobHours} onChange={e=>setJobHours(parseFloat(e.target.value))}/></div>
@@ -5316,7 +5381,7 @@ function VehicleWeekView({weekDates,vehicleBookings,onAddVehicleBooking,onUpdate
             </div>
             <div className="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
               <div className="font-black">{showCompleteModal.jobType}</div>
-              <div className="text-gray-500">{showCompleteModal.caseLabel||"TBC"} · {showCompleteModal.date} {showCompleteModal.time}</div>
+              <div className="text-gray-500">{showCompleteModal.caseLabel||"TBC"} · {fmtDayLong(showCompleteModal.date)} {showCompleteModal.time}</div>
               <div className="text-gray-400">{(showCompleteModal.staff||[]).join(", ")}</div>
             </div>
             <div className="space-y-4">
@@ -5519,7 +5584,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           <button onClick={prevWeek} className={`${s.btnGhost} py-1.5 px-3 text-xs`}>← PREV</button>
-          <span className="text-xs font-black text-gray-600 uppercase">{fmt(weekDates[0])} – {fmt(weekDates[6])}</span>
+          <span className="text-xs font-black text-gray-600">{fmtDayLong(weekDates[0])} – {fmtDayLong(weekDates[6])}</span>
           <button onClick={nextWeek} className={`${s.btnDark} py-1.5 px-3 text-xs`}>NEXT →</button>
         </div>
         <div className="flex gap-2">
@@ -5616,6 +5681,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
                   const t=bookSlot?bookSlot.split("_")[1]:"09:00";
                   if(d) setBookSlot(`${d}_${t}`);
                 }}/>
+              {bookSlot&&<p className="text-xs font-black text-gray-700 mt-1">{fmtDayLong(bookSlot.split("_")[0])}</p>}
             </div>
             {/* Time picker — hour buttons */}
             <div className="mb-3">
@@ -5648,7 +5714,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
             {bookSlot&&(
               <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 mb-3">
                 <span className="text-xs font-black text-gray-500 uppercase">BOOKED: </span>
-                <span className="text-sm font-black text-gray-900 uppercase">{fmt(bookSlot.split("_")[0])} AT {bookSlot.split("_")[1]} — {bookDuration}</span>
+                <span className="text-sm font-black text-gray-900 uppercase">{fmtDayLong(bookSlot.split("_")[0])} AT {bookSlot.split("_")[1]} — {bookDuration}</span>
               </div>
             )}
 
