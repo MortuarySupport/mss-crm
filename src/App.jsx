@@ -1469,7 +1469,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const formRef=React.useRef(null);
   const lastScanRef=React.useRef(null);
   const READ_LABELS=["MCCD","Coroners BO","LE","VOD"];
-  const DOC_NAME={MCCD:"MCCD","Coroners BO":"Coroner's BO",LE:"Life Extinct (LE)",VOD:"VOD",CRA:"CRA",Other:"different document",OTHER:"other document"};
+  const DOC_NAME={MCCD:"MCCD","Coroners BO":"BO (Coroner's)",LE:"Life Extinct (LE)",VOD:"VOD",CRA:"CRA",Other:"different document",OTHER:"other document"};
   const [noDeathDoc,setNoDeathDoc]=useState(false);
   useEffect(()=>{if(ocr.status&&ocr.status!=="reading")document.getElementById("ocr-banner")?.scrollIntoView({behavior:"smooth",block:"center"});},[ocr.status]);
   const pwOf=l=>l==="Coroners BO"?"BO":l;
@@ -1482,7 +1482,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     });
   }
   async function readDocument(images,label){
-    setOcr({status:"reading",msg:`Reading ${label}…`});
+    setOcr({status:"reading",msg:`Reading ${DOC_NAME[label]||label}…`});
     const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),25000);
     try{
       const r=await fetch("/api/read-document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label,images}),signal:ctl.signal});
@@ -1501,20 +1501,24 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       const f=formRef.current||{};const u={};
         ["firstName","lastName","dob","dod","sex"].forEach(k=>{if(fl[k]&&!String(f[k]||"").trim()){u[k]=fl[k];}});
         if(u.dob&&u.dob>today()) delete u.dob; if(u.dod&&u.dod>today()) delete u.dod;
-        if(label!=="Coroners BO"&&!f.transferFrom&&(fl.placeType||fl.placeOfDeath)){
+        if(label==="Coroners BO"&&!f.transferFrom){u.transferFrom="Coroners";u.transferFromSub=CORONER_OPTIONS.includes(fl.coronerOffice)?fl.coronerOffice:"Sydney";}
+        else if(label!=="Coroners BO"&&!f.transferFrom&&(fl.placeType||fl.placeOfDeath)){
           const type=TRANSFER_FROM_OPTIONS.includes(fl.placeType)?fl.placeType:"Other";
           u.transferFrom=type;u.transferFromSub=type==="Home"?"":(fl.placeOfDeath||"");
         }
       const filled=Object.keys(u).filter(k=>names[k]).map(k=>names[k]);
       if(filled.length){setForm(p=>({...p,...u}));setErrors(e=>{const n={...e};Object.keys(u).forEach(k=>delete n[k]);return n;});}
       setOcr(filled.length
-        ?{status:"done",msg:`Filled from ${label}: ${filled.join(", ")}. Please check these against the document.`}
-        :{status:"none",msg:`Couldn't read any new details clearly from the ${label}. Please type them in.`});
+        ?{status:"done",msg:`Filled from ${DOC_NAME[label]||label}: ${filled.join(", ")}. Please check these against the document.`}
+        :{status:"none",msg:`Couldn't read any new details clearly from the ${DOC_NAME[label]||label}. Please type them in.`});
     }
   }
   const [form,setForm]=useState({firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),transferTime:new Date().toTimeString().slice(0,5),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false});
   formRef.current=form;
   const deathDocDone=noDeathDoc||(form.checkInDocs||[]).some(d=>READ_LABELS.includes(d.label));
+  const scanLabel=(()=>{const lab=p=>p==="BO"?"Coroners BO":p;const scanned=l=>(form.checkInDocs||[]).some(d=>d.label===l);
+    const order=deathDocDone?["MCCD","BO","VOD","LE","CRA"]:["MCCD","BO","VOD","LE"];const ticked=order.filter(p=>form.paperwork.includes(p)).map(lab);
+    return ticked.find(l=>!scanned(l))||ticked[0]||"";})();
   const isFD=user?.role==="fd",isTransfer=user?.role==="transfer";
   const sortedFH=sortAlpha(FUNERAL_HOMES,"name");
   const isAllHoursOrMSS=!form.transferredBy||(form.transferredBy?.startsWith("All Hours")||form.transferredBy?.startsWith("MSS")||form.transferredBy?.startsWith("Statewide")||form.transferredBy==="ALL");
@@ -1688,6 +1692,21 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             <span className="text-base font-bold text-gray-900">{isFD?user.name:selFH==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===selFH)?.name}</span>
           </div>}
 
+          {/* PAPERWORK FIRST */}
+          <div className={s.card+" border-2 border-gray-900"}>
+            <p className={s.section}>Paperwork Received — start here</p>
+            <p className="text-sm text-gray-700 mb-3">1. Tap each document that came with the deceased. &nbsp;2. Tap <b>Scan</b>.</p>
+            <div className="flex flex-wrap gap-3 mb-4">
+              {PAPERWORK_OPTIONS.map(p=><button key={p} type="button" onClick={()=>togglePW(p)} className={`px-5 py-3 rounded-xl border-2 text-base font-bold transition ${form.paperwork.includes(p)?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-500 border-gray-300 hover:border-gray-700"}`}>{p}</button>)}
+            </div>
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900 font-bold mb-4">✨ By scanning the MCCD, BO, VOD or LE, the scanner will automatically fill in the deceased's details and where they came from. Please check every detail is correct before submitting.</div>
+            <button type="button" disabled={!scanLabel} onClick={()=>setScanOpen(true)} className="w-full py-4 rounded-xl bg-gray-900 hover:bg-gray-700 text-white text-base font-black uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">📷 Scan {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"Paperwork"}</button>
+            {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap a document above to scan it":"Tap MCCD, BO, VOD or LE above to start scanning"}</p>}
+            {scanOpen&&<DocumentScanner labels={["MCCD","Coroners BO","VOD","LE","CRA","OTHER"]} defaultLabel={scanLabel||undefined} readLabels={READ_LABELS} onRead={readDocument} lockedLabels={deathDocDone?[]:["CRA","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
+              prefixLabel={false} onSave={(file,lbl)=>{setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name:file.name,file})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
+            {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mt-3">✓ Scanned: {(form.checkInDocs||[]).map(d=>DOC_NAME[d.label]||d.label).join(", ")} (see Documents below)</p>}
+          </div>
+
           {ocr.status&&<div id="ocr-banner" className={`rounded-xl border-2 px-4 py-3 mb-4 text-sm font-bold flex items-start justify-between gap-3 ${ocr.status==="reading"?"bg-blue-50 border-blue-300 text-blue-800":ocr.status==="confirm"?"bg-red-50 border-red-400 text-red-900":ocr.status==="done"?"bg-amber-50 border-amber-400 text-amber-900":"bg-gray-50 border-gray-300 text-gray-700"}`}>
             {ocr.status==="confirm"
               ?<div className="flex-1">
@@ -1749,16 +1768,6 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
                 onSetOtherText={v=>setF("otherText",v)}
                 error={errors.valuables}/>
             </Field>
-          </div>
-
-          <div className={s.card}>
-            <div className="flex items-center justify-between gap-2"><p className={s.section}>Paperwork Received</p><button type="button" onClick={()=>setScanOpen(true)} className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase hover:bg-gray-700">📷 Scan Paperwork</button></div>
-            {scanOpen&&<DocumentScanner labels={["MCCD","BO","CRA","VOD","LE","Coroners BO","OTHER"]} readLabels={READ_LABELS} onRead={readDocument} lockedLabels={deathDocDone?[]:["BO","CRA","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
-              prefixLabel={false} onSave={(file,lbl)=>{setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name:file.name,file})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
-            {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mb-2">✓ {(form.checkInDocs||[]).length} document{(form.checkInDocs||[]).length>1?"s":""} ready to save with this check-in (see Documents below)</p>}
-            <div className="flex flex-wrap gap-3">
-              {PAPERWORK_OPTIONS.map(p=><button key={p} type="button" onClick={()=>togglePW(p)} className={`px-5 py-3 rounded-xl border-2 text-base font-bold transition ${form.paperwork.includes(p)?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-500 border-gray-300 hover:border-gray-700"}`}>{p}</button>)}
-            </div>
           </div>
 
           <div className={s.card}>

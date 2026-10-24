@@ -15,7 +15,7 @@ const PROMPT = (label) => `This is a scanned document from New South Wales, Aust
 Staff said it is a ${DOC_NAMES[label]}. First check what it really is, then read the details of the DECEASED person (not the doctor, informant or next of kin).
 
 Reply with ONLY a JSON object, no other text, with exactly these keys:
-{"docType":"","firstName":"","lastName":"","dob":"","dod":"","sex":"","placeOfDeath":"","placeType":""}
+{"docType":"","firstName":"","lastName":"","dob":"","dod":"","sex":"","placeOfDeath":"","placeType":"","coronerOffice":""}
 
 Rules:
 - docType: what the document actually is, one of:
@@ -30,7 +30,8 @@ Rules:
 - dob and dod: format YYYY-MM-DD. Dates on these forms are written day/month/year.
 - sex: "Male", "Female" or "".
 - placeOfDeath: the name of the hospital, nursing home or facility, or the suburb if it was a private home.
-- placeType: one of "Hospital", "Nursing Home", "Home", "Other", or "".`;
+- placeType: one of "Hospital", "Nursing Home", "Home", "Other", or "".
+- coronerOffice: only for a Coroner's document, which Coroner's court or office issued it: "Sydney" (including Lidcombe), "Newcastle", "Wollongong", "Canberra", or "".`;
 
 export const config = { maxDuration: 30 };
 
@@ -85,6 +86,7 @@ export default async function handler(req, res) {
         sex: ["Male", "Female"].includes(s(f.sex)) ? s(f.sex) : "",
         placeOfDeath: s(f.placeOfDeath),
         placeType: ["Hospital", "Nursing Home", "Home", "Other"].includes(s(f.placeType)) ? s(f.placeType) : "",
+        coronerOffice: ["Sydney", "Newcastle", "Wollongong", "Canberra"].includes(s(f.coronerOffice)) ? s(f.coronerOffice) : "",
       },
     });
   } catch (e) {
