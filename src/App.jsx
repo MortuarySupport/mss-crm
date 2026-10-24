@@ -1704,10 +1704,10 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap a document above to scan it":"Tap MCCD, BO, VOD or LE above to start scanning"}</p>}
             {scanOpen&&<DocumentScanner labels={["MCCD","Coroners BO","VOD","LE","CRA","OTHER"]} defaultLabel={scanLabel||undefined} readLabels={READ_LABELS} onRead={readDocument} lockedLabels={deathDocDone?[]:["CRA","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
               prefixLabel={false} onSave={(file,lbl)=>{setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name:file.name,file})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
-            {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mt-3">✓ Scanned: {(form.checkInDocs||[]).map(d=>DOC_NAME[d.label]||d.label).join(", ")} (see Documents below)</p>}
+            {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mt-3">✓ Scanned: {(form.checkInDocs||[]).map(d=>DOC_NAME[d.label]||d.label).join(", ")} (see Documents below){ocr.status==="done"?" — details filled in, please check them":""}</p>}
           </div>
 
-          {ocr.status&&<div id="ocr-banner" className={`rounded-xl border-2 px-4 py-3 mb-4 text-sm font-bold flex items-start justify-between gap-3 ${ocr.status==="reading"?"bg-blue-50 border-blue-300 text-blue-800":ocr.status==="confirm"?"bg-red-50 border-red-400 text-red-900":ocr.status==="done"?"bg-amber-50 border-amber-400 text-amber-900":"bg-gray-50 border-gray-300 text-gray-700"}`}>
+          {ocr.status&&ocr.status!=="done"&&<div id="ocr-banner" className={`rounded-xl border-2 px-4 py-3 mb-4 text-sm font-bold flex items-start justify-between gap-3 ${ocr.status==="reading"?"bg-blue-50 border-blue-300 text-blue-800":ocr.status==="confirm"?"bg-red-50 border-red-400 text-red-900":ocr.status==="done"?"bg-amber-50 border-amber-400 text-amber-900":"bg-gray-50 border-gray-300 text-gray-700"}`}>
             {ocr.status==="confirm"
               ?<div className="flex-1">
                 <p>⚠️ That looks like a {DOC_NAME[ocr.detected]||ocr.detected}, not a {DOC_NAME[ocr.label]||ocr.label}. Please confirm.</p>

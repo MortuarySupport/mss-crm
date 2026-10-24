@@ -121,6 +121,14 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
   const [pages, setPages] = useState([]);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(false);
+  const boxRef = useRef(null);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = boxRef.current; if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setBox({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(el); return () => ro.disconnect();
+  }, []);
+  const sideways = rotation % 180 !== 0;
 
   async function start(id) {
     stop();
@@ -183,17 +191,17 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
 
   return createPortal(
     <div style={{ position: "fixed", inset: 0, zIndex: 2147483646, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }}>
-      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-full overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-3 bg-gray-900 text-white rounded-t-2xl">
+      <div className="bg-white rounded-2xl w-full max-w-6xl h-full flex flex-col overflow-hidden" style={{ maxHeight: "calc(100dvh - 24px)" }}>
+        <div className="shrink-0 flex items-center justify-between px-5 py-3 bg-gray-900 text-white rounded-t-2xl">
           <div className="font-black uppercase tracking-wide">📷 Scan Paperwork</div>
           <button onClick={() => { stop(); onClose(); }} className="text-sm font-black uppercase opacity-70 hover:opacity-100">✕ Close</button>
         </div>
-        <div className="p-4 grid gap-4 md:grid-cols-[1fr_260px]">
-          <div>
-            <div className="relative bg-gray-900 rounded-xl overflow-hidden" style={{ aspectRatio: rotation % 180 ? "3 / 4" : "4 / 3" }}>
+        <div className="p-3 sm:p-4 flex-1 min-h-0 overflow-y-auto md:overflow-hidden grid gap-3 md:gap-4 md:grid-cols-[1fr_260px] md:grid-rows-[minmax(0,1fr)]">
+          <div className="flex flex-col min-h-0">
+            <div ref={boxRef} className="relative bg-gray-900 rounded-xl overflow-hidden h-[42vh] md:h-auto md:flex-1 md:min-h-0">
               {err
                 ? <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-white text-sm">{err}</div>
-                : <video ref={videoRef} playsInline muted autoPlay className="absolute inset-0 w-full h-full object-contain" style={{ transform: `rotate(${rotation}deg)` }} />}
+                : <video ref={videoRef} playsInline muted autoPlay className="absolute object-contain" style={sideways && box.w ? { width: box.h, height: box.w, left: "50%", top: "50%", transform: `translate(-50%,-50%) rotate(${rotation}deg)` } : { inset: 0, width: "100%", height: "100%", transform: `rotate(${rotation}deg)` }} />}
               {flash && <div className="absolute inset-0 bg-white opacity-70" />}
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -207,9 +215,9 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
                 {cams.map((c, i) => <option key={c.deviceId} value={c.deviceId}>{c.label || `Camera ${i + 1}`}</option>)}
               </select>
             )}
-            <p className="text-xs text-gray-500 mt-2">Tip: put the page on a dark surface, set the camera light to High and press the camera's focus button before capturing.</p>
+            <p className="text-xs text-gray-500 mt-2 hidden sm:block">Tip: put the page on a dark surface, set the camera light to High and press the camera's focus button before capturing.</p>
           </div>
-          <div>
+          <div className="flex flex-col min-h-0">
             <div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Document</div>
             <div className="flex flex-wrap gap-2 mb-2">{labels.map(l => lockedLabels.includes(l)
               ? <button key={l} disabled title="Scan the death paperwork first" className={chip(false) + " opacity-30 cursor-not-allowed"}>🔒 {l}</button>
@@ -217,7 +225,7 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
             {lockedLabels.length > 0 && <p className="text-xs font-bold text-red-600 mb-2">Scan ONE of these first: {readLabels.join(" or ")}. Other documents unlock after that.</p>}
             {readLabels.length > 0 && <p className="text-xs text-gray-500 mb-4">{readLabels.includes(label) ? "✨ The details on this document will be read and filled in for you to check." : "This document is saved only (not read)."}</p>}
             <div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Pages ({pages.length})</div>
-            <div className="space-y-2 max-h-[46vh] overflow-y-auto">
+            <div className="space-y-2 max-h-[30vh] md:max-h-none md:flex-1 md:min-h-0 overflow-y-auto">
               {pages.map((p, i) => (
                 <div key={i} className="flex items-center gap-2 border border-gray-200 rounded-xl p-2">
                   <img src={p.url} alt={`Page ${i + 1}`} className="w-16 h-20 object-contain bg-gray-100 rounded" />
@@ -231,7 +239,7 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
               ))}
               {!pages.length && <p className="text-xs text-gray-400">No pages yet. Capture each page in order.</p>}
             </div>
-            <button onClick={save} disabled={!pages.length || busy} className="w-full mt-4 py-3 rounded-xl bg-gray-900 text-white font-black uppercase disabled:opacity-40">
+            <button onClick={save} disabled={!pages.length || busy} className="shrink-0 w-full mt-4 py-3 rounded-xl bg-gray-900 text-white font-black uppercase disabled:opacity-40">
               {busy ? "Saving…" : `${onRead && readLabels.includes(label) ? "Save & Read Details" : "Save " + label} (${pages.length} page${pages.length === 1 ? "" : "s"})`}
             </button>
           </div>
