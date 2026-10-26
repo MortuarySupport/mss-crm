@@ -601,8 +601,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
+            {n.pdf_path ? <>
             <a href={pdfUrl(n.pdf_path)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase underline whitespace-nowrap">View PDF</a>
             {staff && <button type="button" onClick={() => printPdf(n.pdf_path, preOpen())} className="text-xs font-black uppercase underline whitespace-nowrap">🖨 Print</button>}
+            </> : <span className="text-xs font-bold text-gray-400 whitespace-nowrap">☁️ PDF in OneDrive</span>}
           </div>
         </div>
         {(staff || isFD) && (
