@@ -261,6 +261,7 @@ function usePresence(caseId, user){
 
     // Poll viewers
     async function poll(){
+      if(document.hidden) return;
       const cutoff=new Date(Date.now()-30000).toISOString();
       const res=await fetch(SUPABASE_URL+"/rest/v1/case_viewers?case_id=eq."+caseId+"&last_seen=gte."+cutoff+"&select=*",{
         headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}
@@ -375,7 +376,9 @@ function getBookedSlots(cases,excludeId) {
 function twoWeeksAgo() { const d=new Date(); d.setDate(d.getDate()-14); return d; }
 
 // Map DB row to app case format
+let _lastCaseSync=null; // newest updated_at seen, so refreshes only fetch what changed
 function dbToCase(row) {
+  if(row.updated_at&&(!_lastCaseSync||row.updated_at>_lastCaseSync))_lastCaseSync=row.updated_at;
   return {
     id: row.id,
     caseRef: row.case_ref,
@@ -5926,8 +5929,8 @@ export default function App() {
   useEffect(()=>{
     async function checkMaintenance(){
       try{
-        const res=await sb("app_settings?key=eq.maintenance_mode&select=value");
-        const data=await res.json();
+        if(document.hidden) return;
+        const data=await sb("app_settings?key=eq.maintenance_mode&select=value");
         if(data?.[0]?.value==="true") setMaintenanceMode(true);
         else setMaintenanceMode(false);
       }catch(e){}
@@ -5946,8 +5949,27 @@ export default function App() {
   }
   const [cases,setCases]=useState([]);
   useEffect(()=>{
-    const iv=setInterval(()=>{getCases().then(c=>{if(Array.isArray(c))setCases(c.map(dbToCase));}).catch(()=>{});},20000);
-    return()=>clearInterval(iv);
+    let tick=0,busy=false;
+    async function sync(){
+      if(document.hidden||busy) return;
+      busy=true;tick++;
+      try{
+        if(!_lastCaseSync){const all=await getCases();if(Array.isArray(all))setCases(all.map(dbToCase));return;}
+        const since=_lastCaseSync;
+        let rows;
+        try{rows=await sb("cases?select=*&updated_at=gt."+encodeURIComponent(since));}
+        catch(e){_lastCaseSync=null;const all=await getCases();if(Array.isArray(all))setCases(all.map(dbToCase));return;}
+        if(Array.isArray(rows)&&rows.length){
+          const fresh=rows.map(dbToCase);
+          setCases(prev=>{const byId=new Map(fresh.map(x=>[x.id,x]));const kept=prev.map(p=>byId.has(p.id)?byId.get(p.id):p);const seen=new Set(prev.map(p=>p.id));return [...fresh.filter(x=>!seen.has(x.id)),...kept];});
+        }
+        if(tick%15===0){const ids=await sb("cases?select=id");if(Array.isArray(ids)){const keep=new Set(ids.map(x=>x.id));setCases(prev=>prev.some(p=>!keep.has(p.id))?prev.filter(p=>keep.has(p.id)):prev);}}
+      }catch(e){}finally{busy=false;}
+    }
+    const iv=setInterval(sync,20000);
+    const onVis=()=>{if(!document.hidden)sync();};
+    document.addEventListener("visibilitychange",onVis);
+    return()=>{clearInterval(iv);document.removeEventListener("visibilitychange",onVis);};
   },[]);
   const [calendarBookings,setCalendarBookings]=useState([]);
   const [vehicleBookings,setVehicleBookings]=useState([]);
@@ -5979,7 +6001,7 @@ export default function App() {
     .finally(()=>setLoading(false));
   },[]);
 
-  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();setInterval(refreshCaseViewers,10000);
+  function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();if(!window._mssViewersTimer)window._mssViewersTimer=setInterval(()=>{if(!document.hidden)refreshCaseViewers();},10000);
     if(!window.google){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places";document.head.appendChild(s);}}
   useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
