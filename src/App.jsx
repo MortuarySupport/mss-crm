@@ -1616,9 +1616,24 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     return e;
   }
 
-  async function submit(){
+  const [dupMatches,setDupMatches]=useState(null);
+  // Same person checked in within the last 30 days? (name + DOB, and same funeral director or pick-up location)
+  async function findDuplicates(){
+    const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+    const since=new Date(Date.now()-30*864e5).toISOString();
+    const fhId=isFD?user.funeralHomeId:selFH, from=norm(getTransferDisplay());
+    let rows=[];
+    try{rows=await sb("cases?select=id,case_ref,first_name,last_name,dob,funeral_home_id,funeral_home_name,transferred_from,checked_in_at,status&checked_in_at=gte."+encodeURIComponent(since)+"&dob=eq."+encodeURIComponent(form.dob));}
+    catch(err){rows=(cases||[]).filter(x=>x.dob===form.dob&&x.checkedInAt>=since).map(x=>({id:x.id,case_ref:x.caseRef,first_name:x.firstName,last_name:x.lastName,funeral_home_id:x.funeralHomeId,funeral_home_name:x.funeralHomeName,transferred_from:x.transferredFrom,checked_in_at:x.checkedInAt,status:x.status}));}
+    return (rows||[]).filter(r=>norm(r.first_name)===norm(form.firstName)&&norm(r.last_name)===norm(form.lastName))
+      .map(r=>({...r,sameFH:!!fhId&&r.funeral_home_id===fhId,sameFrom:!!from&&norm(r.transferred_from)===from}))
+      .filter(r=>r.sameFH||r.sameFrom);
+  }
+  async function submit(force){
     const e=validate();
     if(Object.keys(e).length){setErrors(e);return;}
+    if(force!==true){const d=await findDuplicates();if(d.length){setDupMatches(d);return;}}
+    setDupMatches(null);
     setSaving(true);
     const caseRef=await genCaseRef();
     const fhId=isFD?user.funeralHomeId:selFH;
@@ -1703,6 +1718,24 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
       <h2 className="text-xl font-black text-gray-900 mb-2">Check In</h2>
+      {dupMatches&&<div style={{position:"fixed",inset:0,zIndex:2147483000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div className="bg-white rounded-2xl max-w-lg w-full p-6 border-4 border-red-500">
+          <div className="text-4xl text-center mb-2">⚠️</div>
+          <h3 className="text-xl font-black text-red-700 text-center mb-3">This person has already been checked in</h3>
+          {dupMatches.map(m=>(
+            <div key={m.id} className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3 text-sm">
+              <div className="font-black text-gray-900">{m.case_ref} · {(m.last_name||"").toUpperCase()}, {m.first_name}</div>
+              <div className="text-gray-700 mt-1">DOB {fmt(m.dob)} · Checked in {fmtDTDay(m.checked_in_at)}</div>
+              <div className="text-gray-700">{m.funeral_home_name}{m.sameFH?" ✓ same funeral director":""}</div>
+              <div className="text-gray-700">From: {m.transferred_from||"—"}{m.sameFrom?" ✓ same pick-up location":""}</div>
+            </div>))}
+          <p className="text-sm text-gray-600 mb-4 text-center">Same name and date of birth within the last 30 days. Please check before continuing.</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button type="button" onClick={()=>setDupMatches(null)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black uppercase">Cancel — don't check in</button>
+            <button type="button" onClick={()=>submit(true)} className="flex-1 py-3 rounded-xl border-2 border-red-500 text-red-700 font-black uppercase">Check in anyway</button>
+          </div>
+        </div>
+      </div>}
 
       {!isFD&&!isTransfer&&step===1&&(
         <div>
