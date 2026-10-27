@@ -328,6 +328,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const [answers, setAnswers] = useState({});
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  const [nsnaShowAll, setNsnaShowAll] = useState(false);
+  // NSNA (no service, no attendance): only show sections that still matter
+  const nsnaKeep = sec => sec.fields.some(f => f.required || f.id === "disposition") ||
+    /comment|instruction|special|other|note|issued|completed|arrang|notification|notice|jewel|personal effects/i.test(sec.title);
   const [done, setDone] = useState(null);
   const [editing, setEditing] = useState(null);
   const [linking, setLinking] = useState(null);
@@ -706,6 +710,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
             <button type="button" onClick={() => applyNSNA(false)} className={chip(answers._nsna === false) + " flex-1 py-3"}>No</button>
           </div>
           {answers._nsna && <p className="text-xs text-gray-500 mt-2">Filled in: {Object.entries(form.nsna.set).map(([id, v]) => `${allFields(form).find(f => f.id === id)?.label || id}: ${v}`).join(" · ")}. You can still change any answer below.</p>}
+          {answers._nsna && <button type="button" onClick={() => setNsnaShowAll(v => !v)} className="mt-2 text-xs font-black uppercase text-gray-500 underline">{nsnaShowAll ? "Hide sections not needed for NSNA" : `Show all sections (${form.sections.filter(sec => !nsnaKeep(sec)).length} hidden for NSNA)`}</button>}
         </div>
       )}
       <div className={card + (errors._case ? " border-red-400" : "")}>
@@ -717,7 +722,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
           <option value="none">Not in our care yet</option>
         </select>
       </div>
-      {form.sections.map(sec => { const na = !!(sec.na && answers["_na_" + sec.id]); return (
+      {form.sections.filter(sec => !answers._nsna || nsnaShowAll || nsnaKeep(sec)).map(sec => { const na = !!(sec.na && answers["_na_" + sec.id]); return (
         <div key={sec.title} className={card}>
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-sm font-black uppercase tracking-wide">{sec.title}</p>
