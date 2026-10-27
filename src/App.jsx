@@ -518,7 +518,7 @@ function Field({label,required,children}) {
 function Divider() { return <div className="border-t-2 border-gray-100 my-5"/>; }
 function BackBtn({onClick,label="Back"}) {
   return (
-    <button onClick={onClick} className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-700 transition mb-5">
+    <button type="button" onClick={onClick} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-sm font-black uppercase tracking-wide hover:bg-gray-100 transition mb-4">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
       {label}
     </button>
@@ -1717,6 +1717,13 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4">
+      {(()=>{const atStart=isFD||(isTransfer&&effectiveStep===2)||(!isTransfer&&step===1);
+        const ciGoBack=()=>{
+          if(atStart){if((form.firstName||form.lastName)&&!window.confirm("Leave check-in? Details entered will be lost."))return;onBack();}
+          else if(effectiveStep===3)setStep(2);
+          else{setStep(1);setSelFH(null);}
+          window.scrollTo({top:0,behavior:"smooth"});};
+        return <BackBtn onClick={ciGoBack} label={atStart?"Back to Home":effectiveStep===3?"Back to Funeral Directors":"Back"}/>;})()}
       <h2 className="text-xl font-black text-gray-900 mb-2">Check In</h2>
       {dupMatches&&<div style={{position:"fixed",inset:0,zIndex:2147483000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
         <div className="bg-white rounded-2xl max-w-lg w-full p-6 border-4 border-red-500">
@@ -1770,7 +1777,6 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
       {(isFD||(effectiveStep===3))&&(
         <div>
-          {!isFD&&<BackBtn onClick={()=>setStep(2)}/>}
           {!isTransfer&&<div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 flex items-center gap-3">
             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Funeral Director:</span>
             <span className="text-base font-bold text-gray-900">{isFD?user.name:selFH==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===selFH)?.name}</span>
@@ -3138,7 +3144,8 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4" style={{WebkitOverflowScrolling:"touch"}}>
-      <BackBtn onClick={onBack} label="Back to Home"/>
+      <BackBtn onClick={()=>{if(selCase)setSelCase(null);else if(step===3){setStep(2);setSelFH(null);}else if(step===2&&!isFD)setStep(1);else onBack();window.scrollTo({top:0,behavior:"smooth"});}}
+        label={selCase?"Back to Cases":step===3?"Back to Funeral Directors":step===2&&!isFD?"Back":"Back to Home"}/>
       <h2 className="text-2xl font-black text-gray-900 mb-3">Check Out</h2>
 
       {step===1&&!isFD&&(
@@ -3147,7 +3154,6 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 
       {step===2&&!selCase&&(
         <div>
-          {!isFD&&<BackBtn onClick={()=>setStep(1)}/>}
           <div className="flex items-center justify-between mb-4">
             <p className={`${s.section} mb-0`}>{isFD?"Your Cases":"Select Funeral Director"}</p>
             {!isFD&&<button onClick={()=>setShowPast(!showPast)} className="text-xs font-bold text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">{showPast?"Current":"Past Cases"}</button>}
@@ -3159,7 +3165,6 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 
       {step===3&&selFH&&!selCase&&(
         <div>
-          <BackBtn onClick={()=>{setStep(2);setSelFH(null);}} label="Back to Funeral Directors"/>
           <p className={s.section}>{selFH.name}</p>
           <div className="space-y-3">{displayCases.sort((a,b)=>a.lastName.localeCompare(b.lastName)).map(c=><button key={c.id} onClick={()=>setSelCase(c)} className="w-full bg-white border-2 border-gray-200 hover:border-gray-900 rounded-2xl p-5 text-left transition"><div className="text-xl font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName} — <span className="text-base font-bold text-gray-500">{sexShort(c.sex)}</span></div><div className="text-sm text-gray-500 mt-1">{c.caseRef} · DOD: {fmt(c.dod)}</div></button>)}{displayCases.length===0&&<p className="text-gray-400 text-center py-8">No cases.</p>}</div>
         </div>
@@ -3167,7 +3172,6 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 
       {selCase&&(
         <div>
-          <BackBtn onClick={()=>setSelCase(null)} label="Back"/>
 
           {/* Date/Time */}
           <div className="bg-gray-900 text-white rounded-2xl px-5 py-3 mb-4 flex items-center justify-between">
