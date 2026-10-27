@@ -805,6 +805,42 @@ function Header({user,onSignOut,onNav,activeTab}) {
 }
 
 
+// ─── 4x6 BODY LABEL (MUNBYN thermal printer) ─────────────────────────────────
+function printCaseLabel(c){
+  const e=s=>String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const d=v=>v?String(v).slice(0,10).split("-").reverse().join("/"):"—";
+  const inAt=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}):"—";
+  const pace=c.pacemaker||c.prep?.pacemaker===true||c.prep?.pacemaker==="Yes";
+  const vals=c.valuables&&c.valuables!=="Nil"?c.valuables:"NIL";
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${e(c.caseRef)}</title><style>
+@page{size:4in 6in;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html,body{margin:0;width:4in;height:6in}body{font-family:Helvetica,Arial,sans-serif;color:#000;padding:0.16in;display:flex;flex-direction:column}
+.top{font-size:10pt;font-weight:700;letter-spacing:2px;text-align:center;border-bottom:2px solid #000;padding-bottom:3px}
+.ref{font-size:16pt;font-weight:700;text-align:center;letter-spacing:1px;margin:5px 0 2px}
+.sur{font-size:34pt;font-weight:900;line-height:1.02;text-transform:uppercase;word-break:break-word;text-align:center}
+.first{font-size:20pt;font-weight:700;text-align:center;margin-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:12pt}td{border:1.5px solid #000;padding:3px 6px;vertical-align:top}td b{display:block;font-size:8pt;letter-spacing:1px}
+.pace{margin-top:6px;background:#000;color:#fff;font-size:20pt;font-weight:900;text-align:center;padding:6px}
+.foot{margin-top:auto;font-size:8pt;text-align:center}
+</style></head><body>
+<div class="top">MORTUARY SUPPORT SERVICES</div>
+<div class="ref">${e(c.caseRef)}</div>
+<div class="sur">${e(c.lastName)}</div><div class="first">${e(c.firstName)}</div>
+<table><tr><td><b>DOB</b>${d(c.dob)}</td><td><b>DOD</b>${d(c.dod)}</td></tr>
+<tr><td><b>AGE</b>${e(c.ageAtDeath??"—")}</td><td><b>SEX</b>${e(c.sex||"—")}</td></tr>
+<tr><td colspan="2"><b>FUNERAL DIRECTOR</b>${e(c.funeralHomeName)}</td></tr>
+<tr><td colspan="2"><b>FROM</b>${e(c.transferredFrom||"—")}</td></tr>
+<tr><td><b>CHECKED IN</b>${inAt}</td><td><b>PAPERWORK</b>${e(c.paperwork||"—")}</td></tr>
+<tr><td colspan="2"><b>VALUABLES</b>${e(vals)}</td></tr></table>
+${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
+<div class="foot">Lumière CRM · printed ${new Date().toLocaleDateString("en-AU",{timeZone:"Australia/Sydney"})}</div>
+</body></html>`;
+  const fr=document.createElement("iframe");
+  fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr);
+  fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(err){const w=window.open("","_blank");if(w){w.document.write(html);w.document.close();w.focus();w.print();}}setTimeout(()=>fr.remove(),60000);},250);};
+  fr.srcdoc=html;
+}
 // ─── DOCUMENT SECTION ─────────────────────────────────────────────────────────
 const DOC_LABELS = ["MCCD","VOD","BO","LE","PHOTO","OTHER"];
 
@@ -1651,7 +1687,8 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened?"Make sure you press Send in your mail program":"Required — opens your mail program, then press Send"}</span>
         </button>
         <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
-        <p className="text-xs text-gray-400 text-center mb-6">To: {to}</p>
+        <p className="text-xs text-gray-400 text-center mb-4">To: {to}</p>
+        <button type="button" onClick={()=>printCaseLabel(submitted)} className="block w-full mb-6 py-5 rounded-2xl border-4 border-gray-900 bg-white text-gray-900 text-lg font-black uppercase tracking-wider hover:bg-gray-50">🏷️ Print Body Label (4×6)<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper size 4×6</span></button>
         <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full`}>← BACK TO HOME</button>
       </div>
     );
@@ -2767,6 +2804,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         {c.pendingChanges?.length>0&&<button onClick={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>}
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
         <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],true)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">🖨️ PRINT JOB CARD</button>
+        <button onClick={()=>printCaseLabel({...c,prep})} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">🏷️ PRINT LABEL</button>
         <button onClick={()=>setShowPacemakerCert(true)} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-black text-sm uppercase hover:bg-amber-600 transition">📋 PACEMAKER CERT</button>
       </div>
       <div className={s.card}>
