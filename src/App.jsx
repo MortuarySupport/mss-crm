@@ -1379,14 +1379,14 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
           {[...row1,...row2].map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
         </div>
         :!isAdmin&&isMSS
-        ?<><div className="grid grid-cols-3 gap-3 mb-3">
-          <button onClick={()=>onAction("mortuary")} className={s.btnLg+" bg-red-600 hover:bg-red-700 text-white border-red-600"}>🏥 MORTUARY</button>
-          <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
-          <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
-        </div>
-        <div className="grid grid-cols-3 gap-3 mb-3">
-          {[...row1,...row2].filter(b=>b.action!=="mortuary").map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
-        </div></>
+        ?(()=>{const staffRow=(items,width)=>(<div className="flex gap-3 mb-3 mx-auto" style={{maxWidth:width||"100%"}}>
+            {items.map(([a,l,x])=>(<button key={a} onClick={()=>onAction(a)} className={s.btnLg.replace("text-sm","text-[11px] sm:text-sm")+" flex-1 min-w-0 px-1 break-words "+(x||"")}>{l}</button>))}</div>);
+          return <>
+            {staffRow([["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"]])}
+            {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
+            {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
+            {staffRow([["approvals","✔️ APPROVALS"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]],"75%")}
+          </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
         </div>
@@ -1404,10 +1404,6 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("activitylog")} className={s.btnLg}>📝 ACTIVITY</button>
         <button onClick={()=>onAction("invoicing")} className={s.btnLg}>💰 INVOICING</button>
         <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
-        <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
-        <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
-      </div>}
-      {!isAdmin&&isMSS&&<div className="grid grid-cols-2 gap-3 mt-3">
         <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
         <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
       </div>}
