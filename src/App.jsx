@@ -1510,6 +1510,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const [errors,setErrors]=useState({});
   const [submitted,setSubmitted]=useState(null);
   const [emailOpened,setEmailOpened]=useState(false);
+  const [labelPrinted,setLabelPrinted]=useState(false);
   const [saving,setSaving]=useState(false);
   useEffect(()=>{if(submitted)window.scrollTo({top:0,behavior:"smooth"});},[submitted]);
   const [scanOpen,setScanOpen]=useState(false);
@@ -1668,16 +1669,16 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     const body=encodeURIComponent(buildCheckInEmail(submitted));
     return (
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="bg-green-50 border border-green-300 rounded-2xl p-8 mb-6 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 border border-green-400 mb-4">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-1">Checked In ✓</h2>
-          <p className="text-4xl font-black text-gray-900 mt-3 mb-1 tracking-widest">{submitted.caseRef}</p>
-          <p className="text-green-700 font-semibold">{submitted.firstName} {submitted.lastName}</p>
-          <p className="text-gray-400 text-xs mt-2">{fmtDTDay(submitted.checkedInAt)}</p>
+        <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full mb-3 py-2`}>← BACK TO HOME</button>
+        <div className="bg-green-50 border border-green-300 rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 border border-green-400 flex-none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+          <span className="text-lg font-black text-gray-900">Checked In</span>
+          <span className="text-lg font-black text-gray-900 tracking-widest">{submitted.caseRef}</span>
+          <span className="text-green-700 font-bold">{submitted.firstName} {submitted.lastName}</span>
+          <span className="text-gray-500 text-xs sm:ml-auto">{fmtDTDay(submitted.checkedInAt)}</span>
         </div>
         <DocumentSection caseId={submitted.id} funeralHomeName={submitted.funeralHomeName} lastName={submitted.lastName} dod={submitted.dod}/>
+        <p className="text-sm font-black uppercase tracking-widest text-gray-700 mt-5 mb-1">To finish, do both:</p>
         <button type="button" onClick={async()=>{
           let docs=[];try{docs=(await listDocuments(submitted.id)).filter(d=>d.name&&!d.name.endsWith("/"));}catch(e){}
           const nice=n=>n.replace(/^\d+_/,"").replace(/\.[^.]+$/,"").replace(/_/g," ");
@@ -1687,13 +1688,12 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
           setEmailOpened(true);
         }} className={`block w-full mt-5 mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 animate-pulse"}`}>
-          {emailOpened?"✓ Email opened — tap to send again":"📧 Send Notification Email to FD & Mortuary"}
+          {emailOpened?"1. ✓ Email opened — tap to send again":"1. 📧 Send Notification Email to FD & Mortuary"}
           <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened?"Make sure you press Send in your mail program":"Required — opens your mail program, then press Send"}</span>
         </button>
         <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
         <p className="text-xs text-gray-400 text-center mb-4">To: {to}</p>
-        <button type="button" onClick={()=>printCaseLabel(submitted)} className="block w-full mb-6 py-5 rounded-2xl border-4 border-gray-900 bg-white text-gray-900 text-lg font-black uppercase tracking-wider hover:bg-gray-50">🏷️ Print Body Label (4×6)<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
-        <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full`}>← BACK TO HOME</button>
+        <button type="button" onClick={()=>{printCaseLabel(submitted);setLabelPrinted(true);}} className={`block w-full mb-6 py-5 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"2. ✓ Label printed — tap to print again":"2. 🏷️ Print Body Label (4×6)"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
       </div>
     );
   }
