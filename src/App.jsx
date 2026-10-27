@@ -212,6 +212,7 @@ const TRANSFER_BY_COMPANIES_PRIMARY = ["All Hours","MSS","Statewide","FD"];
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function genId() { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`; }
 function fmt(iso) { if(!iso) return "—"; const[y,m,d]=iso.split("-"); return`${d}/${m}/${y}`; }
+function fullSlot(p){ const s=String(p?.viewingSlot||""); if(s.includes("_")) return s; if(/^\d{1,2}:\d{2}$/.test(s)&&/^\d{4}-\d{2}-\d{2}$/.test(p?.viewingDate||"")) return p.viewingDate+"_"+s.padStart(5,"0"); return ""; }
 function fmtDT(iso) { if(!iso) return "—"; return new Date(iso).toLocaleString("en-AU"); }
 // Calendar dates with the day, e.g. "23rd October 2026 Friday"
 function fmtDayLong(iso){ if(!iso) return "—"; const x=new Date(String(iso).slice(0,10)+"T12:00:00"); if(isNaN(x)) return iso; const d=x.getDate(); const o=(d%100>=11&&d%100<=13)?"th":({1:"st",2:"nd",3:"rd"}[d%10]||"th"); return `${d}${o} ${x.toLocaleDateString("en-AU",{month:"long"})} ${x.getFullYear()} ${x.toLocaleDateString("en-AU",{weekday:"long"})}`; }
@@ -1213,7 +1214,7 @@ function TransferPersonPicker({user,value,onChange}) {
 
 // ─── VIEWING SECTION ──────────────────────────────────────────────────────────
 function ViewingSection({prep,updPrepMulti,bookedSlots}) {
-  const viewing=prep.viewing||"",vLoc=prep.viewingLocation||"",vHost=prep.viewingHost||"",vDate=prep.viewingDate||"",vSlot=prep.viewingSlot||"";
+  const viewing=prep.viewing||"",vLoc=prep.viewingLocation||"",vHost=prep.viewingHost||"",vDate=prep.viewingDate||"",vSlot=fullSlot(prep);
   const futureDates=next4WeekDates();
   return (
     <div>
@@ -1433,7 +1434,7 @@ function buildCompletedEmail(c, prep, billable, otherUsed) {
   const billableList = Object.keys(billable || {}).filter(k => billable[k]).join(", ") || "None";
   const otherList = Object.keys(otherUsed || {}).filter(k => otherUsed[k]).join(", ") || "None";
   const viewingDetail = prep.viewing === "Yes"
-    ? `Yes${prep.viewingLocation ? " — " + prep.viewingLocation : ""}${prep.viewingHost ? " (Hosted by " + prep.viewingHost + ")" : ""}${prep.viewingSlot ? " @ " + fmtDayLong(prep.viewingSlot.split("_")[0]) + " " + prep.viewingSlot.split("_")[1] : ""}`
+    ? `Yes${prep.viewingLocation ? " — " + prep.viewingLocation : ""}${prep.viewingHost ? " (Hosted by " + prep.viewingHost + ")" : ""}${fullSlot(prep) ? " @ " + fmtDayLong(fullSlot(prep).split("_")[0]) + " " + fullSlot(prep).split("_")[1] : ""}`
     : prep.viewing || "—";
   return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection/Delivery Date: ${fmtDayLong(prep.collectionDate) || "—"}\nFuneral Date: ${fmtDayLong(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\n─────────────────────────────\nITEMS USED\n─────────────────────────────\n${otherList}\n\n─────────────────────────────\nBILLABLE ITEMS\n─────────────────────────────\n${billableList}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
 }
@@ -1517,6 +1518,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   const DOC_NAME={MCCD:"MCCD","Coroners BO":"BO (Coroner's)",LE:"Life Extinct (LE)",VOD:"VOD",CRA:"CRA",Other:"different document",OTHER:"other document"};
   const [noDeathDoc,setNoDeathDoc]=useState(false);
   const [scanPick,setScanPick]=useState("");
+  const [ciManual,setCiManual]=useState(false);
   useEffect(()=>{if(ocr.status&&ocr.status!=="reading")document.getElementById("ocr-banner")?.scrollIntoView({behavior:"smooth",block:"center"});},[ocr.status]);
   const pwOf=l=>l==="Coroners BO"?"BO":l;
   function relabelDoc(doc,newLabel){
@@ -1742,15 +1744,18 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           {/* PAPERWORK FIRST */}
           <div className={s.card+" border-2 border-gray-900"}>
             <p className={s.section}>Paperwork Received — start here</p>
-            <p className="text-sm text-gray-700 mb-3">1. Tap the document you are scanning. &nbsp;2. Tap <b>Scan</b>. &nbsp;Repeat for each document.</p>
+            <p className="text-sm text-gray-700 mb-3">{ciManual?<>Tap <b>each document received</b>, then type the details below.</>:<>1. Tap the document you are scanning. &nbsp;2. Tap <b>Scan</b>. &nbsp;Repeat for each document.</>}</p>
             <div className="flex flex-wrap gap-3 mb-4">
-              {PAPERWORK_OPTIONS.map(p=>{const locked=!deathDocDone&&!READ_LABELS.includes(docLabel(p));const done=isScanned(p);const on=scanPick===p;return(
-                <button key={p} type="button" disabled={locked} title={locked?"Scan the MCCD, BO, VOD or LE first":""} onClick={()=>setScanPick(on?"":p)}
+              {PAPERWORK_OPTIONS.map(p=>{const locked=!ciManual&&!deathDocDone&&!READ_LABELS.includes(docLabel(p));const done=isScanned(p);const on=ciManual?form.paperwork.includes(p):scanPick===p;return(
+                <button key={p} type="button" disabled={locked} title={locked?"Scan the MCCD, BO, VOD or LE first":""} onClick={()=>ciManual?togglePW(p):setScanPick(on?"":p)}
                   className={`px-5 py-3 rounded-xl border-2 text-base font-bold transition disabled:opacity-30 disabled:cursor-not-allowed ${on?"bg-gray-900 text-white border-gray-900":done?"bg-green-50 text-green-800 border-green-500":"bg-white text-gray-500 border-gray-300 hover:border-gray-700"}`}>{locked?"🔒 ":done&&!on?"✓ ":""}{p}</button>);})}
             </div>
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900 font-bold mb-4">✨ By scanning the MCCD, BO, VOD or LE, the scanner will automatically fill in the deceased's details and where they came from. Please check every detail is correct before submitting.</div>
+            {!ciManual&&<><div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900 font-bold mb-4">✨ By scanning the MCCD, BO, VOD or LE, the scanner will automatically fill in the deceased's details and where they came from. Please check every detail is correct before submitting.</div>
             <button type="button" disabled={!scanLabel} onClick={()=>setScanOpen(true)} className="w-full py-4 rounded-xl bg-gray-900 hover:bg-gray-700 text-white text-base font-black uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">📷 Scan {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"Paperwork"}</button>
-            {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap the next document above to scan it":"Tap MCCD, BO, VOD or LE above to start scanning"}</p>}
+            {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap the next document above to scan it":"Tap MCCD, BO, VOD or LE above to start scanning"}</p>}</>}
+            {!ciManual
+              ?<button type="button" onClick={()=>{setCiManual(true);setScanPick("");setNoDeathDoc(true);setTimeout(()=>{const el=document.querySelector('input[placeholder="First name"]');if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus();}},80);}} className="w-full mt-3 py-4 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-base font-black uppercase tracking-wide hover:bg-gray-50">✍️ Enter Manually</button>
+              :<p className="text-sm text-gray-700 mt-1 text-center font-bold">✍️ Manual entry — type the details below. <button type="button" onClick={()=>{setCiManual(false);setNoDeathDoc(false);}} className="underline">Scan instead</button></p>}
             {scanOpen&&<DocumentScanner labels={["MCCD","Coroners BO","VOD","LE","CRA","OTHER"]} defaultLabel={scanLabel||undefined} readLabels={READ_LABELS} onRead={readDocument} lockedLabels={deathDocDone?[]:["CRA","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
               prefixLabel={false} onSave={(file,lbl)=>{setScanPick("");setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name:file.name,file})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
             {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mt-3">✓ Scanned: {(form.checkInDocs||[]).map(d=>DOC_NAME[d.label]||d.label).join(", ")} (see Documents below){ocr.status==="done"?" — details filled in, please check them":""}</p>}
@@ -2523,7 +2528,7 @@ ${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE 
   <div class="section">
     <div class="section-title">Viewing</div>
     <div class="box-value">${prep.viewing||"—"}</div>
-    ${prep.viewing==="Yes"?`<div style="font-size:10px;color:#555;margin-top:3px;">${prep.viewingSlot?fmtDayLong(prep.viewingSlot.split("_")[0])+" @ "+prep.viewingSlot.split("_")[1]:""}${prep.viewingDuration?" ("+prep.viewingDuration+")":""} &nbsp; ${prep.viewingLocation||""}</div>`:""}
+    ${prep.viewing==="Yes"?`<div style="font-size:10px;color:#555;margin-top:3px;">${fullSlot(prep)?fmtDayLong(fullSlot(prep).split("_")[0])+" @ "+fullSlot(prep).split("_")[1]:""}${prep.viewingDuration?" ("+prep.viewingDuration+")":""} &nbsp; ${prep.viewingLocation||""}</div>`:""}
   </div>
 </div>
 
@@ -4196,7 +4201,7 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
 
   // Case-derived viewings
   cases.filter(c=>c.prep?.viewingSlot&&c.prep?.viewing==="Yes").forEach(c=>{
-    const slot=c.prep.viewingSlot;
+    const slot=fullSlot(c.prep);if(!slot) return;
     const[date,time]=slot.split("_");
     if(!weekDates.includes(date)) return;
     const isHalf=time.includes(":30");
@@ -4214,6 +4219,7 @@ function MasterCalendar({cases,calendarBookings,vehicleBookings}){
 
   // Calendar bookings
   (calendarBookings||[]).forEach(b=>{
+    if(!b.slot||!String(b.slot).includes("_")) return;
     const[date,time]=b.slot.split("_");
     if(!weekDates.includes(date)) return;
     const isHalf=time.includes(":30");
@@ -4445,7 +4451,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
   const mssViewings=cases.filter(c=>{
     if(!c.prep?.viewingSlot||!c.prep?.viewing||c.prep.viewing!=="Yes") return false;
     if(c.prep?.viewingLocation!=="MSS") return false;
-    const slotDate=c.prep.viewingSlot.split("_")[0];
+    const slotDate=fullSlot(c.prep).split("_")[0];
     return slotDate===todayStr;
   });
 
@@ -4521,7 +4527,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
               <div key={c.id} className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between">
                 <div>
                   <div className="font-black text-gray-900 text-sm">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
-                  <div className="text-xs text-gray-500">{c.funeralHomeName} · {c.prep?.viewingSlot?.split("_")[1]||""}{c.prep?.viewingDuration?" ("+c.prep.viewingDuration+")":""}</div>
+                  <div className="text-xs text-gray-500">{c.funeralHomeName} · {fullSlot(c.prep).split("_")[1]||""}{c.prep?.viewingDuration?" ("+c.prep.viewingDuration+")":""}</div>
                 </div>
                 <span className="text-xs font-black text-green-700 bg-green-100 border border-green-300 rounded-full px-2 py-0.5">VIEWING</span>
               </div>
@@ -5527,7 +5533,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
 
   const slotMap={};
   cases.filter(c=>c.prep?.viewingSlot&&c.prep?.viewing==="Yes").forEach(c=>{
-    const slot=c.prep.viewingSlot;
+    const slot=fullSlot(c.prep);if(!slot) return;
     const[date,time]=slot.split("_");
     const isHalf=time.includes(":30");
     const hour=parseInt(time.split(":")[0]);
@@ -5544,6 +5550,7 @@ function CalendarView({user,cases,calendarBookings,onAddBooking,onUpdateBooking,
     }
   });
   (calendarBookings||[]).forEach(b=>{
+    if(!b.slot||!String(b.slot).includes("_")) return;
     const[date,time]=b.slot.split("_");
     const isHalf=time.includes(":30");
     const hour=parseInt(time.split(":")[0]);
