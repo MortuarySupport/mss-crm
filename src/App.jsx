@@ -813,28 +813,30 @@ function printCaseLabel(c){
   const inAt=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}):"—";
   const pace=c.pacemaker||c.prep?.pacemaker===true||c.prep?.pacemaker==="Yes";
   const vals=c.valuables&&c.valuables!=="Nil"?c.valuables:"NIL";
+  const sur=String(c.lastName||"");const longest=Math.max(1,...sur.split(/[\s-]+/).map(w=>w.length));const surSize=Math.max(16,Math.min(40,Math.floor(165/(longest*0.72))));
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>${e(c.caseRef)}</title><style>
-@page{size:4in 6in;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-html,body{margin:0;width:4in;height:6in}body{font-family:Helvetica,Arial,sans-serif;color:#000;padding:0.16in;display:flex;flex-direction:column}
-.top{font-size:10pt;font-weight:700;letter-spacing:2px;text-align:center;border-bottom:2px solid #000;padding-bottom:3px}
-.ref{font-size:16pt;font-weight:700;text-align:center;letter-spacing:1px;margin:5px 0 2px}
-.sur{font-size:34pt;font-weight:900;line-height:1.02;text-transform:uppercase;word-break:break-word;text-align:center}
-.first{font-size:20pt;font-weight:700;text-align:center;margin-bottom:6px}
-table{width:100%;border-collapse:collapse;font-size:12pt}td{border:1.5px solid #000;padding:3px 6px;vertical-align:top}td b{display:block;font-size:8pt;letter-spacing:1px}
-.pace{margin-top:6px;background:#000;color:#fff;font-size:20pt;font-weight:900;text-align:center;padding:6px}
-.foot{margin-top:auto;font-size:8pt;text-align:center}
+@page{size:6in 4in;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html,body{margin:0;width:6in;height:4in;overflow:hidden}body{font-family:Helvetica,Arial,sans-serif;color:#000;padding:0.14in;display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #888;padding-bottom:3px;font-weight:700}
+.top .org{font-size:10pt;letter-spacing:2px;color:#777}.top .ref{font-size:15pt;letter-spacing:1px}
+.main{flex:1;display:flex;gap:0.12in;margin-top:6px;min-height:0}
+.name{flex:1.05;display:flex;flex-direction:column;justify-content:center;text-align:center;border:1.2px solid #888;padding:6px}.g{color:#777;font-weight:700;font-size:9pt}
+.sur{font-size:${surSize}pt;font-weight:900;line-height:1;text-transform:uppercase;overflow-wrap:anywhere}
+.first{font-size:20pt;font-weight:700;margin-top:6px}
+.dd{font-size:13pt;font-weight:700;margin-top:8px}
+table{flex:1;border-collapse:collapse;font-size:12.5pt;align-self:stretch}td{border:1.2px solid #888;padding:2px 6px;vertical-align:top}td b{display:block;font-size:7.5pt;letter-spacing:1px;color:#777;font-weight:700}
+.pace{margin-top:6px;background:#000;color:#fff;font-size:18pt;font-weight:900;text-align:center;padding:4px}
 </style></head><body>
-<div class="top">MORTUARY SUPPORT SERVICES</div>
-<div class="ref">${e(c.caseRef)}</div>
-<div class="sur">${e(c.lastName)}</div><div class="first">${e(c.firstName)}</div>
-<table><tr><td><b>DOB</b>${d(c.dob)}</td><td><b>DOD</b>${d(c.dod)}</td></tr>
-<tr><td><b>AGE</b>${e(c.ageAtDeath??"—")}</td><td><b>SEX</b>${e(c.sex||"—")}</td></tr>
+<div class="top"><span class="org">MORTUARY SUPPORT SERVICES</span><span class="ref">${e(c.caseRef)}</span></div>
+<div class="main">
+<div class="name"><div class="sur">${e(sur)}</div><div class="first">${e(c.firstName)}</div><div class="dd"><span class="g">DOB</span> ${d(c.dob)}<br><span class="g">DOD</span> ${d(c.dod)}</div></div>
+<table><tr><td><b>AGE</b>${e(c.ageAtDeath??"—")}</td><td><b>SEX</b>${e(c.sex||"—")}</td></tr>
 <tr><td colspan="2"><b>FUNERAL DIRECTOR</b>${e(c.funeralHomeName)}</td></tr>
 <tr><td colspan="2"><b>FROM</b>${e(c.transferredFrom||"—")}</td></tr>
-<tr><td><b>CHECKED IN</b>${inAt}</td><td><b>PAPERWORK</b>${e(c.paperwork||"—")}</td></tr>
-<tr><td colspan="2"><b>VALUABLES</b>${e(vals)}</td></tr></table>
+<tr><td colspan="2"><b>CHECKED IN</b>${inAt}</td></tr>
+<tr><td><b>PAPERWORK</b>${e(c.paperwork||"—")}</td><td><b>VALUABLES</b>${e(vals)}</td></tr></table>
+</div>
 ${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
-<div class="foot">Lumière CRM · printed ${new Date().toLocaleDateString("en-AU",{timeZone:"Australia/Sydney"})}</div>
 </body></html>`;
   const fr=document.createElement("iframe");
   fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
@@ -1690,7 +1692,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
         </button>
         <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
         <p className="text-xs text-gray-400 text-center mb-4">To: {to}</p>
-        <button type="button" onClick={()=>printCaseLabel(submitted)} className="block w-full mb-6 py-5 rounded-2xl border-4 border-gray-900 bg-white text-gray-900 text-lg font-black uppercase tracking-wider hover:bg-gray-50">🏷️ Print Body Label (4×6)<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper size 4×6</span></button>
+        <button type="button" onClick={()=>printCaseLabel(submitted)} className="block w-full mb-6 py-5 rounded-2xl border-4 border-gray-900 bg-white text-gray-900 text-lg font-black uppercase tracking-wider hover:bg-gray-50">🏷️ Print Body Label (4×6)<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
         <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full`}>← BACK TO HOME</button>
       </div>
     );
