@@ -1342,8 +1342,46 @@ function LoginScreen({onLogin,users}) {
   );
 }
 
+// ─── PREP BOARD: every case in care, one line per preparation type ──────────
+let _openCaseId=null; // case to open when the Mortuary screen loads
+function PrepBoard({cases,onAction}){
+  const active=(cases||[]).filter(c=>c.status==="active"&&!c.checkedOut);
+  const rows=[
+    {key:"none",label:"Not confirmed",tone:"amber"},
+    ...PREP_OPTIONS.map(p=>({key:p.label,label:`${p.label} (${p.short})`,tone:"gray"})),
+  ].map(r=>({...r,list:active.filter(c=>{const o=c.prep?.prepOptions||[];return r.key==="none"?o.length===0:o.includes(r.key);})
+    .sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""))}));
+  const open=c=>{_openCaseId=c.id;onAction("mortuary");};
+  return(
+    <div className="mb-6">
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400">Cases in care by preparation</p>
+        <p className="text-xs font-black uppercase text-gray-500">{active.length} in care</p>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+        {rows.map(r=>{const warn=r.tone==="amber"&&r.list.length>0;return(
+          <div key={r.key} className={`rounded-2xl border-2 overflow-hidden ${warn?"border-amber-400 bg-amber-50":"border-gray-200 bg-white"}`}>
+            <div className={`flex items-center justify-between gap-2 px-3 py-2 ${warn?"bg-amber-400 text-white":"bg-gray-900 text-white"}`}>
+              <span className="text-[11px] font-black uppercase leading-tight">{r.label}</span>
+              <span className={`text-base font-black ${warn?"text-white":""}`}>{r.list.length}</span>
+            </div>
+            <div className="p-2 space-y-1.5">
+              {r.list.length===0&&<p className="text-xs text-gray-300 text-center py-2">—</p>}
+              {r.list.map(c=>(
+                <button key={c.id} type="button" onClick={()=>open(c)} title={c.caseRef}
+                  className={`block w-full text-left px-2.5 py-1.5 rounded-lg border text-xs font-bold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition ${warn?"border-amber-300 bg-white text-amber-900":"border-gray-200 bg-gray-50 text-gray-800"}`}>
+                  <span className="block break-words leading-tight">{(c.lastName||"").toUpperCase()}, {c.firstName}</span>
+                  <span className="block truncate font-normal opacity-60 text-[11px]">{c.funeralHomeName}</span>
+                </button>))}
+            </div>
+          </div>);})}
+      </div>
+    </div>
+  );
+}
+
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
+function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
   const isTransfer=user?.role==="transfer";
@@ -1386,6 +1424,7 @@ function HomeScreen({user,onAction,lockOpen,onToggleLock}) {
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]],"75%")}
+            <div className="mt-6"><PrepBoard cases={cases} onAction={onAction}/></div>
           </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
@@ -2617,8 +2656,9 @@ ${photoDocs.map(d=>`<div style="margin-bottom:20px;"><div style="font-size:9px;f
 
 
 function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
-  const [selFH,setSelFH]=useState(null);
-  const [selCase,setSelCase]=useState(null);
+  const [initCase]=useState(()=>{const x=_openCaseId&&cases.find(k=>k.id===_openCaseId);_openCaseId=null;return x||null;});
+  const [selFH,setSelFH]=useState(()=>initCase?(FUNERAL_HOMES.find(f=>f.id===initCase.funeralHomeId)||{id:initCase.funeralHomeId,name:initCase.funeralHomeName}):null);
+  const [selCase,setSelCase]=useState(initCase);
   const [showPacemakerCert,setShowPacemakerCert]=useState(false);
   const [docReload,setDocReload]=useState(0);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[selFH?.id,selCase?.id]);
@@ -4532,13 +4572,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
 
       {/* Prep Types */}
       <div className="mb-6">
-        <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Active Preparation Types</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard value={prepCounts.BP} label="Basic Prep" color="gray"/>
-          <StatCard value={prepCounts.TP} label="Temp Preservation" color="gray"/>
-          <StatCard value={prepCounts.FE} label="Full Embalm" color="gray"/>
-          <StatCard value={prepCounts.RSF} label="Repatriation" color="gray"/>
-        </div>
+        <PrepBoard cases={cases} onAction={onAction}/>
       </div>
 
       {/* Workflow */}
@@ -6194,7 +6228,7 @@ export default function App() {
 
   return wrap(
     <main>
-      {tab==="home"&&<HomeScreen user={user} onAction={a=>setAction(a)}/>}
+      {tab==="home"&&<HomeScreen user={user} cases={cases} onAction={a=>setAction(a)}/>}
       {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
       {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={cases}/>}
       {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>}
