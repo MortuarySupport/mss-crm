@@ -1344,12 +1344,13 @@ function LoginScreen({onLogin,users}) {
 
 // ─── PREP BOARD: every case in care, one line per preparation type ──────────
 let _openCaseId=null; // case to open when the Mortuary screen loads
+const prepOne=c=>{const o=(c.prep?.prepOptions||[]).filter(x=>PREP_OPTIONS.some(p=>p.label===x));return o.length?o[o.length-1]:null;};
 function PrepBoard({cases,onAction}){
   const active=(cases||[]).filter(c=>c.status==="active"&&!c.checkedOut);
   const rows=[
     {key:"none",label:"Not confirmed",tone:"amber"},
     ...PREP_OPTIONS.map(p=>({key:p.label,label:`${p.label} (${p.short})`,tone:"gray"})),
-  ].map(r=>({...r,list:active.filter(c=>{const o=c.prep?.prepOptions||[];return r.key==="none"?o.length===0:o.includes(r.key);})
+  ].map(r=>({...r,list:active.filter(c=>{const o=prepOne(c);return r.key==="none"?!o:o===r.key;})
     .sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""))}));
   const open=c=>{_openCaseId=c.id;onAction("mortuary");};
   return(
@@ -2918,7 +2919,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         </div>
       </div>
       <div className={s.card}><p className={s.section}>Comments</p><textarea className={`${s.inp} min-h-[80px]`} value={prep.comments||""} onChange={e=>updPrep("comments",e.target.value)} placeholder="Add mortuary comments…"/></div>
-      <div className={s.card}><p className={s.section}>Preparation Required</p><MultiToggle options={PREP_OPTIONS.map(p=>p.label)} selected={prep.prepOptions||[]} onToggle={o=>{const cur=prep.prepOptions||[];updPrep("prepOptions",cur.includes(o)?cur.filter(x=>x!==o):[...cur,o]);}}/></div>
+      <div className={s.card}><p className={s.section}>Preparation Required</p><MultiToggle options={PREP_OPTIONS.map(p=>p.label)} selected={prep.prepOptions||[]} onToggle={o=>{const cur=prep.prepOptions||[];updPrep("prepOptions",cur.length===1&&cur[0]===o?[]:[o]);}}/></div>
       <div className={s.card}><p className={s.section}>Disposition</p><div className="flex flex-wrap gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
       <div id="coffinDetails" className={s.card}>
         <p className={s.section}>COFFIN DETAILS</p>
