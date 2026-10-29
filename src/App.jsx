@@ -1347,17 +1347,18 @@ let _openCaseId=null; // case to open when the Mortuary screen loads
 const prepOne=c=>{const o=(c.prep?.prepOptions||[]).filter(x=>PREP_OPTIONS.some(p=>p.label===x));return o.length?o[o.length-1]:null;};
 function PrepBoard({cases,onAction}){
   const active=(cases||[]).filter(c=>c.status==="active"&&!c.checkedOut);
+  const todo=active.filter(c=>c.prepStatus!=="completed"); // finished in Mortuary = off the board
   const rows=[
     {key:"none",label:"Not confirmed",tone:"amber"},
     ...PREP_OPTIONS.map(p=>({key:p.label,label:`${p.label} (${p.short})`,tone:"gray"})),
-  ].map(r=>({...r,list:active.filter(c=>{const o=prepOne(c);return r.key==="none"?!o:o===r.key;})
+  ].map(r=>({...r,list:todo.filter(c=>{const o=prepOne(c);return r.key==="none"?!o:o===r.key;})
     .sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""))}));
   const open=c=>{_openCaseId=c.id;onAction("mortuary");};
   return(
     <div className="mb-6">
       <div className="flex items-baseline justify-between mb-3">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400">Cases in care by preparation</p>
-        <p className="text-xs font-black uppercase text-gray-500">{active.length} in care</p>
+        <p className="text-xs font-black uppercase text-gray-500">{active.length} in care · {active.length-todo.length} completed</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {rows.map(r=>{const warn=r.tone==="amber"&&r.list.length>0;return(
