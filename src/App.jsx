@@ -3874,6 +3874,7 @@ function AshesRegister({user,cases,onBack}){
   const[selCases,setSelCases]=useState([]);
   const[checkInDate,setCheckInDate]=useState(todaySydney());
   const[staffName,setStaffName]=useState(user?.name||"");
+  const[ashLoc,setAshLoc]=useState("Baulkham Hills");
   const[sigPad,setSigPad]=useState(null);
   const[sigData,setSigData]=useState(null);
   const[printName,setPrintName]=useState("");
@@ -3921,7 +3922,7 @@ function AshesRegister({user,cases,onBack}){
   const fhCases=selFH?cremationCases.filter(c=>c.funeralHomeName===selFH&&!inStorageCaseIds.has(c.id)):[];
   const filteredCases=fhCases.filter(c=>!search||(c.lastName||"").toLowerCase().includes(search.toLowerCase())||(c.firstName||"").toLowerCase().includes(search.toLowerCase())||(c.caseRef||"").toLowerCase().includes(search.toLowerCase()));
 
-  function resetForm(){setSelFH("");setSelCases([]);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);savedImageRef.current=null;if(canvasRef.current){canvasRef.current.getContext("2d").clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
+  function resetForm(){setAshLoc("Baulkham Hills");setSelFH("");setSelCases([]);setSearch("");setCheckInDate(todaySydney());setStaffName(user?.name||"");setSigData(null);setHasSig(false);savedImageRef.current=null;if(canvasRef.current){canvasRef.current.getContext("2d").clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}setPrintName("");setSignerType("FD");setIdPhoto(null);setSelAshes(null);setManualEntry(false);setManualFirstName("");setManualLastName("");setManualDOB("");setManualDOD("");}
 
   // Signature canvas
   function getPos(e,canvas){
@@ -3955,7 +3956,7 @@ function AshesRegister({user,cases,onBack}){
         checked_in_at:checkInDate,
         checked_in_by:staffName,
         checked_in_sig:sigData,
-        location:"Storeroom",
+        location:ashLoc,
         checked_out_at:null,
         checked_out_by:null,
         checked_out_sig:null,
@@ -4062,6 +4063,10 @@ function AshesRegister({user,cases,onBack}){
           </div>}
         </div>}
         <div>
+          <div className="text-xs font-black uppercase text-gray-500 mb-1">Location</div>
+          <div className="flex gap-2">{["Baulkham Hills","Darlinghurst"].map(l=><button key={l} type="button" onClick={()=>setAshLoc(l)} className={`flex-1 py-3 rounded-xl border-2 text-sm font-black uppercase transition ${ashLoc===l?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-700"}`}>{l}</button>)}</div>
+        </div>
+        <div>
           <div className="text-xs font-black uppercase text-gray-500 mb-1">Check In Date</div>
           <input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={checkInDate} onChange={e=>setCheckInDate(e.target.value)}/>
         </div>
@@ -4125,7 +4130,7 @@ function AshesRegister({user,cases,onBack}){
         <button onClick={()=>{
           const w=window.open("","_blank");
           const rows=inStorage.sort((a,b)=>(a.funeral_home||"").localeCompare(b.funeral_home||"")||(a.deceased_name||"").localeCompare(b.deceased_name||""));
-          w.document.write(`<!DOCTYPE html><html><head><title>Ashes In Storage</title><style>body{font-family:Arial,sans-serif;padding:20px;}h1{font-size:18px;font-weight:900;margin-bottom:4px;}p{font-size:12px;color:#666;margin-bottom:16px;}table{width:100%;border-collapse:collapse;}th{background:#111;color:#fff;padding:8px;font-size:11px;text-align:left;}td{padding:8px;border-bottom:1px solid #ddd;font-size:11px;}tr:nth-child(even){background:#f9f9f9;}.footer{margin-top:20px;font-size:10px;color:#999;text-align:center;}</style></head><body><h1>ASHES IN STORAGE</h1><p>Mortuary Support | Lumière · Printed: ${new Date().toLocaleString("en-AU")} · Total: ${rows.length}</p><table><tr><th>Deceased</th><th>Funeral Director</th><th>Case Ref</th><th>Checked In</th><th>Staff</th><th>Location</th></tr>${rows.map(r=>`<tr><td>${r.deceased_name}</td><td>${r.funeral_home||"—"}</td><td>${r.case_ref||"—"}</td><td>${r.checked_in_at||"—"}</td><td>${r.checked_in_by||"—"}</td><td>${r.location||"Storeroom"}</td></tr>`).join("")}</table><div class="footer">Mortuary Support | Lumière · mortuarysupport.com.au · 02 8814 5500</div></body></html>`);
+          w.document.write(`<!DOCTYPE html><html><head><title>Ashes In Storage</title><style>body{font-family:Arial,sans-serif;padding:20px;}h1{font-size:18px;font-weight:900;margin-bottom:4px;}p{font-size:12px;color:#666;margin-bottom:16px;}table{width:100%;border-collapse:collapse;}th{background:#111;color:#fff;padding:8px;font-size:11px;text-align:left;}td{padding:8px;border-bottom:1px solid #ddd;font-size:11px;}tr:nth-child(even){background:#f9f9f9;}.footer{margin-top:20px;font-size:10px;color:#999;text-align:center;}</style></head><body><h1>ASHES IN STORAGE</h1><p>Mortuary Support | Lumière · Printed: ${new Date().toLocaleString("en-AU")} · Total: ${rows.length}</p><table><tr><th>Deceased</th><th>Funeral Director</th><th>Case Ref</th><th>Checked In</th><th>Staff</th><th>Location</th></tr>${rows.map(r=>`<tr><td>${r.deceased_name}</td><td>${r.funeral_home||"—"}</td><td>${r.case_ref||"—"}</td><td>${r.checked_in_at||"—"}</td><td>${r.checked_in_by||"—"}</td><td>${r.location||"Baulkham Hills"}</td></tr>`).join("")}</table><div class="footer">Mortuary Support | Lumière · mortuarysupport.com.au · 02 8814 5500</div></body></html>`);
           w.document.close();w.print();
         }} className="flex-1 py-2 rounded-xl border border-gray-300 text-gray-600 text-xs font-black uppercase hover:border-gray-700 transition">🖨 PRINT IN STORAGE</button>
         <button onClick={()=>{
@@ -4152,7 +4157,7 @@ function AshesRegister({user,cases,onBack}){
                   <div key={r.id} className="bg-white border-2 border-green-300 rounded-xl p-3 text-center">
                     <div className="text-sm font-black text-gray-900 leading-tight">{r.deceased_name}</div>
                     <div className="text-xs text-gray-400 mt-1">{r.case_ref}{(r.dob||r.dod)?" · "+(r.dob?fmt(r.dob):"—")+" – "+(r.dod?fmt(r.dod):"—"):""}</div>
-                    <div className="text-xs text-green-600 font-black mt-1">Storeroom</div>
+                    <div className={`text-xs font-black mt-1 ${r.location==="Darlinghurst"?"text-purple-700":"text-green-600"}`}>{r.location||"Baulkham Hills"}</div>
                     <div className="text-xs text-gray-400 mt-1">{r.checked_in_at}</div>
                   </div>
                 ))}
