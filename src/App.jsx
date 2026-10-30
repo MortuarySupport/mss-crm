@@ -1541,6 +1541,19 @@ ${MSS_FOOTER}`;
 // Photo picked from a phone/computer -> smaller JPEG (base64) for the auto-read
 function imgToJpeg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const img=new Image();img.onload=()=>{const s=Math.min(1,1568/Math.max(img.width,img.height));const cv=document.createElement("canvas");cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);res(cv.toDataURL("image/jpeg",0.85).split(",")[1]);};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"));};img.src=u;});}
 
+// Several photos picked at once -> one multi-page PDF
+async function imagesToPdf(files){
+  const { PDFDocument } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
+  const doc=await PDFDocument.create();
+  for(const file of files){
+    const {url,w,h}=await new Promise((res,rej)=>{const u=URL.createObjectURL(file);const img=new Image();img.onload=()=>{const s=Math.min(1,2200/Math.max(img.width,img.height));const cv=document.createElement("canvas");cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);res({url:cv.toDataURL("image/jpeg",0.85),w:cv.width,h:cv.height});};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"));};img.src=u;});
+    const jpg=await doc.embedJpg(Uint8Array.from(atob(url.split(",")[1]),ch=>ch.charCodeAt(0)));
+    const land=w>h,W=land?841.89:595.28,H=land?595.28:841.89,k=Math.min((W-20)/w,(H-20)/h);
+    doc.addPage([W,H]).drawImage(jpg,{x:(W-w*k)/2,y:(H-h*k)/2,width:w*k,height:h*k});
+  }
+  return new File([await doc.save()],"pages.pdf",{type:"application/pdf"});
+}
+
 // ─── CHECK IN ─────────────────────────────────────────────────────────────────
 function CheckInFlow({user,cases,onComplete,onBack}) {
   const [step,setStep]=useState(1);
@@ -1587,7 +1600,24 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       setOcr({status:"error",msg:e.name==="AbortError"?"Reading took too long. The document was saved — please type the details.":"Couldn't read the document ("+e.message+"). It was saved — please type the details."});
     }finally{clearTimeout(t);}
   }
-  async function ciUpload(file){
+  async function ciUpload(fileList){
+    const files=Array.from(fileList||[]);
+    if(!files.length||!scanLabel) return;
+    const isImg=x=>/^image\//.test(x.type)&&!/\.pdf$/i.test(x.name);
+    let readImgs=null;
+    if(files.length>1){
+      const imgs=files.filter(isImg),pdfs=files.filter(x=>!isImg(x));
+      if(imgs.length>1){
+        try{ if(READ_LABELS.includes(scanLabel)) readImgs=await Promise.all(imgs.slice(0,3).map(imgToJpeg)); }catch(e){}
+        let combined;try{combined=await imagesToPdf(imgs);}catch(e){combined=null;}
+        if(combined){ for(const p of pdfs) await ciUpload1(p,false); return ciUpload1(combined,true,readImgs); }
+      }
+      for(let i=0;i<files.length;i++) await ciUpload1(files[i],i===0);
+      return;
+    }
+    return ciUpload1(files[0],true);
+  }
+  async function ciUpload1(file,doRead=true,readImgs=null){
     if(!file||!scanLabel) return;
     const lbl=scanLabel;
     const safe=s=>String(s||"").replace(/[^a-zA-Z0-9]/g,"_");
@@ -1598,8 +1628,9 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     const named=new File([file],name,{type:file.type||(isPdf?"application/pdf":"image/jpeg")});
     setScanPick("");
     setForm(f=>{const pw=pwOf(lbl);return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name,file:named})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});
-    if(!READ_LABELS.includes(lbl)) return;
+    if(!doRead||!READ_LABELS.includes(lbl)) return;
     try{
+      if(readImgs&&readImgs.length){readDocument(readImgs,lbl);return;}
       if(isPdf){
         if(file.size>3*1024*1024){setOcr({status:"none",msg:"The PDF was saved, but it is too large to read automatically. Please type the details."});return;}
         const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
@@ -1849,13 +1880,13 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             <p className={s.section}>Paperwork Received — start here</p>
             <p className="text-sm text-gray-700 mb-3">{ciManual?<>Tap <b>each document received</b>, then type the details below.</>:<>1. Tap the document you are scanning. &nbsp;2. Tap <b>Scan</b> or <b>Upload</b>. &nbsp;Repeat for each document.</>}</p>
             <div className="flex flex-wrap gap-3 mb-4">
-              {PAPERWORK_OPTIONS.map(p=>{const locked=!ciManual&&!deathDocDone&&!READ_LABELS.includes(docLabel(p));const done=isScanned(p);const on=ciManual?form.paperwork.includes(p):scanPick===p;return(
+              {[...PAPERWORK_OPTIONS,...(ciManual?[]:["OTHER"])].map(p=>{const locked=!ciManual&&!deathDocDone&&!READ_LABELS.includes(docLabel(p));const done=isScanned(p);const on=ciManual?form.paperwork.includes(p):scanPick===p;return(
                 <button key={p} type="button" disabled={locked} title={locked?"Scan the MCCD, BO, VOD or LE first":""} onClick={()=>ciManual?togglePW(p):setScanPick(on?"":p)}
                   className={`px-5 py-3 rounded-xl border-2 text-base font-bold transition disabled:opacity-30 disabled:cursor-not-allowed ${on?"bg-gray-900 text-white border-gray-900":done?"bg-green-50 text-green-800 border-green-500":"bg-white text-gray-500 border-gray-300 hover:border-gray-700"}`}>{locked?"🔒 ":done&&!on?"✓ ":""}{p}</button>);})}
             </div>
             {!ciManual&&<><div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900 font-bold mb-4">✨ By scanning or uploading the MCCD, BO, VOD or LE, the app will automatically fill in the deceased's details and where they came from. Please check every detail is correct before submitting.</div>
             <button type="button" disabled={!scanLabel} onClick={()=>setScanOpen(true)} className="w-full py-4 rounded-xl bg-gray-900 hover:bg-gray-700 text-white text-base font-black uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">📷 Scan {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"Paperwork"}</button>
-            <label className={`mt-2 w-full py-4 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-base font-black uppercase tracking-wide flex items-center justify-center gap-2 ${scanLabel?"cursor-pointer hover:bg-gray-50":"opacity-30 cursor-not-allowed"}`}>📤 Upload {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"from phone or computer"}<input type="file" accept="image/*,application/pdf,.pdf" disabled={!scanLabel} className="hidden" onChange={e=>{const fl=e.target.files&&e.target.files[0];e.target.value="";ciUpload(fl);}}/></label>
+            <label className={`mt-2 w-full py-4 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-base font-black uppercase tracking-wide flex items-center justify-center gap-2 ${scanLabel?"cursor-pointer hover:bg-gray-50":"opacity-30 cursor-not-allowed"}`}>📤 Upload {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"from phone or computer"}<input type="file" multiple accept="image/*,application/pdf,.pdf" disabled={!scanLabel} className="hidden" onChange={e=>{const fl=Array.from(e.target.files||[]);e.target.value="";ciUpload(fl);}}/></label>
             {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap the next document above to scan or upload it":"Tap MCCD, BO, VOD or LE above, then Scan or Upload"}</p>}</>}
             {!ciManual
               ?<button type="button" onClick={()=>{setCiManual(true);setScanPick("");setNoDeathDoc(true);setTimeout(()=>{const el=document.querySelector('input[placeholder="First name"]');if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus();}},80);}} className="w-full mt-3 py-4 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-base font-black uppercase tracking-wide hover:bg-gray-50">✍️ Enter Manually</button>
