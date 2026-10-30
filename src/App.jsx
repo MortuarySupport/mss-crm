@@ -1464,8 +1464,30 @@ Email: info@mortuarysupport.com.au`;
 
 function buildCheckInEmail(r) {
   const needsMccd = r.paperwork && (r.paperwork.includes("VOD") || r.paperwork.includes("LE"));
-  const mccdWarning = needsMccd ? `\n⚠️ IMPORTANT: Please obtain the MCCD from the doctor and email it through to us — we cannot prepare the deceased until we receive it.` : "";
-  return `Hi ${r.funeralHomeName} Team,\n\nThis is to notify you that ${r.firstName} ${r.lastName} has been checked into Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nFirst Name: ${r.firstName}    Last Name: ${r.lastName}\nDOB: ${fmt(r.dob)} | DOD: ${fmt(r.dod)} | Age: ${r.ageAtDeath ?? "—"} | Sex: ${r.sex || "—"}\nCase Reference: ${r.caseRef}\n\n─────────────────────────────\nTRANSFER DETAILS\n─────────────────────────────\nTransferred From: ${r.transferredFrom || "—"}\nTransferred By: ${r.transferredBy || "—"}\nTransfer Date: ${fmtDayLong(r.transferDate)}\nTime: ${r.transferTime || "—"}\n\n─────────────────────────────\nON ARRIVAL WE RECEIVED\n─────────────────────────────\nPaperwork Received: ${r.paperwork || "None"}\nValuables: ${r.valuables || "Nil"}\n\n─────────────────────────────\nDETAILS OF ${(r.firstName+" "+r.lastName).toUpperCase()}\n─────────────────────────────\nSize: ${r.size || "—"} | Weight: ${r.weight || "—"}\n${mccdWarning}\nPlease go to the website and enter the 2nd note with preparation instructions when you can.\n\nTheir current status is: NOT STARTED${MSS_FOOTER}`;
+  const mccdWarning = needsMccd ? `\n⚠️ IMPORTANT: Please obtain the MCCD from the doctor and email it through to us — we cannot prepare the deceased until we receive it.\n` : "";
+  return `Hi ${r.funeralHomeName} Team,
+
+This is to notify you that ${r.firstName} ${r.lastName} has been checked into Mortuary Support Services.
+
+DECEASED DETAILS
+First Name: ${r.firstName}    Last Name: ${r.lastName}
+DOB: ${fmt(r.dob)} | DOD: ${fmt(r.dod)} | Age: ${r.ageAtDeath ?? "—"} | Sex: ${r.sex || "—"}
+Case Reference: ${r.caseRef}
+
+TRANSFER DETAILS
+Transferred From: ${r.transferredFrom || "—"}
+Transferred By: ${r.transferredBy || "—"}
+Transfer Date: ${fmtDayLong(r.transferDate)}
+Time: ${r.transferTime || "—"}
+
+ON ARRIVAL WE RECEIVED
+Paperwork Received: ${r.paperwork || "None"}
+Valuables: ${r.valuables || "Nil"}
+
+DETAILS OF ${(r.firstName+" "+r.lastName).toUpperCase()}
+Size: ${r.size || "—"} | Weight: ${r.weight || "—"}
+${mccdWarning}
+Please go to the website and enter the 2nd note with preparation instructions when you can.${MSS_FOOTER}`;
 }
 
 function buildCompletedEmail(c, prep, billable, otherUsed) {
@@ -1751,7 +1773,8 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       for(const doc of docs){
         if(!doc.file) continue;
         try{
-          const path=`${record.id}/${Date.now()}_${doc.label.replace(/\s+/g,"_")}_${doc.file.name}`;
+          const sf=x=>String(x||"").replace(/[^a-zA-Z0-9]/g,"_");const fhn=FUNERAL_HOMES.find(x=>x.id===fhId)?.name||otherFHName||"FD";const ext=((doc.file.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0]).toLowerCase();
+          const path=`${record.id}/${Date.now()}_${doc.label.replace(/\s+/g,"_")}_${sf(fhn)}_${sf(form.lastName)||"Unknown"}${form.dod?"_"+form.dod.split("-").reverse().join(""):""}${ext}`;
           await fetch(`${SUPABASE_URL}/storage/v1/object/Case-documents/${path}`,{
             method:"POST",
             headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":doc.file.type||"application/octet-stream","x-upsert":"true"},
@@ -1790,7 +1813,9 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
         <button type="button" onClick={async()=>{
           let docs=[];try{docs=(await listDocuments(submitted.id)).filter(d=>d.name&&!d.name.endsWith("/"));}catch(e){}
           const nice=n=>n.replace(/^\d+_/,"").replace(/\.[^.]+$/,"").replace(/_/g," ");
-          const links=docs.length?`\n─────────────────────────────\nDOCUMENTS RECEIVED AT CHECK-IN (click to open)\n─────────────────────────────\n`+docs.map(d=>`${nice(d.name)}:\n${encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}`).join("\n\n")+"\n":"";
+          const DOCN={Coroners_BO:"Coroner's BO",MCCD:"MCCD",CRA:"CRA",VOD:"VOD",LE:"Life Extinct (LE)",BO:"BO",OTHER:"Other document",PHOTO:"Photo",Other:"Other document"};
+          const docTitle=n=>{const rest=n.replace(/^\d+_/,"");const k=Object.keys(DOCN).find(k=>rest.startsWith(k+"_")||rest===k);return k?DOCN[k]:nice(n);};
+          const links=docs.length?`\n\nDOCUMENTS RECEIVED AT CHECK-IN\n`+docs.map(d=>`${docTitle(d.name)} – click here to download:\n${encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}`).join("\n\n"):"";
           let text=buildCheckInEmail(submitted);
           text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
           window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
