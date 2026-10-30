@@ -1862,7 +1862,16 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               :<p className="text-sm text-gray-700 mt-1 text-center font-bold">✍️ Manual entry — type the details below. <button type="button" onClick={()=>{setCiManual(false);setNoDeathDoc(false);}} className="underline">Scan instead</button></p>}
             {scanOpen&&<DocumentScanner labels={["MCCD","Coroners BO","VOD","LE","CRA","OTHER"]} defaultLabel={scanLabel||undefined} readLabels={READ_LABELS} onRead={readDocument} lockedLabels={deathDocDone?[]:["CRA","OTHER"]} fileBase={{fh:FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name,lastName:form.lastName,dod:form.dod}} onClose={()=>setScanOpen(false)}
               prefixLabel={false} onSave={(file,lbl)=>{setScanPick("");setForm(f=>{const pw=lbl==="Coroners BO"?"BO":lbl;return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name:file.name,file})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});}}/>}
-            {(form.checkInDocs||[]).length>0&&<p className="text-xs text-green-700 font-bold mt-3">✓ Scanned: {(form.checkInDocs||[]).map(d=>DOC_NAME[d.label]||d.label).join(", ")} (see Documents below){ocr.status==="done"?" — details filled in, please check them":""}</p>}
+            {(form.checkInDocs||[]).length>0&&<div className="mt-3">
+              <p className="text-xs text-green-700 font-bold mb-2">✓ Documents added{ocr.status==="done"?" — details filled in, please check them":""}</p>
+              {(form.checkInDocs||[]).map((doc,i)=>(
+                <div key={i} className="flex items-center gap-2 mb-1.5 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                  <span className="text-xs font-black text-green-800 uppercase">{DOC_NAME[doc.label]||doc.label}</span>
+                  <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
+                  <button type="button" title="Remove" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600 px-1">✕</button>
+                </div>))}
+            </div>}
+            {!ciManual&&!deathDocDone&&<p className="text-xs text-gray-500 mt-3 text-center">No MCCD, BO, VOD or LE with this body? <button type="button" onClick={()=>setNoDeathDoc(true)} className="underline font-bold text-gray-700">No death paperwork with this body</button></p>}
           </div>
 
           {ocr.status&&ocr.status!=="done"&&<div id="ocr-banner" className={`rounded-xl border-2 px-4 py-3 mb-4 text-sm font-bold flex items-start justify-between gap-3 ${ocr.status==="reading"?"bg-blue-50 border-blue-300 text-blue-800":ocr.status==="confirm"?"bg-red-50 border-red-400 text-red-900":ocr.status==="done"?"bg-amber-50 border-amber-400 text-amber-900":"bg-gray-50 border-gray-300 text-gray-700"}`}>
@@ -1954,26 +1963,6 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
               <input className={s.inp} placeholder="e.g. 85kg" value={form.weight} onChange={e=>setF("weight",e.target.value)}/>
             <Field label="Pacemaker Fitted"><button type="button" onClick={()=>setF("pacemaker",!form.pacemaker)} className={"w-full py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(form.pacemaker?"bg-red-600 text-white border-red-600":"border-gray-200 text-gray-600 hover:border-red-400")}>⚠️ {form.pacemaker?"YES — PACEMAKER FITTED":"No Pacemaker"}</button></Field>
             </Field>
-          </div>
-
-          <div className="mb-6">
-            <p className={s.section}>DOCUMENTS (OPTIONAL)</p>
-            <p className="text-xs text-gray-500 mb-3">Upload any documents that arrived with the deceased</p>
-            {(form.checkInDocs||[]).map((doc,i)=>(
-              <div key={i} className="flex items-center gap-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                <span className="text-xs font-black text-gray-600 uppercase">{doc.label}</span>
-                <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
-                <button type="button" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600">✕</button>
-              </div>
-            ))}
-            <div className="flex gap-2 mb-2 flex-wrap">
-              {["MCCD","CRA","VOD","LE","Coroners BO","OTHER"].map(lbl=>{const locked=!deathDocDone&&!READ_LABELS.includes(lbl);return(
-                <label key={lbl} className={locked?"cursor-not-allowed opacity-30":"cursor-pointer"} title={locked?"Scan the death paperwork first":""}>
-                  <input type="file" disabled={locked} accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={e=>{const file=e.target.files[0];if(file){const pw=lbl==="Coroners BO"?"BO":lbl;setForm(f=>({...f,checkInDocs:[...(f.checkInDocs||[]),{label:lbl,name:file.name,file}],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork}));}e.target.value="";}}/>
-                  <span className="px-3 py-2 rounded-xl border-2 border-gray-200 text-xs font-black uppercase text-gray-600 hover:border-gray-700 transition block">{locked?"🔒":"+"} {lbl}</span>
-                </label>);})}
-            </div>
-            {!deathDocDone&&<p className="text-xs text-gray-500">Scan ONE of these first: MCCD, Coroner's BO, LE or VOD. Other documents unlock after that. <button type="button" onClick={()=>setNoDeathDoc(true)} className="underline font-bold text-gray-700">No death paperwork with this body</button></p>}
           </div>
 
           <button onClick={submit} disabled={saving} className={`${s.btnDark} w-full text-lg py-4 disabled:opacity-40`}>{saving?"Saving…":"Submit Check-In →"}</button>
