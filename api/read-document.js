@@ -47,10 +47,14 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch (e) { body = {}; } }
-  const { label, images } = body || {};
+  const { label, images, pdf } = body || {};
   if (!READABLE.includes(label)) return res.status(400).json({ error: "This document type is not read" });
-  if (!Array.isArray(images) || !images.length || images.length > 3) return res.status(400).json({ error: "1 to 3 pages only" });
-  if (images.some(i => typeof i !== "string" || i.length > 1500000)) return res.status(400).json({ error: "Page too large" });
+  const isPdf = typeof pdf === "string" && pdf.length > 0;
+  if (isPdf) { if (pdf.length > 4300000) return res.status(400).json({ error: "PDF too large" }); }
+  else {
+    if (!Array.isArray(images) || !images.length || images.length > 3) return res.status(400).json({ error: "1 to 3 pages only" });
+    if (images.some(i => typeof i !== "string" || i.length > 1500000)) return res.status(400).json({ error: "Page too large" });
+  }
 
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -62,7 +66,9 @@ export default async function handler(req, res) {
         messages: [{
           role: "user",
           content: [
-            ...images.map(data => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data } })),
+            ...(isPdf
+              ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf } }]
+              : images.map(data => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data } }))),
             { type: "text", text: PROMPT(label) },
           ],
         }],

@@ -1538,6 +1538,9 @@ Destination: ${c.checkout?.destination || "—"}
 ${MSS_FOOTER}`;
 }
 
+// Photo picked from a phone/computer -> smaller JPEG (base64) for the auto-read
+function imgToJpeg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const img=new Image();img.onload=()=>{const s=Math.min(1,1568/Math.max(img.width,img.height));const cv=document.createElement("canvas");cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);res(cv.toDataURL("image/jpeg",0.85).split(",")[1]);};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"));};img.src=u;});}
+
 // ─── CHECK IN ─────────────────────────────────────────────────────────────────
 function CheckInFlow({user,cases,onComplete,onBack}) {
   const [step,setStep]=useState(1);
@@ -1569,11 +1572,11 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       return {...f,checkInDocs:docs,paperwork:pw};
     });
   }
-  async function readDocument(images,label){
+  async function readDocument(images,label,pdf){
     setOcr({status:"reading",msg:`Reading ${DOC_NAME[label]||label}…`});
     const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),25000);
     try{
-      const r=await fetch("/api/read-document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({label,images}),signal:ctl.signal});
+      const r=await fetch("/api/read-document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(pdf?{label,pdf}:{label,images}),signal:ctl.signal});
       const j=await r.json().catch(()=>({}));
       if(r.status===503){setOcr({status:"off",msg:"Auto-read isn't switched on yet. The document was saved — please type the details."});return;}
       if(!r.ok) throw new Error(j.error||("Error "+r.status));
@@ -1583,6 +1586,28 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     }catch(e){
       setOcr({status:"error",msg:e.name==="AbortError"?"Reading took too long. The document was saved — please type the details.":"Couldn't read the document ("+e.message+"). It was saved — please type the details."});
     }finally{clearTimeout(t);}
+  }
+  async function ciUpload(file){
+    if(!file||!scanLabel) return;
+    const lbl=scanLabel;
+    const safe=s=>String(s||"").replace(/[^a-zA-Z0-9]/g,"_");
+    const fhName=FUNERAL_HOMES.find(f=>f.id===(isFD?user.funeralHomeId:selFH))?.name;
+    const isPdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name);
+    const ext=isPdf?".pdf":((file.name.match(/\.[a-z0-9]+$/i)||[".jpg"])[0].toLowerCase());
+    const name=(`${safe(fhName||"FD")}_${safe(form.lastName||"Unknown")}_${form.dod?form.dod.split("-").reverse().join(""):""}`).replace(/_$/,"")+ext;
+    const named=new File([file],name,{type:file.type||(isPdf?"application/pdf":"image/jpeg")});
+    setScanPick("");
+    setForm(f=>{const pw=pwOf(lbl);return{...f,checkInDocs:[...(f.checkInDocs||[]),(lastScanRef.current={label:lbl,name,file:named})],paperwork:PAPERWORK_OPTIONS.includes(pw)&&!f.paperwork.includes(pw)?[...f.paperwork,pw]:f.paperwork};});
+    if(!READ_LABELS.includes(lbl)) return;
+    try{
+      if(isPdf){
+        if(file.size>3*1024*1024){setOcr({status:"none",msg:"The PDF was saved, but it is too large to read automatically. Please type the details."});return;}
+        const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
+        readDocument(null,lbl,b64);
+      }else{
+        readDocument([await imgToJpeg(file)],lbl);
+      }
+    }catch(e){setOcr({status:"error",msg:"Couldn't open that file to read it. It was saved — please type the details."});}
   }
   function applyRead(fl,label){
     {const names={firstName:"first name",lastName:"last name",dob:"DOB",dod:"DOD",sex:"sex",transferFrom:"transferred from"};
@@ -1822,15 +1847,16 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           {/* PAPERWORK FIRST */}
           <div className={s.card+" border-2 border-gray-900"}>
             <p className={s.section}>Paperwork Received — start here</p>
-            <p className="text-sm text-gray-700 mb-3">{ciManual?<>Tap <b>each document received</b>, then type the details below.</>:<>1. Tap the document you are scanning. &nbsp;2. Tap <b>Scan</b>. &nbsp;Repeat for each document.</>}</p>
+            <p className="text-sm text-gray-700 mb-3">{ciManual?<>Tap <b>each document received</b>, then type the details below.</>:<>1. Tap the document you are scanning. &nbsp;2. Tap <b>Scan</b> or <b>Upload</b>. &nbsp;Repeat for each document.</>}</p>
             <div className="flex flex-wrap gap-3 mb-4">
               {PAPERWORK_OPTIONS.map(p=>{const locked=!ciManual&&!deathDocDone&&!READ_LABELS.includes(docLabel(p));const done=isScanned(p);const on=ciManual?form.paperwork.includes(p):scanPick===p;return(
                 <button key={p} type="button" disabled={locked} title={locked?"Scan the MCCD, BO, VOD or LE first":""} onClick={()=>ciManual?togglePW(p):setScanPick(on?"":p)}
                   className={`px-5 py-3 rounded-xl border-2 text-base font-bold transition disabled:opacity-30 disabled:cursor-not-allowed ${on?"bg-gray-900 text-white border-gray-900":done?"bg-green-50 text-green-800 border-green-500":"bg-white text-gray-500 border-gray-300 hover:border-gray-700"}`}>{locked?"🔒 ":done&&!on?"✓ ":""}{p}</button>);})}
             </div>
-            {!ciManual&&<><div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900 font-bold mb-4">✨ By scanning the MCCD, BO, VOD or LE, the scanner will automatically fill in the deceased's details and where they came from. Please check every detail is correct before submitting.</div>
+            {!ciManual&&<><div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900 font-bold mb-4">✨ By scanning or uploading the MCCD, BO, VOD or LE, the app will automatically fill in the deceased's details and where they came from. Please check every detail is correct before submitting.</div>
             <button type="button" disabled={!scanLabel} onClick={()=>setScanOpen(true)} className="w-full py-4 rounded-xl bg-gray-900 hover:bg-gray-700 text-white text-base font-black uppercase tracking-wide disabled:opacity-30 disabled:cursor-not-allowed">📷 Scan {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"Paperwork"}</button>
-            {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap the next document above to scan it":"Tap MCCD, BO, VOD or LE above to start scanning"}</p>}</>}
+            <label className={`mt-2 w-full py-4 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-base font-black uppercase tracking-wide flex items-center justify-center gap-2 ${scanLabel?"cursor-pointer hover:bg-gray-50":"opacity-30 cursor-not-allowed"}`}>📤 Upload {scanLabel?(DOC_NAME[scanLabel]||scanLabel):"from phone or computer"}<input type="file" accept="image/*,application/pdf,.pdf" disabled={!scanLabel} className="hidden" onChange={e=>{const fl=e.target.files&&e.target.files[0];e.target.value="";ciUpload(fl);}}/></label>
+            {!scanLabel&&<p className="text-xs text-gray-500 mt-2 text-center">{deathDocDone?"Tap the next document above to scan or upload it":"Tap MCCD, BO, VOD or LE above, then Scan or Upload"}</p>}</>}
             {!ciManual
               ?<button type="button" onClick={()=>{setCiManual(true);setScanPick("");setNoDeathDoc(true);setTimeout(()=>{const el=document.querySelector('input[placeholder="First name"]');if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.focus();}},80);}} className="w-full mt-3 py-4 rounded-xl border-2 border-gray-900 bg-white text-gray-900 text-base font-black uppercase tracking-wide hover:bg-gray-50">✍️ Enter Manually</button>
               :<p className="text-sm text-gray-700 mt-1 text-center font-bold">✍️ Manual entry — type the details below. <button type="button" onClick={()=>{setCiManual(false);setNoDeathDoc(false);}} className="underline">Scan instead</button></p>}
