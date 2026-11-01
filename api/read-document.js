@@ -21,15 +21,19 @@ Rules:
 - docType: what the document actually is, one of:
   "MCCD" = Medical Certificate of Cause of Death (a doctor certifies the cause of death),
   "Coroners BO" = a Coroner's order or certificate allowing burial or cremation,
-  "LE" = Life Extinct form (paramedic, police or doctor confirms life is extinct),
+  "LE" = Life Extinct form (paramedic, police, doctor or nurse confirms life is extinct), including a nursing home's "Verification of Life Extinct" form,
   "VOD" = Verification of Death form (a nurse or doctor verifies the death),
   "CRA" = Cremation Risk Advice (a doctor's form about cremation risks such as pacemakers or implants),
   "Other" = anything else. Use "" only if you cannot tell.
-- Leave a value as "" if it is missing, or if the handwriting is not clearly legible. Never guess.
+- Most of these forms are handwritten. Fill in any value you can read with reasonable confidence, even if the handwriting is untidy. Leave it as "" only if it is missing or you genuinely cannot make it out. Never invent a value.
+- On a Life Extinct (LE) form the deceased may be labelled "Patient", "Deceased" or "Name"; the date of death is the date life was pronounced extinct; the place is where life was pronounced extinct.
 - firstName: given name(s) only. lastName: family name only. Use normal capitalisation (e.g. "Mary Anne", "O'Brien").
 - dob and dod: format YYYY-MM-DD. Dates on these forms are written day/month/year.
 - sex: "Male", "Female" or "".
-- placeOfDeath: the name of the hospital, nursing home or facility, or the suburb if it was a private home.
+- The deceased may be labelled "Deceased", "Patient", "Resident", "Consumer", "Client" or just "Name" (a nursing home form often has "Facility Details" first, then the person's details; never use the facility, nurse or doctor as the deceased).
+- dod: the date of death, or on a Life Extinct / Verification form the date life was declared extinct ("Date of Assessment", "Date of verification", "Date").
+- placeOfDeath: the name of the hospital, nursing home or facility, including the provider name when shown (e.g. "Opal Marsden Park"), or the suburb if it was a private home.
+- placeType: aged-care providers (e.g. Opal, Bupa, Uniting, Anglicare, BaptistCare, Arcare, Regis, Estia) and any "Facility" that is not a hospital = "Nursing Home".
 - placeType: one of "Hospital", "Nursing Home", "Home", "Other", or "".
 - coronerOffice: only for a Coroner's document, which Coroner's court or office issued it: "Sydney" (including Lidcombe), "Newcastle", "Wollongong", "Canberra", or "".`;
 

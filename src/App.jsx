@@ -1563,6 +1563,15 @@ ${MSS_FOOTER}`;
 // Photo picked from a phone/computer -> smaller JPEG (base64) for the auto-read
 function imgToJpeg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const img=new Image();img.onload=()=>{const s=Math.min(1,1568/Math.max(img.width,img.height));const cv=document.createElement("canvas");cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);URL.revokeObjectURL(u);res(cv.toDataURL("image/jpeg",0.85).split(",")[1]);};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"));};img.src=u;});}
 
+// iPhone HEIC photo -> JPEG, so every browser can read it and FDs can open it
+async function heicToJpeg(file){
+  if(!/heic|heif/i.test(file.type)&&!/\.(heic|heif)$/i.test(file.name)) return file;
+  if(!window.heic2any) await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+  let out=await window.heic2any({blob:file,toType:"image/jpeg",quality:0.9});
+  if(Array.isArray(out)) out=out[0];
+  return new File([out],file.name.replace(/\.(heic|heif)$/i,"")+".jpg",{type:"image/jpeg"});
+}
+
 // Several photos picked at once -> one multi-page PDF
 async function imagesToPdf(files){
   const { PDFDocument } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
@@ -1616,15 +1625,21 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       if(r.status===503){setOcr({status:"off",msg:"Auto-read isn't switched on yet. The document was saved — please type the details."});return;}
       if(!r.ok) throw new Error(j.error||("Error "+r.status));
       const det=j.docType||"";
-      if(det&&det!==label){setOcr({status:"confirm",label,detected:det,fields:j.fields||{},doc:lastScanRef.current});return;}
+      const LEVOD_SAME=["LE","VOD"].includes(det)&&["LE","VOD"].includes(label); // "Verification of Life Extinct" forms are both
+      if(det&&det!==label&&!LEVOD_SAME){setOcr({status:"confirm",label,detected:det,fields:j.fields||{},doc:lastScanRef.current});return;}
       applyRead(j.fields||{},label);
     }catch(e){
       setOcr({status:"error",msg:e.name==="AbortError"?"Reading took too long. The document was saved — please type the details.":"Couldn't read the document ("+e.message+"). It was saved — please type the details."});
     }finally{clearTimeout(t);}
   }
   async function ciUpload(fileList){
-    const files=Array.from(fileList||[]);
+    let files=Array.from(fileList||[]);
     if(!files.length||!scanLabel) return;
+    if(files.some(x=>/heic|heif/i.test(x.type)||/\.(heic|heif)$/i.test(x.name))){
+      setOcr({status:"reading",msg:"Converting iPhone photo…"});
+      files=await Promise.all(files.map(x=>heicToJpeg(x).catch(()=>x)));
+      setOcr({status:"",msg:""});
+    }
     const isImg=x=>/^image\//.test(x.type)&&!/\.pdf$/i.test(x.name);
     let readImgs=null;
     if(files.length>1){
@@ -1673,10 +1688,13 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           u.transferFrom=type;u.transferFromSub=type==="Home"?"":(fl.placeOfDeath||"");
         }
       const filled=Object.keys(u).filter(k=>names[k]).map(k=>names[k]);
+      const seen=[fl.firstName||fl.lastName?`${fl.firstName||""} ${fl.lastName||""}`.trim():"",fl.dob?"DOB "+fmt(fl.dob):"",fl.dod?"DOD "+fmt(fl.dod):"",fl.sex||"",fl.placeOfDeath||""].filter(Boolean);
       if(filled.length){setForm(p=>({...p,...u}));setErrors(e=>{const n={...e};Object.keys(u).forEach(k=>delete n[k]);return n;});}
       setOcr(filled.length
         ?{status:"done",msg:`Filled from ${DOC_NAME[label]||label}: ${filled.join(", ")}. Please check these against the document.`}
-        :{status:"none",msg:`Couldn't read any new details clearly from the ${DOC_NAME[label]||label}. Please type them in.`});
+        :seen.length
+          ?{status:"none",msg:`Read from the ${DOC_NAME[label]||label}: ${seen.join(", ")}. These boxes were already filled in, so nothing was changed. Please check they match.`}
+          :{status:"none",msg:`Couldn't read the details clearly from the ${DOC_NAME[label]||label}. Please type them in.`});
     }
   }
   const [form,setForm]=useState({firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),transferTime:new Date().toTimeString().slice(0,5),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false});
