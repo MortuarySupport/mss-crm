@@ -2997,119 +2997,154 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
       )}
       <PresenceDotInCase caseId={c.id} user={user}/>
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        {c.pendingChanges?.length>0&&<button onClick={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ ACCEPT CHANGES</button>}
-        <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],false)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">👁 VIEW JOB CARD</button>
-        <button onClick={()=>printJobCard(c,prep,billable,statusItems,[],true)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 transition">🖨️ PRINT JOB CARD</button>
-        <button onClick={()=>printCaseLabel({...c,prep})} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">🏷️ PRINT LABEL</button>
-        <button onClick={()=>setShowPacemakerCert(true)} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-black text-sm uppercase hover:bg-amber-600 transition">📋 PACEMAKER CERT</button>
-      </div>
       <div className={s.card}>
-        <p className={s.section}>Checklist</p>
+        <p className={s.section}>Received — Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
       </div>
-      <Divider/>
-      <div className={s.card}>
-        <p className={s.section}>Dates</p>
-        <div className="space-y-4">
-          <Field label="Collection/Delivery Date">
-            <input type="date" className={s.inp} value={prep.collectionDate||""} min={today()} onChange={e=>updPrepMulti({collectionDate:e.target.value,funeralDate:prep.sameDates?e.target.value:prep.funeralDate})}/>
-            {prep.collectionDate&&<div className="mt-2"><div className={s.label}>Collection Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("collectionTime",prep.collectionTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.collectionTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
-            {prep.collectionDate&&<div className="text-xs text-gray-500 mt-1">{fmtDayLong(prep.collectionDate)}{prep.collectionTime?" at "+prep.collectionTime:""}</div>}
-          </Field>
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={()=>updPrepMulti({sameDates:!prep.sameDates,funeralDate:!prep.sameDates?prep.collectionDate:prep.funeralDate,funeralTime:!prep.sameDates?prep.collectionTime:prep.funeralTime})} className={`inline-flex px-4 py-2 rounded-xl border-2 text-xs font-black uppercase transition ${prep.sameDates?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-700"}`}>
-              {prep.sameDates?"✓ Same Day":"Same Day as Collection"}
-            </button>
-            {prep.sameDates&&<span className="text-xs text-gray-500">Funeral date matches collection</span>}
-          </div>
-          {!prep.sameDates&&(
-          <Field label="Funeral Date">
-            <input type="date" className={s.inp} value={prep.funeralDate||""} min={today()} onChange={e=>updPrep("funeralDate",e.target.value)}/>
-            {prep.funeralDate&&<div className="mt-2"><div className={s.label}>Funeral Time</div><div className="grid grid-cols-4 gap-1 mt-1">{["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00"].map(t=><button key={t} type="button" onClick={()=>updPrep("funeralTime",prep.funeralTime===t?"":t)} className={`py-1.5 rounded-lg border-2 text-xs font-black transition ${prep.funeralTime===t?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-600"}`}>{t}</button>)}</div></div>}
-            {prep.funeralDate&&<div className="text-xs text-gray-500 mt-1">{fmtDayLong(prep.funeralDate)}{prep.funeralTime?" at "+prep.funeralTime:""}</div>}
-          </Field>
-          )}
-        </div>
-      </div>
-      <div className={s.card}><p className={s.section}>Comments</p><textarea className={`${s.inp} min-h-[80px]`} value={prep.comments||""} onChange={e=>updPrep("comments",e.target.value)} placeholder="Add mortuary comments…"/></div>
-      <div className={s.card}><p className={s.section}>Preparation Required</p><MultiToggle options={PREP_OPTIONS.map(p=>p.label)} selected={prep.prepOptions||[]} onToggle={o=>{const cur=prep.prepOptions||[];updPrep("prepOptions",cur.length===1&&cur[0]===o?[]:[o]);}}/></div>
-      <div className={s.card}><p className={s.section}>Disposition</p><div className="flex flex-wrap gap-2">{DISPOSITION_OPTIONS.map(d=><button key={d} type="button" onClick={()=>updPrep("disposition",d)} className={s.tb(prep.disposition===d)}>{d}</button>)}</div></div>
-      <div id="coffinDetails" className={s.card}>
-        <p className={s.section}>COFFIN DETAILS</p>
-        <div className="mb-4"><label className={s.label}>Coffin Name</label><input type="text" className={s.inp} value={prep.coffinName||""} onChange={e=>updPrep("coffinName",e.target.value)} placeholder="Enter coffin name"/></div>
-        <div className="mb-3"><label className={s.label}>Size</label><div className="flex flex-wrap gap-2">{["Under","Std","OS1","OS2","OS3","OS4","OS5","Baby","Infant"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinSize",prep.coffinSize===v?"":v)} className={s.tb(prep.coffinSize===v)}>{v}</button>)}</div></div>
-        <div className="mb-3"><label className={s.label}>Colour</label><div className="flex flex-wrap gap-2">{["Maple","Teak","Rosewood","White","Black","Timber","Cardboard","NSNA"].map(v=><button key={v} type="button" onClick={()=>updPrep("coffinColour",prep.coffinColour===v?"":v)} className={s.tb(prep.coffinColour===v)}>{v}</button>)}</div></div>
-      </div>
-        <div className="mb-3"><div className="text-xs font-black uppercase text-gray-500 tracking-widest mb-2">Coffin Extras</div><div className="flex flex-wrap gap-2">{[{code:"CL",label:"Crucifix - Large"},{code:"CS",label:"Crucifix - Small"},{code:"NPL",label:"Name Plate - Large"},{code:"NPS",label:"Name Plate - Small"},{code:"GA",label:"Gravemarker Assembly"},{code:"NPE",label:"Name Plate Etching"}].map(({code,label})=><div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} className={s.tb(!!billable[code])}>{label}</button>{["CL","CS","NPL","NPS"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>)}</div></div>
-      <Divider/>
-      <div className={s.card}><ViewingSection prep={prep} updPrepMulti={updPrepMulti} bookedSlots={bookedSlots}/></div>
-
-      <div className={s.card}>
-        <p className={s.section}>VALUABLES</p>
-        <div className="flex gap-2 mb-3">
-          <button type="button" onClick={()=>updPrep("mortuaryValuables","Yes")}
-            className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${prep.mortuaryValuables==="Yes"?"bg-green-600 text-white border-green-600":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>
-            YES
-          </button>
-          <button type="button" onClick={()=>{updPrepMulti({mortuaryValuables:"No",mortuaryValuablesText:""}); }}
-            className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase transition ${prep.mortuaryValuables==="No"?"bg-red-500 text-white border-red-500":"border-gray-300 text-gray-600 hover:border-gray-700"}`}>
-            NO
-          </button>
-        </div>
-        {prep.mortuaryValuables==="Yes"&&(
-          <div>
-            <label className={s.label}>DESCRIBE VALUABLES</label>
-            <textarea className={`${s.inp} min-h-[80px]`}
-              value={prep.mortuaryValuablesText||""}
-              onChange={e=>updPrep("mortuaryValuablesText",e.target.value)}
-              placeholder="e.g. Gold wedding ring, silver necklace, glasses…"/>
-            <p className="text-xs font-bold text-gray-400 uppercase mt-1">These will appear in Check Out for confirmation</p>
-          </div>
-        )}
-      </div>
-      <Divider/>
-      <div className={s.card}>
-        <p className={s.section}>Other Items Used</p>
-        {Object.entries(OTHER_ITEMS).map(([group,items])=>(
-          <div key={group} className="mb-4"><div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">{group}</div><MultiToggle options={items} selected={Object.keys(otherUsed).filter(k=>otherUsed[k])} onToggle={o=>updOther(o,!otherUsed[o])}/></div>
-        ))}
-      </div>
-      <div className={s.card}>
-        <p className={s.section}>SERVICES & ITEMS</p>
-        {[
-          {cat:"Preparation",items:[{code:"BP",label:"Basic Preparation"},{code:"TP",label:"Temporary Preservation"},{code:"FE",label:"Full Embalm"},{code:"BP1",label:"Basic Preparation (OS)"},{code:"TP1",label:"Temp Preservation (OS)"},{code:"FE1",label:"Full Embalm (OS)"},{code:"TPC",label:"Temp Preservation - Coroner"},{code:"FEC",label:"Full Embalm - Coroner"},{code:"TPC1",label:"Temp Preservation - Coroner (OS)"},{code:"FEC1",label:"Full Embalm - Coroner (OS)"},{code:"NSNA",label:"NSNA"}]},
-          {cat:"Cosmetics",items:[{code:"DRS",label:"Dressing/Make Up"},{code:"FP",label:"Finger Prints/Hair Locks"},{code:"PR",label:"Pacemaker Removal"}]},
-          {cat:"Supplementary Care",items:[{code:"ASP",label:"Aspiration/Cavity Treatment"},{code:"BSI",label:"Bio-Seal"},{code:"INF",label:"List A | Covid | Infectious"},{code:"REC",label:"Reconstruction"}]},
-          {cat:"Storage",items:[{code:"ACC",label:"Accommodation (per night)"}]},
-          {cat:"Additional Services",items:[{code:"AHB",label:"After Hours Body Prep Surcharge"},{code:"BB",label:"Body Bag"},{code:"CP",label:"Capri Pants"},{code:"CPT",label:"Coffin/Casket Packaging"},{code:"DRR",label:"Dr Cremation Referee"},{code:"DID",label:"Dr ID - Inperson"},{code:"DIV",label:"Dr ID - Virtual"},{code:"HCO",label:"Hair Colouring"},{code:"OPC",label:"Open/Close Mortuary A/H"},{code:"SHR",label:"Shroud"},{code:"TYV",label:"Tyvek Suits"}]},
-          {cat:"Room Hire",items:[{code:"FMR",label:"Family Meeting Room (in care)"},{code:"FMR2",label:"Family Meeting Room (not in care)"},{code:"VR1",label:"Viewing Room"},{code:"VRH",label:"Viewing Room Host"},{code:"WD",label:"Witness Dressing - Per Person"},{code:"CPL",label:"Chapel (up to 12 guests)"}]},
-          {cat:"Labour",items:[{code:"CL4",label:"Casual Labour Hire - 4hrs min"},{code:"CL5",label:"Casual Labour Hire - 5hrs"}]},
-          {cat:"Delivery & Hearse",items:[{code:"RSF",label:"Repatriation Service Fee"},{code:"ED1",label:"ED - Mac Park | North Sub | Pine | Castle"},{code:"ED2",label:"ED - Rookwood | Frenchs | Penrith"},{code:"ED3",label:"ED - Forest Lawn | L pool | Kemps Crk"},{code:"ED4",label:"ED - ESMP | WMP"},{code:"EDS",label:"ED - Weekend/AH Surcharge"},{code:"HH1",label:"Hearse - Single Location"},{code:"HH2",label:"Hearse - Dual Location"}]},
-          {cat:"Audio Visual",items:[{code:"AV",label:"AV - Speakers/Mic/Projector/Screen"},{code:"LS1",label:"Livestream over 90mins"},{code:"LS2",label:"Livestream under 90mins"},{code:"SSO",label:"Slideshow Only"},{code:"SSM",label:"Slideshow | Music | Chapel Ready"}]},
-          {cat:"Transfers - Hospital/Coroner",items:[{code:"TH1",label:"Mon-Fri 7am-4pm"},{code:"TH2",label:"Weekend 7am-4pm"},{code:"TH3",label:"Mon-Fri 4pm-12am"},{code:"TH4",label:"Weekend 4pm-12am"},{code:"TH5",label:"Mon-Fri 12am-7am"},{code:"TH6",label:"Weekend 12am-7am"}]},
-          {cat:"Transfers - Home/Residential",items:[{code:"TR1",label:"Mon-Fri 7am-4pm"},{code:"TR2",label:"Weekend 7am-4pm"},{code:"TR3",label:"Mon-Fri 4pm-12am"},{code:"TR4",label:"Weekend 4pm-12am"},{code:"TR5",label:"Mon-Fri 12am-7am"},{code:"TR6",label:"Weekend 12am-7am"}]},
-        ].map(({cat,items})=>(
-          <div key={cat} className="mb-5">
-            <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{cat}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" style={{touchAction:"pan-y"}}>
-              {items.map(({code,label})=>(
-                <div key={code} className="flex items-center gap-1"><button type="button" onClick={()=>updBill(code,!billable[code])} style={{touchAction:"pan-y"}} className={"w-full py-2 px-2 rounded-xl border-2 text-xs font-bold text-center transition "+(billable[code]?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-600 border-gray-200 hover:border-gray-700")}>{label}</button>{code==="ACC"&&billable["ACC"]&&(()=>{const nights=c.checkedInAt&&prep.collectionDate?Math.max(1,Math.ceil((new Date(prep.collectionDate+"T12:00:00")-new Date(c.checkedInAt))/(1000*60*60*24))):null;return nights?<span className="text-xs font-black text-gray-700 bg-gray-100 px-2 py-1 rounded-lg">{nights} night{nights!==1?"s":""}</span>:null;})()}{["CL","CS","NPL","NPS","CL4","CL5"].includes(code)&&billable[code]&&<input type="number" min={1} max={20} value={prep[code+"Qty"]||1} onChange={e=>updPrep(code+"Qty",parseInt(e.target.value)||1)} className="w-14 text-center border-2 border-gray-200 rounded-lg py-1 text-xs font-black"/>}</div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div id="docsSection"><DocumentSection key={docReload} caseId={c.id} filesDeletedAt={c.filesDeletedAt} backupFolder={c.backupFolder} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        {[["not-started","Not Started","bg-red-500"],["in-progress","In Progress","bg-amber-500"],["completed","Completed","bg-green-600"]].map(([val,label,col])=>(
-          <button key={val} onClick={()=>handleStatus(val)} className={`py-4 rounded-2xl text-white font-black text-base transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-80 hover:opacity-100"}`}>{label}</button>
-        ))}
-      </div>
+      <JobSheet c={c} prep={prep} billable={billable} upd={upd} handleStatus={handleStatus} onPacemaker={()=>setShowPacemakerCert(true)} onAcceptChanges={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}}/>
+      <div id="docsSection" className="mt-4"><DocumentSection key={docReload} caseId={c.id} filesDeletedAt={c.filesDeletedAt} backupFolder={c.backupFolder} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
 
       {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>{setShowPacemakerCert(false);setDocReload(p=>p+1);}}/>}
     </div>
     </>
+  );
+}
+
+// ─── JOB SHEET (what MSS did, for billing) ───────────────────────────────────
+const JS_PREP=[
+  {key:"BP",label:"Basic Prep",prep:"Basic Prep",v:{std:"BP",os:"BP1"}},
+  {key:"TP",label:"Temp Preservation",prep:"Temp Prep",v:{std:"TP",os:"TP1",cor:"TPC",coros:"TPC1"}},
+  {key:"FE",label:"Full Embalm",prep:"Full Embalm",v:{std:"FE",os:"FE1",cor:"FEC",coros:"FEC1"}},
+  {key:"NSNA",label:"NSNA",prep:"No Prep",v:{std:"NSNA"}},
+];
+const JS_PREP_CODES=["BP","TP","FE","BP1","TP1","FE1","TPC","FEC","TPC1","FEC1","NSNA"];
+const JS_VERSIONS=[["std","Standard"],["os","Oversize (OS)"],["cor","Coroner"],["coros","Coroner + OS"]];
+const JS_QTY=["CL","CS","CL4","CL5","WD","NPL","NPS","BB","TYV","SHR","CP"];
+const JS_SECTIONS=[
+  {title:"Services & Care",codes:["DRS","PR","FP","ASP","BSI","REC","INF","HCO","AHB","DRR","DID","DIV","OPC"]},
+  {title:"Items Used",codes:["BB","TYV","SHR","CP","CL","CS","NPL","NPS","NPE","CPT","GA"]},
+  {title:"Rooms & AV",codes:["VR1","VRH","FMR","FMR2","CPL","WD","AV","LS1","LS2","SSO","SSM"]},
+  {title:"Transfers – Hospital / Coroner",codes:["TH1","TH2","TH3","TH4","TH5","TH6"]},
+  {title:"Transfers – Home / Residential",codes:["TR1","TR2","TR3","TR4","TR5","TR6"]},
+  {title:"ED, Hearse & Repatriation",codes:["ED1","ED2","ED3","ED4","EDS","HH1","HH2","RSF"]},
+  {title:"Labour & Accommodation",codes:["CL4","CL5","ACC"]},
+];
+const jsMoney=n=>"$"+(Math.round(n*100)/100).toLocaleString("en-AU",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
+const jsNights=c=>{if(!c.checkedInAt)return 1;const end=c.checkout?.checkedOutAt?new Date(c.checkout.checkedOutAt):new Date();return Math.max(1,Math.ceil((end-new Date(c.checkedInAt))/86400000));};
+const jsQty=(b,code,c)=>code==="ACC"?(b.ACC?jsNights(c):0):typeof b[code]==="number"?b[code]:(b[code]?(parseInt(c.prep?.[code+"Qty"])||1):0);
+function JobSheet({c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}){
+  const [note,setNote]=useState(null);
+  useEffect(()=>{let live=true;sb(`second_notes?case_id=eq.${c.id}&select=pdf_path,submitted_at&order=submitted_at.desc&limit=1`).then(r=>{if(live&&Array.isArray(r)&&r[0])setNote(r[0]);}).catch(()=>{});return()=>{live=false;};},[c.id]);
+  const b=billable||{};
+  const curCode=JS_PREP_CODES.find(k=>b[k]);
+  const curBase=JS_PREP.find(p=>Object.values(p.v).includes(curCode));
+  const curVer=curBase?Object.entries(curBase.v).find(([,v])=>v===curCode)?.[0]:"std";
+  const askedPrep=(prep.prepOptions||[])[0];
+  function pickPrep(base,ver){
+    const nb={...b};JS_PREP_CODES.forEach(k=>delete nb[k]);
+    let nextPrep=prep.prepOptions||[];
+    if(base){const code=base.v[ver]||base.v.std;nb[code]=true;nextPrep=[base.prep];}
+    upd(c.id,{billable:nb,prep:{...prep,prepOptions:nextPrep}});
+  }
+  const setQty=(code,n)=>{const nb={...b};if(n<=0)delete nb[code];else nb[code]=JS_QTY.includes(code)?n:true;upd(c.id,{billable:nb});};
+  const lines=Object.keys(b).filter(k=>b[k]&&SERVICE_LABELS_XERO[k]).map(k=>({code:k,label:SERVICE_LABELS_XERO[k],qty:jsQty(b,k,c),price:PRICE_LIST[k]||0}));
+  const total=lines.reduce((s2,l)=>s2+l.qty*l.price,0);
+  const chip=on=>"w-full min-h-[48px] rounded-xl border-2 px-3 py-2 text-xs font-black text-left flex items-center justify-between gap-2 transition "+(on?"border-green-600 bg-green-50 text-green-800":"border-gray-200 bg-white text-gray-700 hover:border-gray-700");
+  const card="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5";
+  const head="text-xs font-black uppercase tracking-widest text-gray-500 mb-3";
+  const info=(l,v)=>(<div className="bg-gray-800 rounded-xl px-3 py-2"><div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{l}</div><div className="text-sm font-bold">{v}</div></div>);
+  return(
+    <div className="space-y-4">
+      <div className="bg-gray-900 text-white rounded-2xl p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div><div className="text-xs font-black uppercase tracking-widest text-gray-400">Job Sheet · {c.caseRef}</div><div className="text-sm text-gray-300 mt-1">{c.funeralHomeName}</div></div>
+          {note?.pdf_path
+            ?<a href={getDocumentUrl(note.pdf_path)} target="_blank" rel="noreferrer" className="shrink-0 bg-white text-gray-900 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-wide hover:bg-gray-100">📄 View 2nd Note</a>
+            :<span className="shrink-0 text-xs font-bold text-gray-400 border border-gray-600 rounded-xl px-3 py-2">No 2nd Note yet</span>}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {info("Checked in",c.checkedInAt?fmtDTDay(c.checkedInAt):"—")}
+          {info("Checked out",c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"Still in care")}
+          {info("Nights",jsNights(c)+(c.checkout?.checkedOutAt?"":" so far"))}
+          {info("Prep",askedPrep||"—")}
+          {info("Disposition",prep.disposition||"—")}
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        {c.pendingChanges?.length>0&&<button onClick={onAcceptChanges} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ Accept Changes</button>}
+        <button onClick={()=>printCaseLabel({...c,prep})} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">🏷️ Print Label</button>
+        <button onClick={onPacemaker} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-black text-sm uppercase hover:bg-amber-600 transition">📋 Pacemaker Cert</button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+        <div className="space-y-4 min-w-0">
+          <div className={card}>
+            <div className="flex items-baseline justify-between gap-2 mb-3"><p className={head+" mb-0"}>Preparation — choose one</p></div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {JS_PREP.map(p=>{const on=curBase?.key===p.key;const code=p.v[on?curVer:"std"]||p.v.std;return(
+                <button key={p.key} type="button" onClick={()=>pickPrep(on?null:p,curVer)} className={"min-h-[56px] rounded-xl border-2 text-sm font-black flex flex-col items-center justify-center transition "+(on?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-700 border-gray-200 hover:border-gray-700")}>
+                  {p.label}<span className={"text-[11px] font-bold "+(on?"text-gray-300":"text-gray-500")}>{code} · {jsMoney(PRICE_LIST[code]||0)}</span></button>);})}
+            </div>
+            {curBase&&curBase.key!=="NSNA"&&<div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-gray-600">Version:</span>
+              {JS_VERSIONS.filter(([k])=>curBase.v[k]).map(([k,l])=><button key={k} type="button" onClick={()=>pickPrep(curBase,k)} className={"min-h-[36px] px-3 rounded-full border-2 text-xs font-black transition "+(curVer===k?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-700 border-gray-200 hover:border-gray-700")}>{l}</button>)}
+            </div>}
+          </div>
+
+          {JS_SECTIONS.map(sec=>(
+            <div key={sec.title} className={card}>
+              <p className={head}>{sec.title}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+                {sec.codes.map(code=>{const q=jsQty(b,code,c),on=q>0,label=SERVICE_LABELS_XERO[code]||code,price=PRICE_LIST[code]||0;
+                  if(on&&JS_QTY.includes(code))return(
+                    <div key={code} className={chip(true)}>
+                      <span className="min-w-0">{label}</span>
+                      <span className="flex items-center gap-1 shrink-0">
+                        <button type="button" aria-label="One less" onClick={()=>setQty(code,q-1)} className="w-8 h-8 rounded-lg border border-green-300 bg-white font-black">−</button>
+                        <span className="w-5 text-center">{q}</span>
+                        <button type="button" aria-label="One more" onClick={()=>setQty(code,q+1)} className="w-8 h-8 rounded-lg border border-green-300 bg-white font-black">+</button>
+                      </span>
+                    </div>);
+                  return(<button key={code} type="button" onClick={()=>setQty(code,on?0:1)} className={chip(on)}>
+                    <span className="min-w-0">{on?"✓ ":""}{label}{code==="ACC"&&on?` × ${q}`:""}</span>
+                    <span className={"shrink-0 font-bold "+(on?"":"text-gray-500")}>{jsMoney(price)}{code==="ACC"?"/night":""}</span></button>);})}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white border-2 border-gray-900 rounded-2xl p-4">
+            <p className={head}>This job so far</p>
+            {lines.length===0&&<p className="text-sm text-gray-400">Nothing added yet.</p>}
+            <div className="space-y-1.5">{lines.map(l=><div key={l.code} className="flex justify-between gap-2 text-sm"><span className="min-w-0">{l.code} · {l.label}{l.qty>1?` × ${l.qty}`:""}</span><b className="shrink-0">{jsMoney(l.qty*l.price)}</b></div>)}</div>
+            <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-baseline"><span className="text-xs font-black tracking-wide">TOTAL (INC GST)</span><span className="text-2xl font-black">{jsMoney(total)}</span></div>
+            <p className="text-[11px] text-gray-500 mt-2">Goes to Invoicing and the Xero export.</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl p-4">
+            <p className={head}>Status</p>
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
+              {[["not-started","Not Started","bg-red-500"],["in-progress","In Progress","bg-amber-500"],["completed","Completed","bg-green-600"]].map(([val,label,col])=>(
+                <button key={val} onClick={()=>handleStatus(val)} className={`py-3 rounded-xl text-white font-black text-sm transition ${col} ${c.prepStatus===val?"ring-4 ring-offset-2 ring-gray-300":"opacity-60 hover:opacity-100"}`}>{label}</button>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl p-4">
+            <label htmlFor="js-notes" className={head+" block"}>Notes</label>
+            <textarea id="js-notes" className={`${s.inp} min-h-[100px]`} value={prep.comments||""} onChange={e=>upd(c.id,{prep:{...prep,comments:e.target.value}})} placeholder="Anything unusual about this job…"/>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-2xl p-4">
+            <p className={head}>Valuables found in mortuary</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={()=>upd(c.id,{prep:{...prep,mortuaryValuables:"Yes"}})} className={`flex-1 py-2.5 rounded-xl border-2 font-black text-xs uppercase ${prep.mortuaryValuables==="Yes"?"bg-green-600 text-white border-green-600":"border-gray-300 text-gray-600"}`}>Yes</button>
+              <button type="button" onClick={()=>upd(c.id,{prep:{...prep,mortuaryValuables:"No",mortuaryValuablesText:""}})} className={`flex-1 py-2.5 rounded-xl border-2 font-black text-xs uppercase ${prep.mortuaryValuables==="No"?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-600"}`}>No</button>
+            </div>
+            {prep.mortuaryValuables==="Yes"&&<textarea className={`${s.inp} min-h-[70px] mt-2`} value={prep.mortuaryValuablesText||""} onChange={e=>upd(c.id,{prep:{...prep,mortuaryValuablesText:e.target.value}})} placeholder="e.g. Gold wedding ring…"/>}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -3648,6 +3683,7 @@ function exportXeroCSV(cases,qtys){
     items.forEach(([code],i)=>{
       let qty=1;
       if(qtys&&qtys[cas.id+"_"+code]!==undefined) qty=qtys[cas.id+"_"+code];
+      else if(typeof billable[code]==="number") qty=billable[code];
       else if(code==="NPL"||code==="NPS") qty=parseInt(cas.prep?.coffinPlateQty||1);
       else if(code==="ACC"&&cas.checkedInAt&&cas.checkout?.checkedOutAt){
         qty=Math.max(1,Math.ceil((new Date(cas.checkout.checkedOutAt)-new Date(cas.checkedInAt))/(1000*60*60*24)));
@@ -3726,6 +3762,7 @@ function InvoicingView({user,cases,onUpdateCase}){
 
   function getQty(caseId,code,c){
     if(qtys[caseId+"_"+code]!==undefined)return qtys[caseId+"_"+code];
+    {const bv=(c.billable||c.prep?.billable||{})[code];if(typeof bv==="number")return bv;}
     if(code==="NPL"||code==="NPS")return parseInt(c.prep?.coffinPlateQty||1);
     if(code==="ACC"){
       if(c.checkedInAt&&c.checkout?.checkedOutAt){
@@ -3751,7 +3788,7 @@ function InvoicingView({user,cases,onUpdateCase}){
   }
 
   if(selCase){
-    const items=Object.entries(selCase.prep?.billable||{}).filter(([k,v])=>v&&serviceLabels[k]);
+    const items=Object.entries(selCase.billable||selCase.prep?.billable||{}).filter(([k,v])=>v&&serviceLabels[k]);
     const nights=selCase.checkedInAt&&selCase.checkout?.checkedOutAt?Math.max(1,Math.ceil((new Date(selCase.checkout.checkedOutAt)-new Date(selCase.checkedInAt))/(1000*60*60*24))):1;
     return(
       <div className="max-w-7xl mx-auto px-4 py-4">
