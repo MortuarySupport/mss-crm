@@ -109,10 +109,14 @@ async function pagesToPdf(pages) {
   return doc.save();
 }
 
+// iPhone / iPad / Android: use the phone's own cameras (back camera first, with a Flip button)
+const IS_MOBILE = typeof navigator !== "undefined" && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+
 export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave, onClose, prefixLabel = true, readLabels = [], onRead, lockedLabels = [] }) {
   const videoRef = useRef(null), streamRef = useRef(null);
   const [cams, setCams] = useState([]);
   const [camId, setCamId] = useState(store.get());
+  const [facing, setFacing] = useState("environment");
   const [err, setErr] = useState("");
   const [label, setLabel] = useState(defaultLabel || labels.find(l => !lockedLabels.includes(l)) || labels[0]);
   const [rotation, setRotation] = useState(0);
@@ -130,11 +134,18 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
   }, []);
   const sideways = rotation % 180 !== 0;
 
-  async function start(id) {
+  async function start(id, face) {
     stop();
     setErr("");
     try {
       const video = { width: { ideal: 3264 }, height: { ideal: 2448 } };
+      if (IS_MOBILE) {
+        video.facingMode = { ideal: face || facing };
+        const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+        streamRef.current = stream;
+        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play().catch(() => {}); }
+        return;
+      }
       if (id) video.deviceId = { exact: id };
       const stream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
       streamRef.current = stream;
@@ -149,10 +160,10 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
       }
       if (active) { setCamId(active); store.set(active); }
     } catch (e) {
-      if (id) { store.set(""); return start(""); } // remembered camera unplugged - fall back
+      if (id && !IS_MOBILE) { store.set(""); return start(""); } // remembered camera unplugged - fall back
       setErr(e?.name === "NotAllowedError"
         ? "Camera access was blocked. Click the camera icon in the address bar (or Safari ▸ Settings for This Website) and allow the camera, then try again."
-        : "No camera found. Check the document camera's USB cable is plugged into the MacBook.");
+        : IS_MOBILE ? "Couldn't start the camera. Close other apps using the camera, then try again." : "No camera found. Check the document camera's USB cable is plugged into the MacBook.");
     }
   }
   function stop() { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; }
@@ -206,11 +217,12 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <button onClick={capture} disabled={!!err} className="flex-1 min-w-[160px] py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wide disabled:opacity-40">● Capture Page {pages.length + 1}</button>
+              {IS_MOBILE && <button onClick={() => { const f = facing === "environment" ? "user" : "environment"; setFacing(f); start("", f); }} className={chip(false)}>🔄 Flip camera</button>}
               <button onClick={() => setRotation(r => (r + 90) % 360)} className={chip(false)}>⟳ Rotate</button>
               <button onClick={() => setCrop(!crop)} className={chip(crop)}>Auto-crop</button>
               <button onClick={() => setClean(!clean)} className={chip(clean)}>Scan look</button>
             </div>
-            {cams.length > 1 && (
+            {!IS_MOBILE && cams.length > 1 && (
               <select className="mt-2 w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm" value={camId} onChange={e => { store.set(e.target.value); setCamId(e.target.value); start(e.target.value); }}>
                 {cams.map((c, i) => <option key={c.deviceId} value={c.deviceId}>{c.label || `Camera ${i + 1}`}</option>)}
               </select>
