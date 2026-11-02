@@ -1501,7 +1501,31 @@ function buildCompletedEmail(c, prep, billable, otherUsed) {
 }
 
 function buildCheckOutEmail(c, coData) {
-  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} has just departed MSS Mortuary Support Services and is on their way.\n\n─────────────────────────────\nDEPARTURE DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nCase Reference: ${c.caseRef}\nDeparted: ${fmtDT(coData?.checkedOutAt || new Date().toISOString())}\nDisposition: ${coData?.disposition || "—"}\nDestination: ${coData?.destination || "—"}\nSigned By: ${coData?.signedName || "—"}\n\nThank you for entrusting MSS with the care of ${c.firstName} ${c.lastName}.${MSS_FOOTER}`;
+  const ROLE={"MSS":"MSS Staff","DRIVER":"Driver / Transfer Team","FUNERAL DIRECTOR":"Funeral Director"};
+  const VALS={YES_DRIVER:"Collected by the driver",YES_FD:"Collected by the funeral director",NO_MSS:"Remaining at MSS"};
+  const hasVals=c.valuables&&c.valuables!=="Nil";
+  const by=coData?.signedName||"—";
+  const role=ROLE[coData?.checkedOutRole]||"";
+  return `Hi ${c.funeralHomeName} Team,
+
+This is to notify you that ${c.firstName} ${c.lastName} has been checked out of Mortuary Support Services.
+
+DECEASED DETAILS
+First Name: ${c.firstName}    Last Name: ${c.lastName}
+DOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}
+Case Reference: ${c.caseRef}
+
+CHECK OUT DETAILS
+Checked Out: ${fmtDTDay(coData?.checkedOutAt || new Date().toISOString())}
+Collected By: ${by}${role?" ("+role+")":""}
+Disposition: ${coData?.disposition || "—"}
+Destination: ${coData?.destination || "—"}
+
+ON DEPARTURE
+Departure checklist: Name Plate, ID Tag, Paperwork, Board and Valuables checked
+Valuables: ${hasVals?`${c.valuables} — ${VALS[coData?.valuablesStatus]||"—"}`:"Nil"}
+
+Thank you for entrusting Mortuary Support Services with the care of ${c.firstName} ${c.lastName}.${MSS_FOOTER}`;
 }
 
 
@@ -3182,6 +3206,8 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const [signature,setSignature]=useState(null);
   const [errors,setErrors]=useState({});
   const [done,setDone]=useState(false);
+  const [coMail,setCoMail]=useState(null);
+  const [coMailSent,setCoMailSent]=useState(false);
   const [saving,setSaving]=useState(false);
   const [checkoutTime]=useState(new Date());
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[step,selCase?.id,done]);
@@ -3247,7 +3273,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
       const body=encodeURIComponent(buildCheckOutEmail(selCase,coData));
       logActivity(user,"🚐 CHECK OUT","Checked out "+selCase.firstName+" "+selCase.lastName,selCase.caseRef,selCase.id);
       setDone(true);
-      // EMAIL DISABLED — window.open(`mailto:${to}?subject=${subj}&body=${body}`);
+      setCoMail({to,subj,body});setCoMailSent(false);
     }catch(err){alert("Error: "+err.message);}
     setSaving(false);
   }
@@ -3262,6 +3288,14 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
         <p className="text-gray-700 font-black uppercase mt-2">{signature?.name}</p>
         {signature?.pad&&<img src={signature.pad} alt="Signature" className="mt-3 mx-auto border border-gray-200 rounded-lg max-h-20 bg-white"/>}
       </div>
+      {coMail&&<>
+        <button type="button" onClick={()=>{window.location.href=`mailto:${coMail.to}?subject=${coMail.subj}&body=${coMail.body}`;setCoMailSent(true);}}
+          className={`block w-full mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${coMailSent?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-7 text-xl ring-4 ring-red-200"}`}>
+          {coMailSent?"✓ Email opened — tap to send again":"📧 Send Check-Out Email to FD & Mortuary"}
+          <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{coMailSent?"Make sure you press Send in your mail program":"Opens your mail program, then press Send"}</span>
+        </button>
+        <p className="text-xs text-gray-400 text-center mb-5">To: {decodeURIComponent(coMail.to)}</p>
+      </>}
       <p className="text-xs text-gray-400 text-center mb-6">Awaiting Admin approval to lock.</p>
       <button onClick={onBack} className={`${s.btnGhost} w-full`}>← Back to Home</button>
     </div>
