@@ -2606,10 +2606,10 @@ function printJobCard(c, prep, billable, statusItems, docs, autoPrint=false){
     AV:"AV - Audio Visual",LS1:"LS1 - Livestream 90min+",LS2:"LS2 - Livestream Under 90min",
     SSO:"SSO - Slideshow Only",SSM:"SSM - Slideshow/Music/Chapel",
     TH1:"TH1 - Transfer Mon-Fri 7am-4pm",TH2:"TH2 - Transfer Weekend 7am-4pm",
-    TH3:"TH3 - Transfer Mon-Fri 4pm-12pm",TH4:"TH4 - Transfer Weekend 4pm-12pm",
+    TH3:"TH3 - Transfer Mon-Fri 4pm-12am",TH4:"TH4 - Transfer Weekend 4pm-12am",
     TH5:"TH5 - Transfer Mon-Fri 12am-7am",TH6:"TH6 - Transfer Weekend 12am-7am",
     TR1:"TR1 - Home Transfer Mon-Fri 7am-4pm",TR2:"TR2 - Home Transfer Weekend 7am-4pm",
-    TR3:"TR3 - Home Transfer Mon-Fri 4pm-12pm",TR4:"TR4 - Home Transfer Weekend 4pm-12pm",
+    TR3:"TR3 - Home Transfer Mon-Fri 4pm-12am",TR4:"TR4 - Home Transfer Weekend 4pm-12am",
     TR5:"TR5 - Home Transfer Mon-Fri 12am-7am",TR6:"TR6 - Home Transfer Weekend 12am-7am",
   };
   const services=Object.entries(b).filter(([k,v])=>v&&serviceMap[k]).map(([k])=>serviceMap[k]);
@@ -3087,8 +3087,8 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
           {cat:"Labour",items:[{code:"CL4",label:"Casual Labour Hire - 4hrs min"},{code:"CL5",label:"Casual Labour Hire - 5hrs"}]},
           {cat:"Delivery & Hearse",items:[{code:"RSF",label:"Repatriation Service Fee"},{code:"ED1",label:"ED - Mac Park | North Sub | Pine | Castle"},{code:"ED2",label:"ED - Rookwood | Frenchs | Penrith"},{code:"ED3",label:"ED - Forest Lawn | L pool | Kemps Crk"},{code:"ED4",label:"ED - ESMP | WMP"},{code:"EDS",label:"ED - Weekend/AH Surcharge"},{code:"HH1",label:"Hearse - Single Location"},{code:"HH2",label:"Hearse - Dual Location"}]},
           {cat:"Audio Visual",items:[{code:"AV",label:"AV - Speakers/Mic/Projector/Screen"},{code:"LS1",label:"Livestream over 90mins"},{code:"LS2",label:"Livestream under 90mins"},{code:"SSO",label:"Slideshow Only"},{code:"SSM",label:"Slideshow | Music | Chapel Ready"}]},
-          {cat:"Transfers - Hospital/Coroner",items:[{code:"TH1",label:"Mon-Fri 7am-4pm"},{code:"TH2",label:"Weekend 7am-4pm"},{code:"TH3",label:"Mon-Fri 4pm-12pm"},{code:"TH4",label:"Weekend 4pm-12pm"},{code:"TH5",label:"Mon-Fri 12am-7am"},{code:"TH6",label:"Weekend 12am-7am"}]},
-          {cat:"Transfers - Home/Residential",items:[{code:"TR1",label:"Mon-Fri 7am-4pm"},{code:"TR2",label:"Weekend 7am-4pm"},{code:"TR3",label:"Mon-Fri 4pm-12pm"},{code:"TR4",label:"Weekend 4pm-12pm"},{code:"TR5",label:"Mon-Fri 12am-7am"},{code:"TR6",label:"Weekend 12am-7am"}]},
+          {cat:"Transfers - Hospital/Coroner",items:[{code:"TH1",label:"Mon-Fri 7am-4pm"},{code:"TH2",label:"Weekend 7am-4pm"},{code:"TH3",label:"Mon-Fri 4pm-12am"},{code:"TH4",label:"Weekend 4pm-12am"},{code:"TH5",label:"Mon-Fri 12am-7am"},{code:"TH6",label:"Weekend 12am-7am"}]},
+          {cat:"Transfers - Home/Residential",items:[{code:"TR1",label:"Mon-Fri 7am-4pm"},{code:"TR2",label:"Weekend 7am-4pm"},{code:"TR3",label:"Mon-Fri 4pm-12am"},{code:"TR4",label:"Weekend 4pm-12am"},{code:"TR5",label:"Mon-Fri 12am-7am"},{code:"TR6",label:"Weekend 12am-7am"}]},
         ].map(({cat,items})=>(
           <div key={cat} className="mb-5">
             <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{cat}</p>
@@ -3606,6 +3606,7 @@ const PRICE_LIST={
   HH1:395,HH2:595,AV:950,LS1:950,LS2:750,SSO:150,SSM:285,
   TH1:330,TH2:440,TH3:440,TH4:440,TH5:495,TH6:495,
   TR1:395,TR2:495,TR3:495,TR4:495,TR5:655,TR6:655,
+  CL5:350,NSNA:1252.90,
 };
 const SERVICE_LABELS_XERO={
   BP:"Basic Preparation",TP:"Temporary Preservation",FE:"Full Embalm",
@@ -3622,7 +3623,7 @@ const SERVICE_LABELS_XERO={
   NPE:"Name Plate Etching",OPC:"Open/Close Mortuary A/H",SHR:"Shroud",TYV:"Tyvek Suits",
   FMR:"Family Meeting Room (in care)",FMR2:"Family Meeting Room (not in care)",
   VR1:"Viewing Room",VRH:"Viewing Room Host",WD:"Witness Dressing - Per Person",
-  CPL:"Chapel (up to 12 guests)",CL4:"Casual Labour Hire - 4hrs min",
+  CPL:"Chapel (up to 12 guests)",CL4:"Casual Labour Hire - 4hrs min",CL5:"Casual Labour Hire - 5hrs",NSNA:"NSNA Package",
   RSF:"Repatriation Service Fee",ED1:"ED - Mac Park/North Sub/Pine/Castle",
   ED2:"ED - Rookwood/Frenchs/Penrith",ED3:"ED - Forest Lawn/Liverpool/Kemps Crk",
   ED4:"ED - ESMP/WMP",EDS:"ED - Weekend/AH Surcharge",
@@ -3630,10 +3631,10 @@ const SERVICE_LABELS_XERO={
   AV:"AV - Speakers/Mic/Projector/Screen",LS1:"Livestream over 90mins",
   LS2:"Livestream under 90mins",SSO:"Slideshow Only",SSM:"Slideshow/Music/Chapel Ready",
   TH1:"Transfer Mon-Fri 7am-4pm",TH2:"Transfer Weekend 7am-4pm",
-  TH3:"Transfer Mon-Fri 4pm-12pm",TH4:"Transfer Weekend 4pm-12pm",
+  TH3:"Transfer Mon-Fri 4pm-12am",TH4:"Transfer Weekend 4pm-12am",
   TH5:"Transfer Mon-Fri 12am-7am",TH6:"Transfer Weekend 12am-7am",
   TR1:"Home Transfer Mon-Fri 7am-4pm",TR2:"Home Transfer Weekend 7am-4pm",
-  TR3:"Home Transfer Mon-Fri 4pm-12pm",TR4:"Home Transfer Weekend 4pm-12pm",
+  TR3:"Home Transfer Mon-Fri 4pm-12am",TR4:"Home Transfer Weekend 4pm-12am",
   TR5:"Home Transfer Mon-Fri 12am-7am",TR6:"Home Transfer Weekend 12am-7am",
 };
 function exportXeroCSV(cases,qtys){
@@ -3693,7 +3694,7 @@ function InvoicingView({user,cases,onUpdateCase}){
     DRS:"DRS",FP:"FP",PR:"PR",ASP:"ASP",BSI:"BSI",INF:"INF",REC:"REC",ACC:"ACC",AHB:"AHB",BB:"BB",
     CP:"CP",CPT:"CPT",CL:"CL",CS:"CS",DRR:"DRR",DID:"DID",DIV:"DIV",GA:"GA",HCO:"HCO",NPL:"NPL",
     NPS:"NPS",NPE:"NPE",OPC:"OPC",SHR:"SHR",TYV:"TYV",FMR:"FMR",FMR2:"FMR2",VR1:"VR1",VRH:"VRH",
-    WD:"WD",CPL:"CPL",CL4:"CL4",RSF:"RSF",ED1:"ED1",ED2:"ED2",ED3:"ED3",ED4:"ED4",EDS:"EDS",
+    WD:"WD",CPL:"CPL",CL4:"CL4",CL5:"CL5",NSNA:"NSNA",RSF:"RSF",ED1:"ED1",ED2:"ED2",ED3:"ED3",ED4:"ED4",EDS:"EDS",
     HH1:"HH1",HH2:"HH2",AV:"AV",LS1:"LS1",LS2:"LS2",SSO:"SSO",SSM:"SSM",
     TH1:"TH1",TH2:"TH2",TH3:"TH3",TH4:"TH4",TH5:"TH5",TH6:"TH6",
     TR1:"TR1",TR2:"TR2",TR3:"TR3",TR4:"TR4",TR5:"TR5",TR6:"TR6",
@@ -3707,15 +3708,15 @@ function InvoicingView({user,cases,onUpdateCase}){
     DRR:"Dr Cremation Referee",DID:"Dr ID - Inperson",DIV:"Dr ID - Virtual",GA:"Gravemarker Assembly",HCO:"Hair Colouring",
     NPL:"Name Plate - Large",NPS:"Name Plate - Small",NPE:"Name Plate Etching",OPC:"Open/Close Mortuary A/H",SHR:"Shroud",TYV:"Tyvek Suits",
     FMR:"Family Meeting Room (in care)",FMR2:"Family Meeting Room (not in care)",VR1:"Viewing Room",VRH:"Viewing Room Host",
-    WD:"Witness Dressing - Per Person",CPL:"Chapel (up to 12 guests)",CL4:"Casual Labour Hire - 4hrs min",
+    WD:"Witness Dressing - Per Person",CPL:"Chapel (up to 12 guests)",CL4:"Casual Labour Hire - 4hrs min",CL5:"Casual Labour Hire - 5hrs",NSNA:"NSNA Package",
     RSF:"Repatriation Service Fee",ED1:"ED - Mac Park/North Sub/Pine/Castle",ED2:"ED - Rookwood/Frenchs/Penrith",
     ED3:"ED - Forest Lawn/Liverpool/Kemps Crk",ED4:"ED - ESMP/WMP",EDS:"ED - Weekend/AH Surcharge",
     HH1:"Hearse - Single Location",HH2:"Hearse - Dual Location",AV:"AV - Speakers/Mic/Projector/Screen",
     LS1:"Livestream over 90mins",LS2:"Livestream under 90mins",SSO:"Slideshow Only",SSM:"Slideshow/Music/Chapel Ready",
-    TH1:"Transfer Mon-Fri 7am-4pm",TH2:"Transfer Weekend 7am-4pm",TH3:"Transfer Mon-Fri 4pm-12pm",
-    TH4:"Transfer Weekend 4pm-12pm",TH5:"Transfer Mon-Fri 12am-7am",TH6:"Transfer Weekend 12am-7am",
-    TR1:"Home Transfer Mon-Fri 7am-4pm",TR2:"Home Transfer Weekend 7am-4pm",TR3:"Home Transfer Mon-Fri 4pm-12pm",
-    TR4:"Home Transfer Weekend 4pm-12pm",TR5:"Home Transfer Mon-Fri 12am-7am",TR6:"Home Transfer Weekend 12am-7am",
+    TH1:"Transfer Mon-Fri 7am-4pm",TH2:"Transfer Weekend 7am-4pm",TH3:"Transfer Mon-Fri 4pm-12am",
+    TH4:"Transfer Weekend 4pm-12am",TH5:"Transfer Mon-Fri 12am-7am",TH6:"Transfer Weekend 12am-7am",
+    TR1:"Home Transfer Mon-Fri 7am-4pm",TR2:"Home Transfer Weekend 7am-4pm",TR3:"Home Transfer Mon-Fri 4pm-12am",
+    TR4:"Home Transfer Weekend 4pm-12am",TR5:"Home Transfer Mon-Fri 12am-7am",TR6:"Home Transfer Weekend 12am-7am",
   };
 
   // Variable qty items
