@@ -1650,7 +1650,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       if(!r.ok) throw new Error(j.error||("Error "+r.status));
       const det=j.docType||"";
       const LEVOD_SAME=["LE","VOD"].includes(det)&&["LE","VOD"].includes(label); // "Verification of Life Extinct" forms are both
-      if(det&&det!==label&&!LEVOD_SAME){setOcr({status:"confirm",label,detected:det,fields:j.fields||{},doc:lastScanRef.current});return;}
+      if(det&&det!==label&&!LEVOD_SAME&&det!=="Other"){setOcr({status:"confirm",label,detected:det,fields:j.fields||{},doc:lastScanRef.current});return;}
       applyRead(j.fields||{},label);
     }catch(e){
       setOcr({status:"error",msg:e.name==="AbortError"?"Reading took too long. The document was saved — please type the details.":"Couldn't read the document ("+e.message+"). It was saved — please type the details."});

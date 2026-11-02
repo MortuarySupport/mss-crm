@@ -19,7 +19,7 @@ Reply with ONLY a JSON object, no other text, with exactly these keys:
 
 Rules:
 - docType: what the document actually is, one of:
-  "MCCD" = Medical Certificate of Cause of Death (a doctor certifies the cause of death),
+  "MCCD" = Medical Certificate of Cause of Death (a doctor certifies the cause of death). The NSW form (code SMR010509, 4 pages) may be photographed one page at a time: a page headed "PART ONE – ELIGIBILITY AND SCREENING", "PART TWO – DETAILS OF DECEASED" or "PART THREE – CAUSE OF DEATH" is still an MCCD,
   "Coroners BO" = a Coroner's order or certificate allowing burial or cremation,
   "LE" = Life Extinct form (paramedic, police, doctor or nurse confirms life is extinct), including a nursing home's "Verification of Life Extinct" form,
   "VOD" = Verification of Death form (a nurse or doctor verifies the death),
@@ -28,7 +28,8 @@ Rules:
 - Most of these forms are handwritten. Fill in any value you can read with reasonable confidence, even if the handwriting is untidy. Leave it as "" only if it is missing or you genuinely cannot make it out. Never invent a value.
 - On a Life Extinct (LE) form the deceased may be labelled "Patient", "Deceased" or "Name"; the date of death is the date life was pronounced extinct; the place is where life was pronounced extinct.
 - firstName: given name(s) only. lastName: family name only. Use normal capitalisation (e.g. "Mary Anne", "O'Brien").
-- dob and dod: format YYYY-MM-DD. Dates on these forms are written day/month/year.
+- dob and dod: format YYYY-MM-DD. Dates on these forms are written day/month/year, often one digit per box (e.g. "3 0 / 1 0 / 2 0 2 6").
+- On the MCCD the deceased's details are in "PART TWO – DETAILS OF DECEASED": 12. Family name, 13. Given name(s), 14. Date of death, 15. Date of birth, 17. Sex (the ticked or crossed box), 19. Place of death. They are hand-printed in BLOCK LETTERS, one letter per box: join the letters into words. Ignore the dates in Part One (date last seen alive, date the body was examined).
 - sex: "Male", "Female" or "".
 - The deceased may be labelled "Deceased", "Patient", "Resident", "Consumer", "Client" or just "Name" (a nursing home form often has "Facility Details" first, then the person's details; never use the facility, nurse or doctor as the deceased).
 - dod: the date of death, or on a Life Extinct / Verification form the date life was declared extinct ("Date of Assessment", "Date of verification", "Date").
