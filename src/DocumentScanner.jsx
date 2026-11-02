@@ -61,6 +61,94 @@ function enhance(ctx, w, h) {
   ctx.putImageData(img, 0, 0);
 }
 
+// ── Find the four corners of the sheet and straighten it to an A4 page ──
+// Works on a small copy: blur, split paper from background (Otsu), take the biggest
+// bright blob, then its corners. Returns corners in full-size pixels, or null.
+function findCorners(src, vw, vh) {
+  const S = 360 / Math.max(vw, vh), w = Math.max(8, Math.round(vw * S)), h = Math.max(8, Math.round(vh * S));
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const ctx = cv.getContext("2d", { willReadFrequently: true }); ctx.drawImage(src, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data, g = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) g[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+  // 5x5 box blur so printed text doesn't break up the page
+  const b = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s = 0, n = 0;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < h && xx >= 0 && xx < w) { s += g[yy * w + xx]; n++; } }
+    b[y * w + x] = s / n;
+  }
+  // Otsu threshold
+  const hist = new Array(256).fill(0); for (let i = 0; i < w * h; i++) hist[Math.min(255, b[i] | 0)]++;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sB = 0, wB = 0, best = 0, thr = 128;
+  for (let t = 0; t < 256; t++) { wB += hist[t]; if (!wB) continue; const wF = w * h - wB; if (!wF) break; sB += t * hist[t]; const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) * (mB - mF); if (v > best) { best = v; thr = t; } }
+  // biggest bright blob
+  const lab = new Int32Array(w * h).fill(-1); let bestN = 0, bestId = -1, id = 0; const q = new Int32Array(w * h);
+  for (let s0 = 0; s0 < w * h; s0++) {
+    if (lab[s0] !== -1 || b[s0] <= thr) continue;
+    let qh = 0, qt = 0, n = 0; q[qt++] = s0; lab[s0] = id;
+    while (qh < qt) { const p = q[qh++]; n++; const x = p % w, y = (p / w) | 0;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) { if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; const np = ny * w + nx; if (lab[np] === -1 && b[np] > thr) { lab[np] = id; q[qt++] = np; } } }
+    if (n > bestN) { bestN = n; bestId = id; } id++;
+  }
+  if (bestId < 0 || bestN < w * h * 0.12 || bestN > w * h * 0.97) return null;
+  // corners = extreme points of the blob along the two diagonals
+  let tl = [0, 0, Infinity], br = [0, 0, -Infinity], tr = [0, 0, -Infinity], bl = [0, 0, Infinity];
+  for (let p = 0; p < w * h; p++) { if (lab[p] !== bestId) continue; const x = p % w, y = (p / w) | 0, a = x + y, e = x - y;
+    if (a < tl[2]) tl = [x, y, a]; if (a > br[2]) br = [x, y, a]; if (e > tr[2]) tr = [x, y, e]; if (e < bl[2]) bl = [x, y, e]; }
+  const pts = [tl, tr, br, bl].map(([x, y]) => [(x + 0.5) / S, (y + 0.5) / S]);
+  // sanity: the four corners must make a reasonable shape
+  const dist = (a, b2) => Math.hypot(a[0] - b2[0], a[1] - b2[1]);
+  const sides = [dist(pts[0], pts[1]), dist(pts[1], pts[2]), dist(pts[2], pts[3]), dist(pts[3], pts[0])];
+  if (Math.min(...sides) < Math.max(vw, vh) * 0.15) return null;
+  // the page must fill most of the area between its corners (rejects odd shapes)
+  const area = Math.abs(pts.reduce((s, p, i) => { const n2 = pts[(i + 1) % 4]; return s + p[0] * n2[1] - n2[0] * p[1]; }, 0)) / 2;
+  if (bestN / (S * S) < area * 0.8) return null;
+  return pts;
+}
+// Solve the 3x3 perspective map from the output rectangle to the four corners
+function homography(srcPts, dstPts) {
+  const A = [], B = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = srcPts[i], [u, v] = dstPts[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); B.push(u); A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); B.push(v); }
+  for (let c2 = 0; c2 < 8; c2++) { let m = c2; for (let r = c2 + 1; r < 8; r++) if (Math.abs(A[r][c2]) > Math.abs(A[m][c2])) m = r;
+    [A[c2], A[m]] = [A[m], A[c2]]; [B[c2], B[m]] = [B[m], B[c2]];
+    for (let r = 0; r < 8; r++) { if (r === c2) continue; const f = A[r][c2] / A[c2][c2]; for (let k = c2; k < 8; k++) A[r][k] -= f * A[c2][k]; B[r] -= f * B[c2]; } }
+  const hm = B.map((v, i) => v / A[i][i]); return [...hm, 1];
+}
+// Straighten the sheet into an exact A4-proportioned image (portrait, or landscape if the sheet is wider)
+function warpToA4(src, vw, vh, pts) {
+  const wTop = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]), wBot = Math.hypot(pts[2][0] - pts[3][0], pts[2][1] - pts[3][1]);
+  const hL = Math.hypot(pts[3][0] - pts[0][0], pts[3][1] - pts[0][1]), hR = Math.hypot(pts[2][0] - pts[1][0], pts[2][1] - pts[1][1]);
+  const land = (wTop + wBot) > (hL + hR);
+  const long = Math.min(MAX_SIDE, Math.round(Math.max(wTop, wBot, hL, hR) * 1.15));
+  const ow = land ? long : Math.round(long / Math.SQRT2), oh = land ? Math.round(long / Math.SQRT2) : long;
+  const H = homography([[0, 0], [ow, 0], [ow, oh], [0, oh]], pts);
+  const sctx = src.getContext("2d", { willReadFrequently: true }), sd = sctx.getImageData(0, 0, vw, vh).data;
+  const out = document.createElement("canvas"); out.width = ow; out.height = oh;
+  const octx = out.getContext("2d", { willReadFrequently: true }), img = octx.createImageData(ow, oh), od = img.data;
+  for (let y = 0; y < oh; y++) for (let x = 0; x < ow; x++) {
+    const z = H[6] * x + H[7] * y + 1, sx = (H[0] * x + H[1] * y + H[2]) / z, sy = (H[3] * x + H[4] * y + H[5]) / z;
+    const x0 = Math.max(0, Math.min(vw - 2, sx | 0)), y0 = Math.max(0, Math.min(vh - 2, sy | 0)), fx = Math.min(1, Math.max(0, sx - x0)), fy = Math.min(1, Math.max(0, sy - y0));
+    const i00 = (y0 * vw + x0) * 4, i10 = i00 + 4, i01 = i00 + vw * 4, i11 = i01 + 4, o = (y * ow + x) * 4;
+    for (let k = 0; k < 3; k++) od[o + k] = (sd[i00 + k] * (1 - fx) + sd[i10 + k] * fx) * (1 - fy) + (sd[i01 + k] * (1 - fx) + sd[i11 + k] * fx) * fy;
+    od[o + 3] = 255;
+  }
+  octx.putImageData(img, 0, 0);
+  return out;
+}
+
+
+// Photo of the camera view, turned the way the Rotate button says
+function grabFrame(video, rotation) {
+  const vw = video.videoWidth, vh = video.videoHeight, rot = ((rotation % 360) + 360) % 360, sw = rot % 180 !== 0;
+  const c = document.createElement("canvas"); c.width = sw ? vh : vw; c.height = sw ? vw : vh;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  x.translate(c.width / 2, c.height / 2); x.rotate(rot * Math.PI / 180); x.drawImage(video, -vw / 2, -vh / 2, vw, vh);
+  return c;
+}
+const defaultCorners = (w, h) => { const m = 0.04; return [[w * m, h * m], [w * (1 - m), h * m], [w * (1 - m), h * (1 - m)], [w * m, h * (1 - m)]]; };
+
 function processFrame(video, rotation, doCrop, doEnhance) {
   const vw = video.videoWidth, vh = video.videoHeight;
   const src = document.createElement("canvas"); src.width = vw; src.height = vh;
@@ -102,7 +190,7 @@ async function pagesToPdf(pages) {
     const bytes = Uint8Array.from(atob(p.url.split(",")[1]), ch => ch.charCodeAt(0));
     const img = await doc.embedJpg(bytes);
     const land = p.w > p.h, W = land ? 841.89 : 595.28, H = land ? 595.28 : 841.89; // A4
-    const s = Math.min((W - 20) / p.w, (H - 20) / p.h);
+    const s = p.a4 ? Math.min(W / p.w, H / p.h) : Math.min((W - 20) / p.w, (H - 20) / p.h);
     const page = doc.addPage([W, H]);
     page.drawImage(img, { x: (W - p.w * s) / 2, y: (H - p.h * s) / 2, width: p.w * s, height: p.h * s });
   }
@@ -125,6 +213,8 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
   const [pages, setPages] = useState([]);
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState(false);
+  const [adjust, setAdjust] = useState(null);   // {url,w,h,pts,auto} while corners are being checked
+  const rawRef = useRef(null), dragRef = useRef(-1), adjBoxRef = useRef(null);
   const boxRef = useRef(null);
   const [box, setBox] = useState({ w: 0, h: 0 });
   useEffect(() => {
@@ -174,7 +264,28 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
     return stop;
   }, []);
 
+  function useAdjusted() {
+    const raw = rawRef.current; if (!raw || !adjust) return;
+    const page = warpToA4(raw, raw.width, raw.height, adjust.pts);
+    if (clean) enhance(page.getContext("2d", { willReadFrequently: true }), page.width, page.height);
+    setPages(p => [...p, { url: page.toDataURL("image/jpeg", JPEG_Q), w: page.width, h: page.height, a4: true }]);
+    setAdjust(null); rawRef.current = null;
+  }
+  function dragTo(e) {
+    const i = dragRef.current, el = adjBoxRef.current; if (i < 0 || !el || !adjust) return;
+    const r = el.getBoundingClientRect();
+    const x = Math.max(0, Math.min(adjust.w, (e.clientX - r.left) / r.width * adjust.w)), y = Math.max(0, Math.min(adjust.h, (e.clientY - r.top) / r.height * adjust.h));
+    setAdjust(a => ({ ...a, pts: a.pts.map((p, j) => j === i ? [x, y] : p) }));
+  }
   function capture() {
+    if (crop) {
+      const v = videoRef.current; if (!v || !v.videoWidth) return;
+      setFlash(true); setTimeout(() => setFlash(false), 150);
+      const raw = grabFrame(v, rotation), found = findCorners(raw, raw.width, raw.height);
+      rawRef.current = raw;
+      setAdjust({ url: raw.toDataURL("image/jpeg", 0.85), w: raw.width, h: raw.height, pts: found || defaultCorners(raw.width, raw.height), auto: !!found });
+      return;
+    }
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
     setFlash(true); setTimeout(() => setFlash(false), 150);
@@ -214,9 +325,27 @@ export default function DocumentScanner({ labels, defaultLabel, fileBase, onSave
                 ? <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-white text-sm">{err}</div>
                 : <video ref={videoRef} playsInline muted autoPlay className="absolute object-contain" style={sideways && box.w ? { width: box.h, height: box.w, left: "50%", top: "50%", transform: `translate(-50%,-50%) rotate(${rotation}deg)` } : { inset: 0, width: "100%", height: "100%", transform: `rotate(${rotation}deg)` }} />}
               {flash && <div className="absolute inset-0 bg-white opacity-70" />}
+              {adjust && <div className="absolute inset-0 bg-gray-900 flex items-center justify-center p-2">
+                <div ref={adjBoxRef} className="relative" style={{ aspectRatio: `${adjust.w}/${adjust.h}`, maxWidth: "100%", maxHeight: "100%", width: box.w && box.h ? Math.min(box.w - 16, (box.h - 16) * adjust.w / adjust.h) : "100%", touchAction: "none" }}
+                  onPointerMove={dragTo} onPointerUp={() => { dragRef.current = -1; }} onPointerLeave={() => { dragRef.current = -1; }}>
+                  <img src={adjust.url} alt="Captured page" className="absolute inset-0 w-full h-full select-none" draggable={false} />
+                  <svg viewBox={`0 0 ${adjust.w} ${adjust.h}`} preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                    <polygon points={adjust.pts.map(p => p.join(",")).join(" ")} fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth={Math.max(adjust.w, adjust.h) * 0.004} />
+                    {adjust.pts.map((p, i) => <circle key={i} cx={p[0]} cy={p[1]} r={Math.max(adjust.w, adjust.h) * 0.025} fill="rgba(255,255,255,0.9)" stroke="#16a34a" strokeWidth={Math.max(adjust.w, adjust.h) * 0.005} style={{ cursor: "grab" }}
+                      onPointerDown={e => { e.preventDefault(); dragRef.current = i; try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch (x) {} }} onPointerMove={dragTo} onPointerUp={() => { dragRef.current = -1; }} />)}
+                  </svg>
+                </div>
+              </div>}
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <button onClick={capture} disabled={!!err} className="flex-1 min-w-[160px] py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wide disabled:opacity-40">● Capture Page {pages.length + 1}</button>
+              {adjust && <div className="w-full">
+                <p className="text-xs font-bold text-gray-700 mb-2">{adjust.auto ? "Check the green box sits on the corners of the page — drag a corner to fix it." : "Drag the 4 corners onto the corners of the page."} It will be straightened to an A4 page.</p>
+                <div className="flex gap-2">
+                  <button onClick={useAdjusted} className="flex-1 py-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-wide">✓ Use Page {pages.length + 1}</button>
+                  <button onClick={() => { setAdjust(null); rawRef.current = null; }} className="px-4 py-4 rounded-xl border-2 border-gray-300 text-gray-700 font-black uppercase text-xs">↺ Retake</button>
+                </div>
+              </div>}
+              {!adjust && <button onClick={capture} disabled={!!err} className="flex-1 min-w-[160px] py-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wide disabled:opacity-40">● Capture Page {pages.length + 1}</button>}
               {IS_MOBILE && <button onClick={() => { const f = facing === "environment" ? "user" : "environment"; setFacing(f); start("", f); }} className={chip(false)}>🔄 Flip camera</button>}
               <button onClick={() => setRotation(r => (r + 90) % 360)} className={chip(false)}>⟳ Rotate</button>
               <button onClick={() => setCrop(!crop)} className={chip(crop)}>Auto-crop</button>
