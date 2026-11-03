@@ -2,7 +2,9 @@
 // Needs RESEND_API_KEY and EMAIL_FROM (e.g. "Lumière <lumiere@mortuarysupport.com.au>")
 // in Vercel > Project > Settings > Environment Variables. Replies go to info@.
 // Until those are set it returns 501 and the app opens a pre-filled email instead.
-const ALLOWED = /@(mortuarysupport\.com\.au)$/i; // only our own mailboxes for now
+// Only our own mailboxes and the funeral directors' listed contacts. Add new FD emails here too.
+const FD_EMAILS = ["info@sydneyfunerals.com","karin@funeralsbydesign.com.au","sydney@thelasttime.com.au","carmel.pisto@blessedfunerals.com.au","debbie@serenityfamilyfunerals.com.au","desi@divinefamilyfunerals.com.au","funeral.directors1@outlook.com","hansolfuneralservices@gmail.com","info@amazingfunerals.com.au","info@dbff.com.au","info@farewells.com.au","info@globalfunerals.com.au","info@goldcoastfuneraldirector.com.au","info@highlandfunerals.com.au","info@overtherainbowfunerals.com.au","kate@tomorrowfunerals.com.au","kellie@kelliehartfunerals.com.au","nicky@yourfuneraldirector.com.au","pamela@divinefamilyfunerals.com.au","peter@sydneyfunerals.com","tony.sprem@blessedfunerals.com.au"];
+const ALLOWED = { test: a => /@mortuarysupport\.com\.au$/i.test(a) || FD_EMAILS.includes(a.toLowerCase()) };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });

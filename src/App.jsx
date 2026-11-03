@@ -1860,11 +1860,14 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           const links=docs.length?`\n\nDOCUMENTS RECEIVED AT CHECK-IN\n`+docs.map(d=>`${docTitle(d.name)} – click here to download:\n${encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}`).join("\n\n"):"";
           let text=buildCheckInEmail(submitted);
           text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
+          if(emailOpened==="sending")return;
+          setEmailOpened("sending");
+          if(await sendAppEmail(to,decodeURIComponent(subj),text)){setEmailOpened("sent");return;}
           window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
-          setEmailOpened(true);
-        }} className={`block w-full mt-5 mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 animate-pulse"}`}>
-          {emailOpened?"1. ✓ Email opened — tap to send again":"1. 📧 Send Notification Email to FD & Mortuary"}
-          <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened?"Make sure you press Send in your mail program":"Required — opens your mail program, then press Send"}</span>
+          setEmailOpened("mailto");
+        }} className={`block w-full mt-5 mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened&&emailOpened!=="sending"?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 "+(emailOpened?"":"animate-pulse")}`}>
+          {emailOpened==="sending"?"1. Sending…":emailOpened==="sent"?"1. ✓ Check-in confirmed — email sent":emailOpened==="mailto"?"1. ✓ Email opened — tap to send again":"1. ✓ Confirm Check In"}
+          <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened==="sent"?"Sent to the FD & Mortuary — tap to send again":emailOpened==="mailto"?"Make sure you press Send in your mail program":"Required — emails the check-in to the FD & Mortuary"}</span>
         </button>
         <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
         <p className="text-xs text-gray-400 text-center mb-4">To: {to}</p>
@@ -3248,6 +3251,12 @@ function SendToAccountsBtn({c,user,onUpdateCase,compact}){
   </div>);
 }
 
+// Sends an app email via /api/send-email (Resend). Returns true if sent.
+async function sendAppEmail(to,subject,text){
+  try{const list=String(to).split(",").map(x=>x.trim()).filter(Boolean);
+    const r=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:list,subject,text})});
+    return r.ok;}catch(e){return false;}
+}
 // ─── CHECK OUT ────────────────────────────────────────────────────────────────
 function SignaturePad({onSave}) {
   const canvasRef = React.useRef(null);
@@ -3424,10 +3433,10 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
         {signature?.pad&&<img src={signature.pad} alt="Signature" className="mt-3 mx-auto border border-gray-200 rounded-lg max-h-20 bg-white"/>}
       </div>
       {coMail&&<>
-        <button type="button" onClick={()=>{window.location.href=`mailto:${coMail.to}?subject=${coMail.subj}&body=${coMail.body}`;setCoMailSent(true);}}
-          className={`block w-full mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${coMailSent?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-7 text-xl ring-4 ring-red-200"}`}>
-          {coMailSent?"✓ Email opened — tap to send again":"📧 Send Check-Out Email to FD & Mortuary"}
-          <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{coMailSent?"Make sure you press Send in your mail program":"Opens your mail program, then press Send"}</span>
+        <button type="button" onClick={async()=>{if(coMailSent==="sending")return;setCoMailSent("sending");if(await sendAppEmail(decodeURIComponent(coMail.to),decodeURIComponent(coMail.subj),decodeURIComponent(coMail.body))){setCoMailSent("sent");return;}window.location.href=`mailto:${coMail.to}?subject=${coMail.subj}&body=${coMail.body}`;setCoMailSent("mailto");}}
+          className={`block w-full mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${coMailSent&&coMailSent!=="sending"?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-7 text-xl ring-4 ring-red-200"}`}>
+          {coMailSent==="sending"?"Sending…":coMailSent==="sent"?"✓ Check-out confirmed — email sent":coMailSent==="mailto"?"✓ Email opened — tap to send again":"✓ Confirm Check Out"}
+          <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{coMailSent==="sent"?"Sent to the FD & Mortuary — tap to send again":coMailSent==="mailto"?"Make sure you press Send in your mail program":"Emails the check-out to the FD & Mortuary"}</span>
         </button>
         <p className="text-xs text-gray-400 text-center mb-5">To: {decodeURIComponent(coMail.to)}</p>
       </>}
