@@ -3016,8 +3016,9 @@ const JS_PREP=[
   {key:"TP",label:"Temp Preservation",prep:"Temp Prep",v:{std:"TP",os:"TP1",cor:"TPC",coros:"TPC1"}},
   {key:"FE",label:"Full Embalm",prep:"Full Embalm",v:{std:"FE",os:"FE1",cor:"FEC",coros:"FEC1"}},
   {key:"NSNA",label:"NSNA",prep:"No Prep",v:{std:"NSNA"}},
+  {key:"RSF",label:"Repatriation",prep:"Repatriation",v:{std:"RSF"}},
 ];
-const JS_PREP_CODES=["BP","TP","FE","BP1","TP1","FE1","TPC","FEC","TPC1","FEC1","NSNA"];
+const JS_PREP_CODES=["BP","TP","FE","BP1","TP1","FE1","TPC","FEC","TPC1","FEC1","NSNA","RSF"];
 const JS_VERSIONS=[["std","Standard"],["os","Oversize (OS)"],["cor","Coroner"],["coros","Coroner + OS"]];
 const JS_QTY=["CL","CS","CL4","CL5","WD","NPL","NPS","BB","TYV","SHR","CP"];
 const JS_SECTIONS=[
@@ -3026,7 +3027,7 @@ const JS_SECTIONS=[
   {title:"Rooms & AV",codes:["VR1","VRH","FMR","FMR2","CPL","WD","AV","LS1","LS2","SSO","SSM"]},
   {title:"Transfers – Hospital / Coroner",codes:["TH1","TH2","TH3","TH4","TH5","TH6"]},
   {title:"Transfers – Home / Residential",codes:["TR1","TR2","TR3","TR4","TR5","TR6"]},
-  {title:"ED, Hearse & Repatriation",codes:["ED1","ED2","ED3","ED4","EDS","HH1","HH2","RSF"]},
+  {title:"ED & Hearse",codes:["ED1","ED2","ED3","ED4","EDS","HH1","HH2"]},
   {title:"Labour & Accommodation",codes:["CL4","CL5","ACC"]},
 ];
 const jsMoney=n=>"$"+(Math.round(n*100)/100).toLocaleString("en-AU",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
@@ -3081,12 +3082,12 @@ function JobSheet({c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}
         <div className="space-y-4 min-w-0">
           <div className={card}>
             <div className="flex items-baseline justify-between gap-2 mb-3"><p className={head+" mb-0"}>Preparation — choose one</p></div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
               {JS_PREP.map(p=>{const on=curBase?.key===p.key;const code=p.v[on?curVer:"std"]||p.v.std;return(
                 <button key={p.key} type="button" onClick={()=>pickPrep(on?null:p,curVer)} className={"min-h-[56px] rounded-xl border-2 text-sm font-black flex flex-col items-center justify-center transition "+(on?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-700 border-gray-200 hover:border-gray-700")}>
                   {p.label}<span className={"text-[11px] font-bold "+(on?"text-gray-300":"text-gray-500")}>{code} · {jsMoney(PRICE_LIST[code]||0)}</span></button>);})}
             </div>
-            {curBase&&curBase.key!=="NSNA"&&<div className="flex flex-wrap items-center gap-2">
+            {curBase&&Object.keys(curBase.v).length>1&&<div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-gray-600">Version:</span>
               {JS_VERSIONS.filter(([k])=>curBase.v[k]).map(([k,l])=><button key={k} type="button" onClick={()=>pickPrep(curBase,k)} className={"min-h-[36px] px-3 rounded-full border-2 text-xs font-black transition "+(curVer===k?"bg-gray-900 text-white border-gray-900":"bg-white text-gray-700 border-gray-200 hover:border-gray-700")}>{l}</button>)}
             </div>}
