@@ -1852,6 +1852,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
         </div>
         <DocumentSection caseId={submitted.id} funeralHomeName={submitted.funeralHomeName} lastName={submitted.lastName} dod={submitted.dod}/>
         <p className="text-sm font-black uppercase tracking-widest text-gray-700 mt-5 mb-1">To finish, do both:</p>
+        <div className="grid gap-3 sm:grid-cols-2 mt-5 mb-2">
         <button type="button" onClick={async()=>{
           let docs=[];try{docs=(await listDocuments(submitted.id)).filter(d=>d.name&&!d.name.endsWith("/"));}catch(e){}
           const nice=n=>n.replace(/^\d+_/,"").replace(/\.[^.]+$/,"").replace(/_/g," ");
@@ -1865,13 +1866,14 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           if(await sendAppEmail(to,decodeURIComponent(subj),text)){setEmailOpened("sent");return;}
           window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
           setEmailOpened("mailto");
-        }} className={`block w-full mt-5 mb-2 rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened&&emailOpened!=="sending"?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 "+(emailOpened?"":"animate-pulse")}`}>
+        }} className={`block w-full h-full rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened&&emailOpened!=="sending"?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 "+(emailOpened?"":"animate-pulse")}`}>
           {emailOpened==="sending"?"1. Sending…":emailOpened==="sent"?"1. ✓ Check-in confirmed — email sent":emailOpened==="mailto"?"1. ✓ Email opened — tap to send again":"1. ✓ Confirm Check In"}
           <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened==="sent"?"Sent to the FD & Mortuary — tap to send again":emailOpened==="mailto"?"Make sure you press Send in your mail program":"Required — emails the check-in to the FD & Mortuary"}</span>
         </button>
+        <button type="button" onClick={()=>{printCaseLabel(submitted);setLabelPrinted(true);}} className={`block w-full h-full py-5 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"2. ✓ Body bag label printed — tap to print again":"2. 🏷️ Print Body Bag Label (4×6)"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
+        </div>
         <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
-        <p className="text-xs text-gray-400 text-center mb-4">To: {to}</p>
-        <button type="button" onClick={()=>{printCaseLabel(submitted);setLabelPrinted(true);}} className={`block w-full mb-6 py-5 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"2. ✓ Label printed — tap to print again":"2. 🏷️ Print Body Label (4×6)"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
+        <p className="text-xs text-gray-400 text-center mb-6">To: {to}</p>
       </div>
     );
   }
