@@ -807,7 +807,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
 
 
 // ─── 4x6 BODY LABEL (MUNBYN thermal printer) ─────────────────────────────────
-function printCaseLabel(c){
+function printCaseLabel(c,kinds){
   const e=s=>String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
   const d=v=>v?String(v).slice(0,10).split("-").reverse().join("/"):"—";
   const inAt=c.checkedInAt?new Date(c.checkedInAt).toLocaleString("en-AU",{timeZone:"Australia/Sydney",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}):"—";
@@ -816,7 +816,7 @@ function printCaseLabel(c){
   const sur=String(c.lastName||"");const longest=Math.max(1,...sur.split(/[\s-]+/).map(w=>w.length));const surSize=Math.max(16,Math.min(40,Math.floor(165/(longest*0.72))));
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>${e(c.caseRef)}</title><style>
 @page{size:6in 4in;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-html,body{margin:0;width:6in;height:4in;overflow:hidden}body{font-family:Helvetica,Arial,sans-serif;color:#000;padding:0.14in;display:flex;flex-direction:column}
+html,body{margin:0}body{font-family:Helvetica,Arial,sans-serif;color:#000}.lab{width:6in;height:4in;overflow:hidden;padding:0.14in;display:flex;flex-direction:column;break-after:page;page-break-after:always}.lab:last-child{break-after:auto;page-break-after:auto}.kind{background:#000;color:#fff;padding:1px 8px;margin-right:6px;letter-spacing:2px}
 .top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #888;padding-bottom:3px;font-weight:700}
 .top .org{font-size:10pt;letter-spacing:2px;color:#777}.top .ref{font-size:15pt;letter-spacing:1px}
 .main{flex:1;display:flex;gap:0.12in;margin-top:6px;min-height:0}
@@ -826,8 +826,8 @@ html,body{margin:0;width:6in;height:4in;overflow:hidden}body{font-family:Helveti
 .dd{font-size:13pt;font-weight:700;margin-top:8px}
 table{flex:1;border-collapse:collapse;font-size:12.5pt;align-self:stretch}td{border:1.2px solid #888;padding:2px 6px;vertical-align:top}td b{display:block;font-size:7.5pt;letter-spacing:1px;color:#777;font-weight:700}
 .pace{margin-top:6px;background:#000;color:#fff;font-size:18pt;font-weight:900;text-align:center;padding:4px}
-</style></head><body>
-<div class="top"><span class="org">MORTUARY SUPPORT SERVICES</span><span class="ref">${e(c.caseRef)}</span></div>
+</style></head><body>${(kinds&&kinds.length?kinds:[""]).map(k=>`<div class="lab">
+<div class="top"><span class="org">${k?`<span class="kind">${e(k)}</span>MSS`:"MORTUARY SUPPORT SERVICES"}</span><span class="ref">${e(c.caseRef)}</span></div>
 <div class="main">
 <div class="name"><div class="sur">${e(sur)}</div><div class="first">${e(c.firstName)}</div><div class="dd"><span class="g">DOB</span> ${d(c.dob)}<br><span class="g">DOD</span> ${d(c.dod)}</div></div>
 <table><tr><td><b>AGE</b>${e(c.ageAtDeath??"—")}</td><td><b>SEX</b>${e(c.sex||"—")}</td></tr>
@@ -837,7 +837,7 @@ table{flex:1;border-collapse:collapse;font-size:12.5pt;align-self:stretch}td{bor
 <tr><td><b>PAPERWORK</b>${e(c.paperwork||"—")}</td><td><b>VALUABLES</b>${e(vals)}</td></tr></table>
 </div>
 ${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
-</body></html>`;
+</div>`).join("")}</body></html>`;
   const fr=document.createElement("iframe");
   fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr);
@@ -845,7 +845,7 @@ ${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
   fr.srcdoc=html;
 }
 // ─── DOCUMENT SECTION ─────────────────────────────────────────────────────────
-const DOC_LABELS = ["MCCD","VOD","BO","LE","PHOTO","OTHER"];
+const DOC_LABELS = ["MCCD","VOD","BO","LE","CRA","PHOTO","OTHER"];
 
 function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt, backupFolder}){
   const [viewingDoc,setViewingDoc]=useState(null);
@@ -946,7 +946,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt
           </div>
           <div className="bg-white border border-gray-200 rounded-xl px-3 py-2 mb-3">
             <p className="text-xs font-black text-gray-400 uppercase mb-0.5">File will be saved as:</p>
-            <p className="text-xs font-black text-gray-900 break-all">{previewName}.[ext]</p>
+            <p className="text-xs font-black text-gray-900 break-all">{previewName}</p>
           </div>
           <div className={s.label}>SELECT FILE (PHOTO OR PDF)</div>
           <label className="block w-full py-4 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-600 text-center cursor-pointer transition bg-white">
@@ -1858,7 +1858,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           const nice=n=>n.replace(/^\d+_/,"").replace(/\.[^.]+$/,"").replace(/_/g," ");
           const DOCN={Coroners_BO:"Coroner's BO",MCCD:"MCCD",CRA:"CRA",VOD:"VOD",LE:"Life Extinct (LE)",BO:"BO",OTHER:"Other document",PHOTO:"Photo",Other:"Other document"};
           const docTitle=n=>{const rest=n.replace(/^\d+_/,"");const k=Object.keys(DOCN).find(k=>rest.startsWith(k+"_")||rest===k);return k?DOCN[k]:nice(n);};
-          const links=docs.length?`\n\nDOCUMENTS RECEIVED AT CHECK-IN\n`+docs.map(d=>`${docTitle(d.name)} – click here to download:\n${encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}`).join("\n\n"):"";
+          const links=docs.length?`\n\nDOCUMENTS RECEIVED AT CHECK-IN\n`+docs.map(d=>`${docTitle(d.name)} – click here to download:\n\n${encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}`).join("\n\n"):"";
           let text=buildCheckInEmail(submitted);
           text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
           if(emailOpened==="sending")return;
@@ -1871,7 +1871,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           {emailOpened==="sending"?"1. Sending…":emailOpened==="sent"?"1. ✓ Check-in confirmed — email sent":emailOpened==="mailto"?"1. ✓ Email opened — tap to send again":"1. ✓ Confirm Check In"}
           <span className="block text-xs sm:text-sm font-bold normal-case tracking-normal opacity-90 mt-1">{emailOpened==="sent"?"Sent to the FD & Mortuary — tap to send again":emailOpened==="mailto"?"Make sure you press Send in your mail program":"Required — emails the check-in to the FD & Mortuary"}</span>
         </button>
-        <button type="button" onClick={()=>{printCaseLabel(submitted);setLabelPrinted(true);}} className={`block w-full h-full py-5 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"2. ✓ Body bag label printed — tap to print again":"2. 🏷️ Print Body Bag Label (4×6)"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
+        <button type="button" onClick={()=>{printCaseLabel(submitted,["BODY BAG","PAPERWORK SLEEVE"]);setLabelPrinted(true);}} className={`block w-full h-full py-5 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"2. ✓ 2 labels printed — tap to print again":"2. 🏷️ Print 2 Labels (4×6)"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Body bag + paperwork sleeve · MUNBYN printer, 4×6, Landscape</span></button>
         </div>
         <p className="text-xs text-gray-500 text-center mb-1">Documents above are attached to the email and included as links</p>
         <p className="text-xs text-gray-400 text-center mb-6">To: {to}</p>
