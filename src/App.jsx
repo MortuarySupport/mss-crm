@@ -2780,6 +2780,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   const byFH={};
   cases.filter(c=>c.status==="active").forEach(c=>{if(!byFH[c.funeralHomeId])byFH[c.funeralHomeId]=[];byFH[c.funeralHomeId].push(c);});
+  const toAccounts=cases.filter(c=>c.checkedOut&&c.checkout?.checkedOutAt&&!c.prep?.jobSheetSentAt&&!c.invoicedAt).sort((a,b)=>new Date(a.checkout.checkedOutAt)-new Date(b.checkout.checkedOutAt));
 
   function describeChanges(updates,existingCase){
     const labels={
@@ -2920,6 +2921,18 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         </div>
         <div className="border-t-2 border-gray-100 my-6"/>
       </div>}
+      {toAccounts.length>0&&<div className="mb-6">
+        <div className="text-sm font-black uppercase tracking-widest text-gray-900 mb-3">📧 Checked Out — Send to Accounts · {toAccounts.length}</div>
+        <div className="space-y-2">{toAccounts.map(x=>(
+          <div key={x.id} className="bg-white border-2 border-gray-900 rounded-2xl p-4 flex items-center justify-between gap-3">
+            <button type="button" onClick={()=>{setSelFH(FUNERAL_HOMES.find(f=>f.id===x.funeralHomeId)||{id:x.funeralHomeId,name:x.funeralHomeName});setSelCase(x);}} className="text-left min-w-0">
+              <div className="text-lg font-black text-gray-900 underline">{(x.lastName||"").toUpperCase()}, {x.firstName}</div>
+              <div className="text-sm text-gray-500">{x.caseRef} · {x.funeralHomeName} · Checked out {fmtDTDay(x.checkout.checkedOutAt)}</div>
+            </button>
+            <SendToAccountsBtn c={x} user={user} onUpdateCase={onUpdateCase} compact/>
+          </div>))}</div>
+        <div className="border-t-2 border-gray-100 my-6"/>
+      </div>}
       <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-4">Funeral Directors</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {sortAlpha(FUNERAL_HOMES,"name").map(fh=>{
@@ -3001,6 +3014,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <p className={s.section}>Received — Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
       </div>
+      <SendToAccountsBtn c={c} user={user} onUpdateCase={onUpdateCase}/>
       <JobSheet c={c} prep={prep} billable={billable} upd={upd} handleStatus={handleStatus} onPacemaker={()=>setShowPacemakerCert(true)} onAcceptChanges={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}}/>
       <div id="docsSection" className="mt-4"><DocumentSection key={docReload} caseId={c.id} filesDeletedAt={c.filesDeletedAt} backupFolder={c.backupFolder} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
 
@@ -3147,6 +3161,91 @@ function JobSheet({c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}
       </div>
     </div>
   );
+}
+
+// ─── SEND TO ACCOUNTS (staff, after check-out) ─────────────────────────────────────────
+const INVOICE_EMAIL="scott@mortuarysupport.com.au";
+function jsLines(c,b){return Object.keys(b||{}).filter(k=>b[k]&&SERVICE_LABELS_XERO[k]).map(k=>({code:k,label:SERVICE_LABELS_XERO[k],qty:jsQty(b,k,c),price:PRICE_LIST[k]||0}));}
+async function buildJobSheetPdf(c,prep,b,by){
+  const {PDFDocument,rgb,StandardFonts}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
+  const T=v=>String(v??"").replace(/[–—]/g,"-").replace(/×/g,"x").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[^\x20-\x7E\xA0-\xFF]/g,"");
+  const doc=await PDFDocument.create();const f=await doc.embedFont(StandardFonts.Helvetica);const fb=await doc.embedFont(StandardFonts.HelveticaBold);
+  let page=doc.addPage([595.28,841.89]);let y=800;const L=40,R=555;
+  const text=(t,x,o={})=>page.drawText(T(t),{x,y,size:o.size||10,font:o.bold?fb:f,color:o.grey?rgb(.4,.4,.4):rgb(0,0,0)});
+  const right=(t,x,o={})=>{const w=(o.bold?fb:f).widthOfTextAtSize(T(t),o.size||10);text(t,x-w,o);};
+  const fit=(t,max,o={})=>{let s=T(t);const ft=o.bold?fb:f;while(s.length>3&&ft.widthOfTextAtSize(s,o.size||10)>max)s=s.slice(0,-2);return s;};
+  const line=()=>page.drawLine({start:{x:L,y:y},end:{x:R,y:y},thickness:.6,color:rgb(.8,.8,.8)});
+  const nl=(n=14)=>{y-=n;if(y<60){page=doc.addPage([595.28,841.89]);y=800;}};
+  text("MORTUARY SUPPORT SERVICES",L,{bold:true,size:9,grey:true});right("JOB SHEET",R,{bold:true,size:16});nl(26);
+  text(`${(c.lastName||"").toUpperCase()}, ${c.firstName||""}`,L,{bold:true,size:18});right(c.caseRef||"",R,{bold:true,size:12});nl(18);
+  text(c.funeralHomeName||"",L,{size:11});nl(20);line();nl(16);
+  const info=[["Checked in",c.checkedInAt?fmtDTDay(c.checkedInAt):"-"],["Checked out",c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"Still in care"],["Nights",String(jsNights(c))],["Preparation",(prep.prepOptions||[])[0]||"-"],["Disposition",prep.disposition||"-"],["Checked out by",by||"-"]];
+  info.forEach(([k,v])=>{text(k,L,{bold:true,grey:true,size:9});text(v,L+90);nl(15);});
+  nl(8);line();nl(16);
+  text("CODE",L,{bold:true,size:9,grey:true});text("ITEM",L+55,{bold:true,size:9,grey:true});right("QTY",L+360,{bold:true,size:9,grey:true});right("UNIT",L+440,{bold:true,size:9,grey:true});right("AMOUNT",R,{bold:true,size:9,grey:true});nl(16);
+  const lines=jsLines(c,b);let total=0;
+  if(!lines.length){text("No items recorded",L,{grey:true});nl();}
+  lines.forEach(l=>{const amt=l.qty*l.price;total+=amt;text(l.code,L,{bold:true});text(fit(l.label,290),L+55);right(String(l.qty),L+360);right(jsMoney(l.price),L+440);right(jsMoney(amt),R);nl(15);});
+  nl(4);line();nl(18);
+  right("TOTAL (INC GST)",L+440,{bold:true});right(jsMoney(total),R,{bold:true,size:14});nl(14);
+  right("includes GST of",L+440,{grey:true,size:9});right(jsMoney(total/11),R,{grey:true,size:9});nl(24);
+  const para=(h,v)=>{if(!v)return;text(h,L,{bold:true,size:9,grey:true});nl(14);T(v).split(/\n/).forEach(p=>{let s="";p.split(" ").forEach(w=>{if(f.widthOfTextAtSize(s+w+" ",10)>R-L){text(s,L);nl(13);s="";}s+=w+" ";});text(s,L);nl(13);});nl(8);};
+  para("NOTES",prep.comments);
+  para("VALUABLES FOUND IN MORTUARY",prep.mortuaryValuables==="Yes"?(prep.mortuaryValuablesText||"Yes"):prep.mortuaryValuables==="No"?"None":"");
+  return {bytes:await doc.save(),lines,total};
+}
+async function sendJobSheet(c,prep,b,by){
+  const safe=v=>String(v||"").replace(/[^a-zA-Z0-9]/g,"_");
+  let pdfUrl="",lines=jsLines(c,b),total=lines.reduce((s2,l)=>s2+l.qty*l.price,0),noteUrl="";
+  try{
+    const r=await buildJobSheetPdf(c,prep,b,by);
+    const name=`JOBSHEET_${safe(c.caseRef)}_${safe(c.lastName)}.pdf`;const path=`${c.id}/${Date.now()}_${name}`;
+    const up=await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`,{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/pdf","x-upsert":"true"},body:r.bytes});
+    if(up.ok){pdfUrl=getDocumentUrl(path);fetch(SUPABASE_URL+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json",apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,Prefer:"return=minimal"},body:JSON.stringify({case_id:c.id,name,path,size:r.bytes.length,uploaded_at:new Date().toISOString()})}).catch(()=>{});}
+  }catch(e){console.error("Job sheet PDF",e);}
+  try{const n=await sb(`second_notes?case_id=eq.${c.id}&select=pdf_path&order=submitted_at.desc&limit=1`);if(Array.isArray(n)&&n[0]?.pdf_path)noteUrl=getDocumentUrl(n[0].pdf_path);}catch(e){}
+  const who=`${(c.lastName||"").toUpperCase()}, ${c.firstName||""}`;
+  const subject=`Job Sheet – ${who} (${c.caseRef}) – ${c.funeralHomeName||""} – ready to invoice`;
+  const body=[
+    `JOB SHEET – ${who}`,
+    `Case: ${c.caseRef}`,`Funeral Director: ${c.funeralHomeName||"—"}`,
+    `Checked in: ${c.checkedInAt?fmtDTDay(c.checkedInAt):"—"}`,
+    `Checked out: ${c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"—"}${by?" by "+by:""}`,
+    `Preparation: ${(prep.prepOptions||[])[0]||"—"}`,"",
+    `ITEMS`,
+    ...(lines.length?lines.map(l=>`${l.code} – ${l.label}: ${l.qty} × ${jsMoney(l.price)} = ${jsMoney(l.qty*l.price)}`):["No items recorded"]),"",
+    `TOTAL (INC GST): ${jsMoney(total)}`,"",
+    ...(prep.comments?[`Notes: ${prep.comments}`,""]:[]),
+    `Job Sheet PDF: ${pdfUrl||"(could not be created)"}`,
+    `2nd Note PDF: ${noteUrl||"No 2nd Note on file"}`,"",
+    `The Team at Mortuary Support Services`,
+  ].join("\n");
+  try{
+    const res=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:[INVOICE_EMAIL],subject,text:body,attachments:[pdfUrl&&{filename:`Job Sheet ${c.caseRef}.pdf`,path:pdfUrl},noteUrl&&{filename:`2nd Note ${c.caseRef}.pdf`,path:noteUrl}].filter(Boolean)})});
+    if(res.ok)return {status:"sent"};
+  }catch(e){}
+  return {status:"mailto",href:`mailto:${INVOICE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`};
+}
+
+async function sendToAccounts(c,user,onUpdateCase){
+  const prep=c.prep||{};
+  const r=await sendJobSheet(c,prep,c.billable||{},c.checkout?.checkedOutBy||"");
+  if(r.status==="mailto")window.location.href=r.href;
+  const np={...prep,jobSheetSentAt:new Date().toISOString(),jobSheetSentBy:user?.name||""};
+  try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){}
+  return r.status;
+}
+function SendToAccountsBtn({c,user,onUpdateCase,compact}){
+  const [busy,setBusy]=useState(false);
+  const out=!!c.checkout?.checkedOutAt;const sent=c.prep?.jobSheetSentAt;
+  async function go(){if(!out||busy)return;setBusy(true);try{const st=await sendToAccounts(c,user,onUpdateCase);if(st==="sent")alert("Job Sheet and 2nd Note sent to accounts.");}catch(e){alert("Couldn't send: "+e.message);}setBusy(false);}
+  if(compact)return <button type="button" onClick={go} disabled={busy} className="shrink-0 px-4 py-3 rounded-xl bg-gray-900 text-white font-black text-xs uppercase hover:bg-gray-700 transition">{busy?"Sending…":"📧 Send to Accounts"}</button>;
+  return(<div className="mb-4">
+    <button type="button" onClick={go} disabled={!out||busy} className={"w-full py-4 rounded-2xl font-black text-base uppercase tracking-wide transition "+(!out?"bg-gray-200 text-gray-400 cursor-not-allowed":sent?"bg-green-600 text-white hover:bg-green-700":"bg-gray-900 text-white hover:bg-gray-700")}>
+      {busy?"Sending…":!out?"🔒 Send to Accounts":sent?"✓ Sent to Accounts — tap to send again":"📧 Send to Accounts"}
+    </button>
+    <p className="text-xs text-gray-500 text-center mt-1">{!out?"Available once the body has been checked out":sent?`Sent ${fmtDTDay(sent)}${c.prep?.jobSheetSentBy?" by "+c.prep.jobSheetSentBy:""} · Job Sheet + 2nd Note to ${INVOICE_EMAIL}`:`Job Sheet + 2nd Note to ${INVOICE_EMAIL}`}</p>
+  </div>);
 }
 
 // ─── CHECK OUT ────────────────────────────────────────────────────────────────
