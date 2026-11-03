@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const list = (Array.isArray(to) ? to : [to]).filter(Boolean);
   if (!list.length || list.some(a => !ALLOWED.test(String(a).trim()))) return res.status(400).json({ error: "Recipient not allowed" });
   if (typeof subject !== "string" || typeof text !== "string" || subject.length > 300 || text.length > 20000) return res.status(400).json({ error: "Bad message" });
-  const att = (Array.isArray(attachments) ? attachments : []).slice(0, 5)
+  const att = (Array.isArray(attachments) ? attachments : []).slice(0, 10)
     .filter(a => a && typeof a.path === "string" && a.path.startsWith("https://qhazwfbhbelpcfwczjdb.supabase.co/storage/"))
     .map(a => ({ filename: String(a.filename || "document.pdf").slice(0, 120), path: a.path }));
   const r = await fetch("https://api.resend.com/emails", {

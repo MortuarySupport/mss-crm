@@ -1863,7 +1863,8 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
           if(emailOpened==="sending")return;
           setEmailOpened("sending");
-          if(await sendAppEmail(to,decodeURIComponent(subj),text)){setEmailOpened("sent");return;}
+          const att=docs.map(d=>({filename:nice(d.name)+((d.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0]),path:encodeURI(getDocumentUrl(submitted.id+"/"+d.name))}));
+          if(await sendAppEmail(to,decodeURIComponent(subj),text,att)){setEmailOpened("sent");return;}
           window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;
           setEmailOpened("mailto");
         }} className={`block w-full h-full rounded-2xl text-white font-black uppercase tracking-wider transition shadow-lg ${emailOpened&&emailOpened!=="sending"?"bg-green-600 hover:bg-green-700 py-5 text-lg":"bg-red-600 hover:bg-red-700 py-8 text-xl sm:text-2xl ring-4 ring-red-200 "+(emailOpened?"":"animate-pulse")}`}>
@@ -1872,7 +1873,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
         </button>
         <button type="button" onClick={()=>{printCaseLabel(submitted);setLabelPrinted(true);}} className={`block w-full h-full py-5 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"2. ✓ Body bag label printed — tap to print again":"2. 🏷️ Print Body Bag Label (4×6)"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Choose the MUNBYN printer, paper 4×6, Landscape</span></button>
         </div>
-        <p className="text-xs text-gray-500 text-center mb-1">Documents above are included in the email as links</p>
+        <p className="text-xs text-gray-500 text-center mb-1">Documents above are attached to the email and included as links</p>
         <p className="text-xs text-gray-400 text-center mb-6">To: {to}</p>
       </div>
     );
@@ -3254,9 +3255,9 @@ function SendToAccountsBtn({c,user,onUpdateCase,compact}){
 }
 
 // Sends an app email via /api/send-email (Resend). Returns true if sent.
-async function sendAppEmail(to,subject,text){
+async function sendAppEmail(to,subject,text,attachments){
   try{const list=String(to).split(",").map(x=>x.trim()).filter(Boolean);
-    const r=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:list,subject,text})});
+    const r=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:list,subject,text,attachments:attachments||[]})});
     return r.ok;}catch(e){return false;}
 }
 // ─── CHECK OUT ────────────────────────────────────────────────────────────────
