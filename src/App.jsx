@@ -1629,7 +1629,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
   const [part,setPart]=useState(false);
   const [showPart,setShowPart]=useState(false);
   const [checkinRole,setCheckinRole]=useState(user?.role==="fd"?"FUNERAL DIRECTOR":user?.role==="transfer"?"TRANSFER TEAM":"");
-  const canPart=["mss","admin","transfer"].includes(user?.role)||(user?.role==="guest"&&["MSS","TRANSFER TEAM"].includes(checkinRole));
+  const canPart=["mss","admin","transfer","fd"].includes(user?.role)||(user?.role==="guest"&&["MSS","TRANSFER TEAM","FUNERAL DIRECTOR"].includes(checkinRole));
   const [selFH,setSelFH]=useState(user?.role==="fd"?user.funeralHomeId:null);
   const [otherFHName,setOtherFHName]=useState("");
   const [errors,setErrors]=useState({});
@@ -1793,7 +1793,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
     if(!form.sex) e.sex="Required";
     if(!form.transferFrom) e.transferFrom="Required";
     if(!form.transferDate) e.transferDate="Required";
-    if(!isTransfer&&!form.transferredBy) e.transferredBy="Please choose who transferred (company and person)";
+    if(!isTransfer&&!isFD&&!form.transferredBy) e.transferredBy="Please choose who transferred (company and person)";
     if(!form.nilVals&&!form.vals) e.valuables="Please select NIL VALS or VALS";
     if(form.vals&&!form.valsText.trim()) e.valuables="Please describe the valuables";
     if(!isFD&&selFH==="OTHER"&&otherFHName.trim().length<4) e.otherFHName="Min 4 characters";
@@ -1828,7 +1828,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
     const record={
       id:completing?completing.id:genId(),caseRef,firstName:form.firstName,lastName:form.lastName,
       dob:form.dob,dod:form.dod,sex:form.sex,ageAtDeath:age,
-      transferredFrom:getTransferDisplay(),transferredBy:isTransfer?user.name:form.transferredBy,
+      transferredFrom:getTransferDisplay(),transferredBy:isTransfer||isFD?user.name:form.transferredBy,
       transferPersonName:"",transferDate:form.transferDate,transferTime:form.transferTime,
       valuables:getValuablesDisplay(),paperwork:form.paperwork.join(", "),size:form.size,fridge:form.fridge,weight:form.weight,pacemaker:form.pacemaker||false,
       funeralHomeId:fhId,funeralHomeName:fhName,
@@ -1996,6 +1996,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
 
       {(isFD||(effectiveStep===3))&&(
         <div>
+          {isFD&&!completing&&!part&&<PartCheckInList cases={(cases||[]).filter(x=>x.funeralHomeId===user.funeralHomeId)} onPick={loadPart} title="Your Part Check Ins — tap a name to finish check-in"/>}
           {(!isTransfer||canPart)&&<div className={`border rounded-xl p-4 mb-5 flex flex-wrap items-center gap-3 ${part?"bg-amber-50 border-amber-400":"bg-gray-50 border-gray-200"}`}>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Funeral Director:</span>
             <span className="text-base font-bold text-gray-900">{isFD?user.name:selFH==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===selFH)?.name}</span>
