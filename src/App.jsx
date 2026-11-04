@@ -1344,6 +1344,19 @@ function LoginScreen({onLogin,users}) {
 
 // ─── PREP BOARD: every case in care, one line per preparation type ──────────
 let _openCaseId=null; // case to open when the Mortuary screen loads
+let _completePartId=null; // part check-in to finish when Check In opens
+function PartCheckInList({cases,onPick,title}){
+  const list=(cases||[]).filter(x=>x.status==="part").sort((a,b)=>new Date(a.checkedInAt||0)-new Date(b.checkedInAt||0));
+  if(!list.length) return null;
+  return(<div className="mb-5 bg-amber-50 border-2 border-amber-400 rounded-2xl p-4">
+    <div className="text-sm font-black uppercase tracking-widest text-amber-800 mb-3">🚐 {title||"On the way — Part Checked In"} · {list.length}</div>
+    <div className="space-y-2">{list.map(x=>(
+      <button key={x.id} type="button" onClick={()=>onPick(x)} className="w-full text-left bg-white border-2 border-amber-300 hover:border-amber-600 rounded-xl px-4 py-3 transition">
+        <div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName} <span className="text-sm font-bold text-gray-500">· {x.caseRef}</span></div>
+        <div className="text-sm text-gray-600">{x.funeralHomeName} · Picked up by {x.prep?.partCheckIn?.by||x.checkedInBy} · {fmtDTDay(x.prep?.partCheckIn?.at||x.checkedInAt)}</div>
+      </button>))}</div>
+  </div>);
+}
 const prepOne=c=>{const o=(c.prep?.prepOptions||[]).filter(x=>PREP_OPTIONS.some(p=>p.label===x));return o.length?o[o.length-1]:null;};
 function PrepBoard({cases,onAction}){
   const active=(cases||[]).filter(c=>c.status==="active"&&!c.checkedOut);
@@ -1426,7 +1439,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]],"75%")}
-            <div className="mt-6"><PrepBoard cases={cases} onAction={onAction}/></div>
+            <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction}/></div>
           </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
@@ -1610,8 +1623,12 @@ async function imagesToPdf(files){
 }
 
 // ─── CHECK IN ─────────────────────────────────────────────────────────────────
-function CheckInFlow({user,cases,onComplete,onBack}) {
+function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
   const [step,setStep]=useState(1);
+  const [completing,setCompleting]=useState(null);
+  const [part,setPart]=useState(false);
+  const [showPart,setShowPart]=useState(false);
+  const canPart=["mss","admin","transfer"].includes(user?.role);
   const [checkinRole,setCheckinRole]=useState(user?.role==="fd"?"FUNERAL DIRECTOR":user?.role==="transfer"?"TRANSFER TEAM":"");
   const [selFH,setSelFH]=useState(user?.role==="fd"?user.funeralHomeId:null);
   const [otherFHName,setOtherFHName]=useState("");
@@ -1723,6 +1740,16 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
   }
   const [form,setForm]=useState({firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),transferTime:new Date().toTimeString().slice(0,5),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false});
   formRef.current=form;
+  function loadPart(x){
+    const pc=x.prep?.partCheckIn||{};
+    setCompleting(x);
+    setForm({...{firstName:"",lastName:"",dob:"",dod:"",sex:"",transferFrom:"",transferFromSub:"",transferredBy:"",transferDate:today(),transferTime:new Date().toTimeString().slice(0,5),paperwork:[],nilVals:false,vals:false,valsText:"",otherItems:[],otherText:"",size:"",fridge:"",weight:"",pacemaker:false},...(pc.form||{}),checkInDocs:(pc.docs||[]).map(d=>({...d,existing:true}))});
+    setSelFH(pc.selFH||x.funeralHomeId);setOtherFHName(pc.otherFHName||"");
+    if(pc.checkinRole&&user?.role!=="transfer")setCheckinRole(pc.checkinRole);
+    setNoDeathDoc(!!pc.noDeathDoc);setCiManual(!!pc.ciManual);
+    setStep(3);window.scrollTo({top:0,behavior:"smooth"});
+  }
+  useEffect(()=>{if(!part&&_completePartId){const x=(cases||[]).find(k=>k.id===_completePartId);_completePartId=null;if(x)loadPart(x);}},[]);
   const deathDocDone=noDeathDoc||(form.checkInDocs||[]).some(d=>READ_LABELS.includes(d.label));
   const docLabel=p=>p==="BO"?"Coroners BO":p;
   const isScanned=p=>(form.checkInDocs||[]).some(d=>d.label===docLabel(p));
@@ -1784,7 +1811,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     catch(err){rows=(cases||[]).filter(x=>x.dob===form.dob&&x.checkedInAt>=since).map(x=>({id:x.id,case_ref:x.caseRef,first_name:x.firstName,last_name:x.lastName,funeral_home_id:x.funeralHomeId,funeral_home_name:x.funeralHomeName,transferred_from:x.transferredFrom,checked_in_at:x.checkedInAt,status:x.status}));}
     return (rows||[]).filter(r=>norm(r.first_name)===norm(form.firstName)&&norm(r.last_name)===norm(form.lastName))
       .map(r=>({...r,sameFH:!!fhId&&r.funeral_home_id===fhId,sameFrom:!!from&&norm(r.transferred_from)===from}))
-      .filter(r=>r.sameFH||r.sameFrom);
+      .filter(r=>(r.sameFH||r.sameFrom)&&r.id!==completing?.id);
   }
   async function submit(force){
     const e=validate();
@@ -1792,12 +1819,14 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
     if(force!==true){const d=await findDuplicates();if(d.length){setDupMatches(d);return;}}
     setDupMatches(null);
     setSaving(true);
-    const caseRef=await genCaseRef();
+    const caseRef=completing?completing.caseRef:await genCaseRef();
     const fhId=isFD?user.funeralHomeId:selFH;
     const fhName=fhId==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===fhId)?.name||"";
     const age=calcAge(form.dob,form.dod);
+    const nowIso=new Date().toISOString();
+    const partInfo=part?{at:nowIso,by:user.name,form:{...form,checkInDocs:undefined},docs:(form.checkInDocs||[]).map(d=>({label:d.label,name:d.name})),selFH,otherFHName,checkinRole,noDeathDoc,ciManual}:completing?{at:completing.prep?.partCheckIn?.at,by:completing.prep?.partCheckIn?.by}:null;
     const record={
-      id:genId(),caseRef,firstName:form.firstName,lastName:form.lastName,
+      id:completing?completing.id:genId(),caseRef,firstName:form.firstName,lastName:form.lastName,
       dob:form.dob,dod:form.dod,sex:form.sex,ageAtDeath:age,
       transferredFrom:getTransferDisplay(),transferredBy:isTransfer?user.name:form.transferredBy,
       transferPersonName:"",transferDate:form.transferDate,transferTime:form.transferTime,
@@ -1805,11 +1834,12 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       funeralHomeId:fhId,funeralHomeName:fhName,
       checkedInBy:user.name,checkedInRole:checkinRole,
       checkedInAt:new Date().toISOString(),
-      status:"active",prepStatus:"not-started",step:1,checkedOut:false,
-      prep:form.transferTime?{transferTime:form.transferTime}:{},billable:{},otherUsed:{},statusItems:{},
+      status:part?"part":"active",prepStatus:"not-started",step:1,checkedOut:false,
+      prep:{...(completing?.prep||{}),...(form.transferTime?{transferTime:form.transferTime}:{}),...(partInfo?{partCheckIn:partInfo}:{})},billable:completing?.billable||{},otherUsed:completing?.otherUsed||{},statusItems:completing?.statusItems||{},
     };
     try {
-      await insertCase(caseToDb(record));
+      if(completing){await updateCase(record.id,caseToDb(record));}
+      else await insertCase(caseToDb(record));
       // Upload check-in documents
       const docs=form.checkInDocs||[];
       for(const doc of docs){
@@ -1826,7 +1856,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
       }
       setSubmitted(record);
       setTimeout(()=>{window.scrollTo({top:0,behavior:"smooth"});window.parent.scrollTo({top:0,behavior:"smooth"});},100);
-      onComplete(record);
+      if(completing&&onUpdateCase) onUpdateCase(record.id,record); else onComplete(record);
     } catch(err) {
       alert("Error saving case: "+err.message);
     }
@@ -1835,6 +1865,26 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
   const age=calcAge(form.dob,form.dod);
 
+  if(submitted&&part){
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <button onClick={()=>{onBack();window.scrollTo({top:0,behavior:"smooth"});}} className={`${s.btnGhost} w-full mb-3 py-2`}>← BACK TO HOME</button>
+        <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="text-2xl">🚐</span>
+          <span className="text-lg font-black text-gray-900">Part Checked In — On the way</span>
+          <span className="text-lg font-black text-gray-900 tracking-widest">{submitted.caseRef}</span>
+          <span className="text-amber-800 font-bold">{submitted.firstName} {submitted.lastName}</span>
+          <span className="text-gray-500 text-xs sm:ml-auto">{fmtDTDay(submitted.checkedInAt)}</span>
+        </div>
+        <DocumentSection caseId={submitted.id} funeralHomeName={submitted.funeralHomeName} lastName={submitted.lastName} dod={submitted.dod}/>
+        <button type="button" onClick={()=>{printCaseLabel(submitted,["BODY BAG","PAPERWORK SLEEVE"]);setLabelPrinted(true);}} className={`block w-full mt-5 mb-4 py-6 rounded-2xl border-4 text-lg font-black uppercase tracking-wider ${labelPrinted?"border-green-600 bg-green-50 text-green-800":"border-gray-900 bg-white text-gray-900 hover:bg-gray-50"}`}>{labelPrinted?"✓ Body Bag Tags printed — tap to print again":"🏷️ Print Body Bag Tags"}<span className="block text-xs font-bold normal-case tracking-normal text-gray-500 mt-1">Place 1 on Plastic Sleeve for paperwork, and 1 for body bag.</span></button>
+        <div className="bg-gray-900 text-white rounded-2xl p-5 mb-6">
+          <div className="font-black uppercase tracking-wide mb-1">⚠ Not checked in yet</div>
+          <p className="text-sm text-gray-200">When you arrive at the mortuary, tap <b>✅ CHECK IN</b>, choose <b>{(submitted.lastName||"").toUpperCase()}, {submitted.firstName}</b> then <b>PART CHECK IN</b> at the bottom of the funeral directors, then this name, and finish the check-in. The funeral director is emailed then.</p>
+        </div>
+      </div>
+    );
+  }
   if(submitted){
     const fhContacts=submitted.funeralHomeId==="OTHER"?[]:getFHContacts(submitted.funeralHomeId);
     const to=[MORTUARY_EMAIL,...fhContacts].join(",");
@@ -1890,7 +1940,8 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
           else{setStep(1);setSelFH(null);}
           window.scrollTo({top:0,behavior:"smooth"});};
         return <BackBtn onClick={ciGoBack} label={atStart?"Back to Home":effectiveStep===3?"Back to Funeral Directors":"Back"}/>;})()}
-      <h2 className="text-xl font-black text-gray-900 mb-2">Check In</h2>
+      <h2 className="text-xl font-black text-gray-900 mb-2">{completing?"Finish Check In":"Check In"}</h2>
+      {completing&&<div className="mb-4 bg-amber-50 border-2 border-amber-400 rounded-2xl px-4 py-3 text-sm"><b>{completing.caseRef} · {(completing.lastName||"").toUpperCase()}, {completing.firstName}</b> — part checked in by {completing.prep?.partCheckIn?.by||completing.checkedInBy}. Check the details, add anything missing, then tap <b>Complete Check-In</b>.</div>}
       {dupMatches&&<div style={{position:"fixed",inset:0,zIndex:2147483000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
         <div className="bg-white rounded-2xl max-w-lg w-full p-6 border-4 border-red-500">
           <div className="text-4xl text-center mb-2">⚠️</div>
@@ -1930,7 +1981,9 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
                 className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-center transition ${selFH===fh.id?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>{fh.name}</button>
             ))}
             {!isTransfer&&<button onClick={()=>setSelFH("OTHER")} className={`py-4 px-3 rounded-xl border-2 text-sm font-bold text-center transition ${selFH==="OTHER"?"border-gray-900 bg-gray-50":"border-gray-200 hover:border-gray-700"}`}>OTHER</button>}
+            {canPart&&(()=>{const n=(cases||[]).filter(x=>x.status==="part").length;return <button type="button" disabled={!n} onClick={()=>setShowPart(v=>!v)} className={`col-span-2 sm:col-span-3 py-4 px-3 rounded-xl border-2 text-sm font-black uppercase tracking-wide text-center transition disabled:opacity-40 ${showPart?"border-amber-600 bg-amber-100 text-amber-900":"border-amber-400 bg-amber-50 text-amber-900 hover:border-amber-600"}`}>📲 Part Check In · {n} on the way{n?" — tap to finish":""}</button>;})()}
           </div>
+          {showPart&&<PartCheckInList cases={cases} onPick={loadPart} title="Part Checked In — tap a name to finish check-in"/>}
           {selFH==="OTHER"&&(
             <Field label="Funeral Home Name" required>
               <input className={s.inp} value={otherFHName} onChange={e=>setOtherFHName(e.target.value)} placeholder="Enter name (min 4 characters)…"/>
@@ -1943,9 +1996,11 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
 
       {(isFD||(effectiveStep===3))&&(
         <div>
-          {!isTransfer&&<div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+          {(!isTransfer||canPart)&&<div className={`border rounded-xl p-4 mb-5 flex flex-wrap items-center gap-3 ${part?"bg-amber-50 border-amber-400":"bg-gray-50 border-gray-200"}`}>
             <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Funeral Director:</span>
             <span className="text-base font-bold text-gray-900">{isFD?user.name:selFH==="OTHER"?otherFHName:FUNERAL_HOMES.find(f=>f.id===selFH)?.name}</span>
+            {canPart&&!completing&&<button type="button" onClick={()=>setPart(v=>!v)} className={`ml-auto px-5 py-3 rounded-xl border-2 text-sm font-black uppercase tracking-wide transition ${part?"bg-amber-500 border-amber-500 text-white":"bg-white border-amber-400 text-amber-800 hover:border-amber-600"}`}>{part?"✓ Part Check In":"📲 Part Check In"}</button>}
+            {part&&<p className="w-full text-sm text-amber-900">On the road: scan the paperwork and fill in the details now. The body is <b>not</b> checked in and the FD is <b>not</b> emailed until you finish at the mortuary.</p>}
           </div>}
 
           {/* PAPERWORK FIRST */}
@@ -1972,7 +2027,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
                 <div key={i} className="flex items-center gap-2 mb-1.5 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
                   <span className="text-xs font-black text-green-800 uppercase">{DOC_NAME[doc.label]||doc.label}</span>
                   <span className="text-xs text-gray-500 flex-1 truncate">{doc.name}</span>
-                  <button type="button" title="Remove" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600 px-1">✕</button>
+                  {doc.existing?<span className="text-[10px] font-black text-green-700 uppercase">Saved</span>:<button type="button" title="Remove" onClick={()=>setF("checkInDocs",(form.checkInDocs||[]).filter((_,j)=>j!==i))} className="text-red-400 font-black text-xs hover:text-red-600 px-1">✕</button>}
                 </div>))}
             </div>}
             {!ciManual&&!deathDocDone&&<p className="text-xs text-gray-500 mt-3 text-center">No MCCD, BO, VOD or LE with this body? <button type="button" onClick={()=>setNoDeathDoc(true)} className="underline font-bold text-gray-700">No death paperwork with this body</button></p>}
@@ -2069,7 +2124,7 @@ function CheckInFlow({user,cases,onComplete,onBack}) {
             </Field>
           </div>
 
-          <button onClick={submit} disabled={saving} className={`${s.btnDark} w-full text-lg py-4 disabled:opacity-40`}>{saving?"Saving…":"Submit Check-In →"}</button>
+          <button onClick={submit} disabled={saving} className={`${s.btnDark} w-full text-lg py-4 disabled:opacity-40`}>{saving?"Saving…":part?"Save Part Check-In →":completing?"Complete Check-In →":"Submit Check-In →"}</button>
         </div>
       )}
     </div>
@@ -6342,6 +6397,7 @@ export default function App() {
     }catch(e){alert("Error: "+e.message);}
   }
   const [cases,setCases]=useState([]);
+  const liveCases=cases.filter(c=>c.status!=="part");
   useEffect(()=>{
     let tick=0,busy=false;
     async function sync(){
@@ -6450,7 +6506,7 @@ export default function App() {
     );
     if(kioskScreen==="done") return(<div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",textAlign:"center"}}><div style={{fontSize:"56px",marginBottom:"16px"}}>✅</div><h2 style={{color:"#111827",fontSize:"22px",fontWeight:"900",letterSpacing:"1px",marginBottom:"8px"}}>Checked In</h2><p style={{color:"#6b7280",fontSize:"14px",marginBottom:"32px"}}>The record has been saved successfully.</p><p style={{color:"#9ca3af",fontSize:"12px",letterSpacing:"1px",textTransform:"uppercase"}}>This screen will close in 5 minutes</p><button onClick={()=>setKioskScreen("home")} style={{marginTop:"32px",padding:"14px 32px",background:"#111827",color:"#fff",border:"none",borderRadius:"12px",fontSize:"13px",fontWeight:"700",letterSpacing:"1px",textTransform:"uppercase",cursor:"pointer"}}>Done</button></div>);
     if(kioskScreen==="checkin") return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><CheckInFlow user={{role:"guest",name:"Guest"}} cases={cases} onComplete={r=>{setCases(prev=>[r,...prev]);}} onBack={()=>setKioskScreen("home")}/></div>);
-    if(kioskScreen==="checkout") return(<GuestCheckOut cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setKioskScreen("home")}/>);
+    if(kioskScreen==="checkout") return(<GuestCheckOut cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setKioskScreen("home")}/>);
     if(kioskScreen==="login") return(<LoginScreen onLogin={handleLogin} users={users} maintenanceMode={maintenanceMode}/>);
     return(<KioskHome onCheckIn={()=>setKioskScreen("checkin")} onCheckOut={()=>setKioskScreen("checkout")} onLogin={()=>setKioskScreen("login")}/>);
   }
@@ -6485,38 +6541,38 @@ export default function App() {
     </div>
   );
 
-  if(action==="reports") return wrap(<ReportsView cases={cases}/>);
-  if(action==="approvals") return wrap(<ApprovalsView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
-  if(action==="lockview") return wrap(<ErrorBoundary><LockView user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/></ErrorBoundary>);
+  if(action==="reports") return wrap(<ReportsView cases={liveCases}/>);
+  if(action==="approvals") return wrap(<ApprovalsView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="lockview") return wrap(<ErrorBoundary><LockView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/></ErrorBoundary>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
-  if(action==="newcheckins") return wrap(<NewCheckInsView cases={cases} onAction={a=>{setAction(a);}} user={user}/>);
-  if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={cases} onBack={()=>setAction(null)}/>);
+  if(action==="newcheckins") return wrap(<NewCheckInsView cases={liveCases} onAction={a=>{setAction(a);}} user={user}/>);
+  if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
-  if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={cases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
-  if(action==="dashboard") return wrap(<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
+  if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
+  if(action==="dashboard") return wrap(<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
-  if(action==="invoicing"&&isAdmin) return wrap(<ErrorBoundary><InvoicingView user={user} cases={cases} onUpdateCase={handleUpdateCase}/></ErrorBoundary>);
-  if(action==="changes") return wrap(<ChangesView cases={cases} onUpdateCase={handleUpdateCase}/>);
-  if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
-  if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
-  if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
-  if(action==="secondnotes") return wrap(<ErrorBoundary><SecondNotes user={user} cases={cases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)} api={{sb,updateCase,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
-  if(action==="mycases") return wrap(<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>);
-  if(action==="transfers") return wrap(<MyTransfers user={user} cases={cases}/>);
-  if(action==="calendar") return wrap(<ErrorBoundary><CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/></ErrorBoundary>);
+  if(action==="invoicing"&&isAdmin) return wrap(<ErrorBoundary><InvoicingView user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/></ErrorBoundary>);
+  if(action==="changes") return wrap(<ChangesView cases={liveCases} onUpdateCase={handleUpdateCase}/>);
+  if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
+  if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="secondnotes") return wrap(<ErrorBoundary><SecondNotes user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)} api={{sb,updateCase,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
+  if(action==="mycases") return wrap(<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>);
+  if(action==="transfers") return wrap(<MyTransfers user={user} cases={liveCases}/>);
+  if(action==="calendar") return wrap(<ErrorBoundary><CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/></ErrorBoundary>);
 
   return wrap(
     <main>
       {tab==="home"&&<HomeScreen user={user} cases={cases} onAction={a=>setAction(a)}/>}
-      {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
-      {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={cases}/>}
-      {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={cases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>}
-      {tab==="records"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
-      {tab==="mycases"&&isFD&&<MyCases user={user} cases={cases} onUpdateCase={handleUpdateCase}/>}
-      {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={cases}/>}
+      {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
+      {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={liveCases}/>}
+      {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>}
+      {tab==="records"&&isFD&&<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
+      {tab==="mycases"&&isFD&&<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
+      {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={liveCases}/>}
       {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
-      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={cases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={cases} onUpdateCase={handleUpdateCase}/>}
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
