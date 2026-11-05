@@ -1657,11 +1657,11 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
       return {...f,checkInDocs:docs,paperwork:pw};
     });
   }
-  async function readDocument(images,label,pdf){
+  async function readDocument(images,label,pdf,pdfUrl){
     setOcr({status:"reading",msg:`Reading ${DOC_NAME[label]||label}…`});
-    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),25000);
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),pdfUrl?55000:25000);
     try{
-      const r=await fetch("/api/read-document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(pdf?{label,pdf}:{label,images}),signal:ctl.signal});
+      const r=await fetch("/api/read-document",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(pdfUrl?{label,pdfUrl}:pdf?{label,pdf}:{label,images}),signal:ctl.signal});
       const j=await r.json().catch(()=>({}));
       if(r.status===503){setOcr({status:"off",msg:"Auto-read isn't switched on yet. The document was saved — please type the details."});return;}
       if(!r.ok) throw new Error(j.error||("Error "+r.status));
@@ -1710,7 +1710,16 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
     try{
       if(readImgs&&readImgs.length){readDocument(readImgs,lbl);return;}
       if(isPdf){
-        if(file.size>3*1024*1024){setOcr({status:"none",msg:"The PDF was saved, but it is too large to read automatically. Please type the details."});return;}
+        if(file.size>3*1024*1024){
+          // Too big to send directly: put a temporary copy in storage and let the reader fetch it
+          if(file.size>30*1024*1024){setOcr({status:"none",msg:"The PDF was saved, but it is over 30 MB, too large to read automatically. Please type the details."});return;}
+          setOcr({status:"reading",msg:`Reading ${DOC_NAME[lbl]||lbl} (large PDF, this can take up to a minute)…`});
+          const tmp=`tmp-read/${Date.now()}_${Math.random().toString(36).slice(2)}.pdf`;
+          const up=await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${tmp}`,{method:"POST",headers:{apikey:SUPABASE_KEY,Authorization:"Bearer "+SUPABASE_KEY,"Content-Type":"application/pdf","x-upsert":"true"},body:file});
+          if(!up.ok){setOcr({status:"none",msg:"The PDF was saved, but it couldn't be sent for reading. Please type the details."});return;}
+          try{await readDocument(null,lbl,null,getDocumentUrl(tmp));}finally{deleteDocument(tmp).catch(()=>{});}
+          return;
+        }
         const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]);r.onerror=rej;r.readAsDataURL(file);});
         readDocument(null,lbl,b64);
       }else{

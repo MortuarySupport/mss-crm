@@ -52,10 +52,13 @@ export default async function handler(req, res) {
 
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch (e) { body = {}; } }
-  const { label, images, pdf } = body || {};
+  const { label, images, pdf, pdfUrl } = body || {};
   if (!READABLE.includes(label)) return res.status(400).json({ error: "This document type is not read" });
-  const isPdf = typeof pdf === "string" && pdf.length > 0;
-  if (isPdf) { if (pdf.length > 4300000) return res.status(400).json({ error: "PDF too large" }); }
+  // Large PDFs arrive as a link to a temporary copy in our own storage
+  const isUrl = typeof pdfUrl === "string" && pdfUrl.startsWith("https://qhazwfbhbelpcfwczjdb.supabase.co/storage/v1/object/public/Case-documents/tmp-read/") && pdfUrl.length < 300;
+  const isPdf = !isUrl && typeof pdf === "string" && pdf.length > 0;
+  if (isUrl) {}
+  else if (isPdf) { if (pdf.length > 4300000) return res.status(400).json({ error: "PDF too large" }); }
   else {
     if (!Array.isArray(images) || !images.length || images.length > 3) return res.status(400).json({ error: "1 to 3 pages only" });
     if (images.some(i => typeof i !== "string" || i.length > 1500000)) return res.status(400).json({ error: "Page too large" });
@@ -71,7 +74,9 @@ export default async function handler(req, res) {
         messages: [{
           role: "user",
           content: [
-            ...(isPdf
+            ...(isUrl
+              ? [{ type: "document", source: { type: "url", url: pdfUrl } }]
+              : isPdf
               ? [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: pdf } }]
               : images.map(data => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data } }))),
             { type: "text", text: PROMPT(label) },
