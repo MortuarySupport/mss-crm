@@ -20,6 +20,7 @@ function resolveForms(raw) {
 }
 const FORMS = resolveForms(RAW_FORMS);
 import TimeButtons from "./TimeButtons.jsx";
+import { NamePlateEditor, defaultPlate } from "./namePlate.jsx";
 
 // ─── 2ND NOTES ────────────────────────────────────────────────────────────────
 // Each funeral home has its own form in secondNoteForms.json (fields, PDF
@@ -749,6 +750,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
           </div>
         </div>
       ); })}
+      <div id="np-card" className={card}>
+        <p className="text-sm font-black uppercase tracking-wide mb-3">Name Plate</p>
+        <NamePlateEditor value={answers._plate||defaultPlate(answers)} onChange={val=>setA("_plate",val)} person={answers}/>
+      </div>
       <button disabled={busy} onClick={submit} className={btn + " w-full bg-gray-900 text-white border-gray-900 disabled:opacity-50"}>{busy ? "Submitting…" : editing ? "Submit changes" : "Submit 2nd Note"}</button>
     </div>
   );
