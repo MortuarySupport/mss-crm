@@ -17,7 +17,12 @@ export const NP_FONTS = [
 ];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 export const npDate = iso => { const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${+m[3]} ${MONTHS[+m[2] - 1]} ${m[1]}` : ""; };
-export const defaultPlate = (a = {}) => ({ show: { name: true, dates: true, message: !!a.plateWording }, message: a.plateWording || "", font: "times", size: "large" });
+export const defaultPlate = (a = {}) => ({ show: { name: true, dates: true, message: !!a.plateWording }, message: a.plateWording || "", font: "times", size: "large", finish: /gold/i.test(a.plateColour || "") ? "gold" : "silver" });
+// Photos of the real plates; panel = the flat engraving area in photo pixels
+export const FINISHES = {
+  silver: { label: "Silver", src: "/plates/silver.jpg", w: 784, h: 369, panel: [80, 44, 722, 300], ink: "#2a2a2a" },
+  gold: { label: "Gold", src: "/plates/gold.jpg", w: 775, h: 371, panel: [80, 48, 712, 300], ink: "#3a2a10" },
+};
 
 const cache = {};
 const loadGlyphs = n => (cache[n] = cache[n] || fetch(`/fonts/np-${n}.json`).then(r => { if (!r.ok) throw new Error("font " + n); return r.json(); }).catch(e => { delete cache[n]; throw e; }));
@@ -88,9 +93,14 @@ export function plateLayout(spec, sets) {
   return { P, lines };
 }
 
-export function plateSvg(spec, sets, { preview = false, guide = true } = {}) {
+export function plateSvg(spec, sets, { preview = false, guide = true, photo = false } = {}) {
   const { P, lines } = plateLayout(spec, sets), ix = (P.W - P.iw) / 2, iy = (P.H - P.ih) / 2;
   const d = lines.map(l => textPath(l.f, l.t, l.sz, l.x, l.y)).join("");
+  if (photo) {
+    const F = FINISHES[spec.finish] || FINISHES.silver, [x1, y1, x2, y2] = F.panel, pw = x2 - x1, ph = y2 - y1, k = Math.min(pw / P.iw, ph / P.ih);
+    const tx = x1 + (pw - P.iw * k) / 2 - ix * k, ty = y1 + (ph - P.ih * k) / 2 - iy * k;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${F.w} ${F.h}" width="100%"><image href="${F.src}" x="0" y="0" width="${F.w}" height="${F.h}"/><g transform="translate(${tx.toFixed(2)} ${ty.toFixed(2)}) scale(${k.toFixed(4)})"><path d="${d}" fill="#ffffff" opacity=".45" transform="translate(0 .22)"/><path d="${d}" fill="${F.ink}" opacity=".9"/></g></svg>`;
+  }
   if (preview) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${P.W} ${P.H}" width="100%"><rect x=".5" y=".5" width="${P.W - 1}" height="${P.H - 1}" rx="2" fill="#d1d5db" stroke="#6b7280" stroke-width=".6"/><rect x="${ix}" y="${iy}" width="${P.iw}" height="${P.ih}" fill="#eef0f3" stroke="#374151" stroke-width=".4" stroke-dasharray="2 1.2"/><path d="${d}" fill="#111827"/></svg>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${P.W}mm" height="${P.H}mm" viewBox="0 0 ${P.W} ${P.H}">\n` +
     (guide ? `<g id="PLATE-OUTLINE-do-not-engrave" fill="none" stroke="#ff0000" stroke-width="0.2"><rect x="0" y="0" width="${P.W}" height="${P.H}"/><rect x="${ix}" y="${iy}" width="${P.iw}" height="${P.ih}"/></g>\n` : "") +
@@ -133,7 +143,7 @@ export function NamePlatePreview({ spec }) {
   const [sets, err] = useFontSets(spec);
   if (err) return <p className="text-xs text-red-600">{err} — check your connection and try again.</p>;
   if (!sets) return <div className="aspect-[2/1] rounded-lg bg-gray-100 animate-pulse" />;
-  return <div dangerouslySetInnerHTML={{ __html: plateSvg(spec, sets, { preview: true }) }} />;
+  return <div dangerouslySetInnerHTML={{ __html: plateSvg(spec, sets, { preview: true, photo: true }) }} />;
 }
 
 // The editor used in every 2nd Note (and on the Job Sheet for staff)
@@ -160,6 +170,12 @@ export function NamePlateEditor({ value, onChange, person }) {
         <input id="np-msg" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message || ""} onChange={e => set({ message: e.target.value })} placeholder="e.g. Forever in our hearts" />
       </div>}
       <div>
+        <span className={lbl}>Plate colour</span>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(FINISHES).map(([k, f]) => <button key={k} type="button" onClick={() => set({ finish: k })} className={chip((v.finish || "silver") === k)}><span className={"w-4 h-4 rounded-full border border-black/20 " + (k === "gold" ? "bg-gradient-to-br from-yellow-200 to-amber-500" : "bg-gradient-to-br from-gray-100 to-gray-400")} />{f.label}</button>)}
+        </div>
+      </div>
+      <div>
         <span className={lbl}>Plate size</span>
         <div className="flex flex-wrap gap-2">
           {Object.entries(PLATES).map(([k, p]) => <button key={k} type="button" onClick={() => set({ size: k })} className={chip(v.size === k)}>{p.label} <span className="font-bold opacity-70">{p.W}×{p.H} mm</span></button>)}
@@ -175,7 +191,7 @@ export function NamePlateEditor({ value, onChange, person }) {
         </div>
       ))}
       <div className="bg-gray-50 rounded-xl p-3">
-        <span className={lbl}>Preview — to scale</span>
+        <span className={lbl}>Preview — {(FINISHES[v.finish] || FINISHES.silver).label} {(PLATES[v.size] || PLATES.large).label} plate</span>
         <NamePlatePreview spec={spec} />
         {!spec.firstName && !spec.lastName && <p className="text-xs text-gray-500 mt-2">The name and dates appear once the deceased's details are filled in.</p>}
       </div>
