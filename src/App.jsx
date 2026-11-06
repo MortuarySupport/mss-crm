@@ -1439,7 +1439,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
             {staffRow([["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"]])}
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
-            {staffRow([["approvals","✔️ APPROVALS"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]],"75%")}
+            {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
             <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction}/></div>
           </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
@@ -1461,6 +1461,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("changes")} className={s.btnLg}>🔄 CHANGES</button>
         <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
         <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
+        <button onClick={()=>onAction("nameplates")} className={s.btnLg}>🪧 NAME PLATES</button>
       </div>}
 
     </div>
@@ -3162,7 +3163,7 @@ function JobSheet({c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}
         {c.pendingChanges?.length>0&&<button onClick={onAcceptChanges} className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black text-sm uppercase hover:bg-orange-600 transition">✓ Accept Changes</button>}
         <button onClick={()=>printCaseLabel({...c,prep})} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">🏷️ Print Label</button>
         <button onClick={()=>setShowPlate(true)} className="flex-1 py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-50 transition">🪧 Name Plate</button>
-        {showPlate&&<NamePlateModal c={c} plate={note?.answers?._plate} onClose={()=>setShowPlate(false)}/>}
+        {showPlate&&<NamePlateModal c={c} plate={note?.answers?._plate} onClose={()=>setShowPlate(false)} onDownloaded={()=>upd(c.id,{prep:{...prep,namePlate:{at:new Date().toISOString(),by:""}}})}/>}
         <button onClick={onPacemaker} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-black text-sm uppercase hover:bg-amber-600 transition">📋 Pacemaker Cert</button>
       </div>
 
@@ -3328,6 +3329,41 @@ async function sendAppEmail(to,subject,text,attachments){
     const r=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:list,subject,text,attachments:attachments||[]})});
     return r.ok;}catch(e){return false;}
 }
+// ─── NAME PLATES (all cases in care) ─────────────────────────────────────────
+function NamePlatesView({user,cases,onUpdateCase,onBack}){
+  const inCare=cases.filter(c=>c.status==="active").sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""));
+  const [plates,setPlates]=useState({});const [open,setOpen]=useState(null);const [tab,setTab]=useState("todo");
+  const idKey=inCare.map(c=>c.id).join(",");
+  useEffect(()=>{if(!idKey)return;let live=true;
+    sb(`second_notes?select=case_id,answers,submitted_at&case_id=in.(${inCare.map(c=>`"${c.id}"`).join(",")})&order=submitted_at.desc`).then(r=>{if(!live||!Array.isArray(r))return;const m={};r.forEach(n=>{if(!(n.case_id in m))m[n.case_id]=n.answers?._plate||null;});inCare.forEach(c=>{if(!(c.id in m))m[c.id]=null;});setPlates(m);}).catch(()=>{});
+    return()=>{live=false;};},[idKey]);
+  async function mark(c){const np={...(c.prep||{}),namePlate:{at:new Date().toISOString(),by:user?.name||""}};try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});setOpen(o=>o&&o.id===c.id?{...o,prep:np}:o);}catch(e){alert("Couldn't record the download: "+e.message);}}
+  const done=c=>!!c.prep?.namePlate?.at;
+  const todo=inCare.filter(c=>!done(c)),dl=inCare.filter(done);
+  const list=tab==="todo"?todo:tab==="done"?dl:inCare;
+  const when=iso=>new Date(iso).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+  const tabBtn=(k,l,n)=><button type="button" onClick={()=>setTab(k)} className={"px-4 py-2.5 rounded-xl border-2 text-sm font-black transition "+(tab===k?"bg-gray-900 border-gray-900 text-white":"bg-white border-gray-200 text-gray-700 hover:border-gray-700")}>{l} · {n}</button>;
+  return(
+    <div className="max-w-4xl mx-auto px-4 py-4">
+      <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK TO HOME</button>
+      <h2 className="text-xl font-black text-gray-900 mb-1">🪧 Name Plates</h2>
+      <p className="text-sm text-gray-500 mb-4">Every deceased in our care. Open one to check the plate and download it for xTool. A case leaves this list once the body is checked out.</p>
+      <div className="flex flex-wrap gap-2 mb-4">{tabBtn("todo","To do",todo.length)}{tabBtn("done","Downloaded",dl.length)}{tabBtn("all","All in care",inCare.length)}</div>
+      {list.length===0&&<p className="text-center text-sm text-gray-400 py-10">{tab==="todo"?"All name plates have been downloaded.":"Nothing here."}</p>}
+      <div className="space-y-2">{list.map(c=>{const p=plates[c.id];return(
+        <button key={c.id} type="button" onClick={()=>setOpen(c)} className={"w-full text-left bg-white border-2 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 transition hover:border-gray-900 "+(done(c)?"border-green-300":"border-gray-200")}>
+          <div className="min-w-0 flex-1">
+            <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+            <div className="text-sm text-gray-500">{c.caseRef} · {c.funeralHomeName}</div>
+          </div>
+          <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(p?"bg-gray-100 text-gray-700":"bg-amber-50 text-amber-800")}>{p===undefined?"…":p?"From 2nd Note":"No plate on 2nd Note"}</span>
+          <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(done(c)?"bg-green-100 text-green-800":"bg-red-50 text-red-700")}>{done(c)?`✓ Downloaded ${when(c.prep.namePlate.at)}${c.prep.namePlate.by?" · "+c.prep.namePlate.by:""}`:"Not downloaded"}</span>
+        </button>);})}</div>
+      {open&&<NamePlateModal c={open} plate={plates[open.id]||null} onClose={()=>setOpen(null)} onDownloaded={()=>mark(open)}/>}
+    </div>
+  );
+}
+
 // ─── CHECK OUT ────────────────────────────────────────────────────────────────
 function SignaturePad({onSave}) {
   const canvasRef = React.useRef(null);
@@ -6559,6 +6595,7 @@ export default function App() {
   if(action==="lockview") return wrap(<ErrorBoundary><LockView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/></ErrorBoundary>);
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="newcheckins") return wrap(<NewCheckInsView cases={liveCases} onAction={a=>{setAction(a);}} user={user}/>);
+  if(action==="nameplates"&&(isAdmin||isMSS)) return wrap(<NamePlatesView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);

@@ -184,7 +184,7 @@ export function NamePlateEditor({ value, onChange, person }) {
 }
 
 // Job Sheet: staff check the plate and download it for xTool Studio
-export function NamePlateModal({ c, plate, onClose }) {
+export function NamePlateModal({ c, plate, onClose, onDownloaded }) {
   const [v, setV] = useState(plate || defaultPlate({}));
   const person = { firstName: c.firstName, lastName: c.lastName, dob: c.dob, dod: c.dod };
   const spec = { ...v, ...person };
@@ -195,14 +195,16 @@ export function NamePlateModal({ c, plate, onClose }) {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div><div className="text-xs font-black uppercase tracking-widest text-gray-500">Name Plate · {c.caseRef}</div>
             <div className="text-lg font-black">{(c.lastName || "").toUpperCase()}, {c.firstName}</div>
-            <div className="text-xs text-gray-500">{plate ? "From the funeral director's 2nd Note — you can adjust it here." : "No name plate on the 2nd Note — set it up here."}</div></div>
+            <div className="text-xs text-gray-500">{plate ? "From the funeral director's 2nd Note — you can adjust it here." : "No name plate on the 2nd Note — set it up here."}</div>
+            {c.prep?.namePlate?.at && <div className="text-xs font-black text-green-700 mt-1">✓ Downloaded {new Date(c.prep.namePlate.at).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}{c.prep.namePlate.by ? " · " + c.prep.namePlate.by : ""}</div>}</div>
           <button type="button" onClick={onClose} aria-label="Close" className="text-2xl leading-none text-gray-400 hover:text-gray-900 px-2">×</button>
         </div>
         <NamePlateEditor value={v} onChange={setV} person={person} />
         <div className="grid sm:grid-cols-2 gap-2 mt-5">
-          <button type="button" disabled={!sets} onClick={() => downloadPlate(spec, sets, true)} className="py-4 rounded-xl bg-gray-900 text-white font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-700">⬇ Download for xTool</button>
-          <button type="button" disabled={!sets} onClick={() => downloadPlate(spec, sets, false)} className="py-4 rounded-xl border-2 border-gray-900 font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-50">⬇ Text only</button>
+          <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, true); onDownloaded && onDownloaded(); }} className="py-4 rounded-xl bg-gray-900 text-white font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-700">⬇ Download for xTool</button>
+          <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, false); onDownloaded && onDownloaded(); }} className="py-4 rounded-xl border-2 border-gray-900 font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-50">⬇ Text only</button>
         </div>
+        <button type="button" onClick={onClose} className="w-full mt-2 py-3 rounded-xl border-2 border-gray-200 font-black uppercase text-sm text-gray-600 hover:border-gray-900">Done</button>
         <p className="text-xs text-gray-500 mt-3">In xTool Studio: open the SVG. The red plate outline is only there to line it up — set it to <b>not output</b> (or use <b>Text only</b>). Engrave the black text.</p>
       </div>
     </div>
