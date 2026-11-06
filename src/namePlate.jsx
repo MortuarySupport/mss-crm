@@ -6,7 +6,10 @@ import React, { useState, useEffect } from "react";
 export const PLATES = {
   large: { label: "Large", W: 180, H: 90, iw: 160, ih: 70 },
   baby: { label: "Baby", W: 125, H: 59, iw: 113, ih: 47 },
+  // Hand etched on the manual machine (not xTool): Times, name and age only
+  europag: { label: "Europag Brass", W: 165, H: 145, iw: 115, ih: 70, manual: true },
 };
+export const npAge = (dob, dod) => { const a = String(dob || "").match(/^(\d{4})-(\d{2})-(\d{2})/), b = String(dod || "").match(/^(\d{4})-(\d{2})-(\d{2})/); if (!a || !b) return ""; let y = +b[1] - +a[1]; if (+b[2] < +a[2] || (+b[2] === +a[2] && +b[3] < +a[3])) y--; return y >= 0 ? y : ""; };
 export const NP_FONTS = [
   { id: "times", label: "Times", reg: "times-regular", bold: "times-bold", ital: "times-italic" },
   { id: "greatvibes", label: "Great Vibes", script: true, reg: "greatvibes" },
@@ -17,11 +20,12 @@ export const NP_FONTS = [
 ];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 export const npDate = iso => { const m = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${+m[3]} ${MONTHS[+m[2] - 1]} ${m[1]}` : ""; };
-export const defaultPlate = (a = {}) => ({ show: { name: true, dates: true, message: !!a.plateWording }, message: a.plateWording || "", font: "times", size: "large", finish: /gold/i.test(a.plateColour || "") ? "gold" : "silver" });
+export const defaultPlate = (a = {}) => ({ show: { name: true, dates: true, message: !!a.plateWording }, message: a.plateWording || "", font: "times", size: /europag|brass/i.test(a.plateColour || "") ? "europag" : "large", finish: /europag|brass/i.test(a.plateColour || "") ? "brass" : /gold/i.test(a.plateColour || "") ? "gold" : "silver" });
 // Photos of the real plates; panel = the flat engraving area in photo pixels
 export const FINISHES = {
   silver: { label: "Silver", src: "/plates/silver.jpg", w: 784, h: 369, panel: [80, 44, 722, 300], ink: "#2a2a2a" },
   gold: { label: "Gold", src: "/plates/gold.jpg", w: 775, h: 371, panel: [80, 48, 712, 300], ink: "#3a2a10" },
+  brass: { label: "Europag Brass", src: "/plates/europag.jpg", w: 461, h: 390, panel: [93, 103, 382, 270], ink: "#3a2a10", size: "europag" },
 };
 
 const cache = {};
@@ -73,6 +77,7 @@ export function plateLayout(spec, sets) {
   const fit = (f, t, sz) => { const w = advance(f, t, sz); return w > max ? (sz * max) / w : sz; };
   const split = t => { const w = t.split(/\s+/); let bi = 1, bd = 1e9; for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < bd) { bd = d; bi = i; } } return [w.slice(0, bi).join(" "), w.slice(bi).join(" ")]; };
   const lines = [];
+  if (P.manual) { spec = { ...spec, show: { name: true, age: true } }; }
   const add = (f, t, sz0) => {
     const sz = fit(f, t, sz0);
     if (sz < sz0 * 0.9 && /\s/.test(t)) { const [a, b] = split(t); const s2 = Math.min(fit(f, a, sz0), fit(f, b, sz0)); lines.push({ f, t: a, sz: s2 }, { f, t: b, sz: s2 }); }
@@ -80,11 +85,17 @@ export function plateLayout(spec, sets) {
   };
   const sh = spec.show || {};
   const name = [spec.firstName, spec.lastName].filter(Boolean).join(" ").trim().replace(/\s+/g, " ");
+  if (P.manual) {
+    if (name) add(sets.name.reg, name.toUpperCase(), nameSz);
+    const age = npAge(spec.dob, spec.dod);
+    if (age !== "") add(sets.name.reg, `${age} years`, 7 * k);
+  } else {
   if (sh.name && name) add(nameF, sc ? titleCase(name) : name.toUpperCase(), nameSz);
   const d1 = npDate(spec.dob), d2 = npDate(spec.dod);
   if (sh.dates && (d1 || d2)) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates));
   const msg = String(spec.message || "").trim();
   if (sh.message && msg) add(msgF, msg, smSz(sets.message));
+  }
   let total = lines.reduce((s, l) => s + l.sz, 0) + gap * Math.max(0, lines.length - 1);
   const shrink = total > maxH ? maxH / total : 1;
   lines.forEach(l => (l.sz *= shrink)); total *= shrink;
@@ -115,8 +126,34 @@ export function downloadPlate(spec, sets, guide) {
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
+// Hand-etch sheet: A4 PDF with the plate drawn at actual size
+export async function downloadEtchPdf(spec, sets, c) {
+  const { PDFDocument, rgb, StandardFonts } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
+  const { P, lines } = plateLayout(spec, sets), MM = 72 / 25.4;
+  const doc = await PDFDocument.create(); const page = doc.addPage([595.28, 841.89]); const H = 841.89;
+  const f = await doc.embedFont(StandardFonts.Helvetica), fb = await doc.embedFont(StandardFonts.HelveticaBold);
+  const T = v => String(v ?? "").replace(/[–—]/g, "-").replace(/[^\x20-\x7E\xA0-\xFF]/g, "");
+  const txt = (t, x, y, o = {}) => page.drawText(T(t), { x: x * MM, y: H - y * MM, size: o.size || 10, font: o.bold ? fb : f, color: o.grey ? rgb(.4, .4, .4) : rgb(0, 0, 0) });
+  txt("NAME PLATE - HAND ETCH", 15, 18, { bold: true, size: 16 });
+  txt("Europag Brass 165 x 145 mm - engraving panel 115 x 70 mm - Times New Roman", 15, 25, { grey: true });
+  txt(`${(c?.lastName || "").toUpperCase()}, ${c?.firstName || ""}   ${c?.caseRef || ""}   ${c?.funeralHomeName || ""}`, 15, 32, { bold: true, size: 11 });
+  txt("Etch on the manual machine (not xTool). Print at 100% / Actual size - do not scale to fit.", 15, 39, { grey: true, size: 9 });
+  const x0 = (210 - P.W) / 2, y0 = 52, ix = (P.W - P.iw) / 2, iy = (P.H - P.ih) / 2;
+  page.drawRectangle({ x: x0 * MM, y: H - (y0 + P.H) * MM, width: P.W * MM, height: P.H * MM, borderColor: rgb(.75, .75, .75), borderWidth: .6, borderDashArray: [4, 3] });
+  page.drawRectangle({ x: (x0 + ix) * MM, y: H - (y0 + iy + P.ih) * MM, width: P.iw * MM, height: P.ih * MM, borderColor: rgb(.2, .2, .2), borderWidth: .8 });
+  const d = lines.map(l => textPath(l.f, l.t, l.sz, l.x, l.y)).join("");
+  if (d) page.drawSvgPath(d, { x: x0 * MM, y: H - y0 * MM, scale: MM, color: rgb(0, 0, 0) });
+  const ly = y0 + P.H + 12; txt("WORDING", 15, ly, { bold: true, size: 9, grey: true });
+  lines.forEach((l, i) => txt(`Line ${i + 1}:  ${l.t}`, 15, ly + 7 + i * 7, { size: 12 }));
+  txt(`Prepared ${new Date().toLocaleString("en-AU")}`, 15, 285, { grey: true, size: 8 });
+  const bytes = await doc.save(), blob = new Blob([bytes], { type: "application/pdf" });
+  const name = ([spec.lastName, spec.firstName].filter(Boolean).join("_") || "NamePlate").replace(/[^A-Za-z0-9_]/g, "_");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `NamePlate_${name}_Europag_HandEtch.pdf`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
 function useFontSets(spec) {
-  const ids = lineFonts(spec), key = LINES.map(([k]) => ids[k]).join("|");
+  const ids = spec.size === "europag" ? { name: "times", dates: "times", message: "times" } : lineFonts(spec), key = LINES.map(([k]) => ids[k]).join("|");
   const [sets, setSets] = useState(null); const [err, setErr] = useState("");
   useEffect(() => { let live = true; setErr("");
     Promise.all(LINES.map(([k]) => loadFontSet(ids[k]))).then(r => live && setSets({ key, name: r[0], dates: r[1], message: r[2] })).catch(() => live && setErr("Font couldn't load"));
@@ -155,9 +192,10 @@ export function NamePlateEditor({ value, onChange, person }) {
   const spec = { ...v, firstName: person?.firstName, lastName: person?.lastName, dob: person?.dob, dod: person?.dod };
   const lbl = "block text-xs font-black uppercase tracking-widest text-gray-500 mb-2";
   const fonts = lineFonts(v);
+  const manual = !!(PLATES[v.size] || {}).manual;
   return (
     <div className="space-y-4">
-      <div>
+      {!manual && <><div>
         <span className={lbl}>Show on the plate</span>
         <div className="flex flex-wrap gap-2">
           {[["name", "Name"], ["dates", "Dates"], ["message", "Message"]].map(([k, l]) => (
@@ -168,17 +206,18 @@ export function NamePlateEditor({ value, onChange, person }) {
       {v.show?.message && <div>
         <label className={lbl} htmlFor="np-msg">Message</label>
         <input id="np-msg" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message || ""} onChange={e => set({ message: e.target.value })} placeholder="e.g. Forever in our hearts" />
-      </div>}
+      </div>}</>}
       <div>
         <span className={lbl}>Plate colour</span>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(FINISHES).map(([k, f]) => <button key={k} type="button" onClick={() => set({ finish: k })} className={chip((v.finish || "silver") === k)}><span className={"w-4 h-4 rounded-full border border-black/20 " + (k === "gold" ? "bg-gradient-to-br from-yellow-200 to-amber-500" : "bg-gradient-to-br from-gray-100 to-gray-400")} />{f.label}</button>)}
+          {Object.entries(FINISHES).map(([k, f]) => <button key={k} type="button" onClick={() => set({ finish: k, size: f.size || (v.size === "europag" ? "large" : v.size || "large") })} className={chip((v.finish || "silver") === k)}><span className={"w-4 h-4 rounded-full border border-black/20 " + (k === "gold" ? "bg-gradient-to-br from-yellow-200 to-amber-500" : k === "brass" ? "bg-gradient-to-br from-amber-100 to-yellow-700" : "bg-gradient-to-br from-gray-100 to-gray-400")} />{f.label}</button>)}
         </div>
       </div>
-      <div>
+      {manual && <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 text-sm text-amber-900"><b>Europag Brass — hand etched</b> on the manual machine (not xTool). Times New Roman, the name and age only{npAge(person?.dob, person?.dod) !== "" ? ` (${npAge(person?.dob, person?.dod)} years)` : ""}.</div>}
+      {!manual && <><div>
         <span className={lbl}>Plate size</span>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(PLATES).map(([k, p]) => <button key={k} type="button" onClick={() => set({ size: k })} className={chip(v.size === k)}>{p.label} <span className="font-bold opacity-70">{p.W}×{p.H} mm</span></button>)}
+          {Object.entries(PLATES).filter(([, p]) => !p.manual).map(([k, p]) => <button key={k} type="button" onClick={() => set({ size: k })} className={chip(v.size === k)}>{p.label} <span className="font-bold opacity-70">{p.W}×{p.H} mm</span></button>)}
         </div>
       </div>
       {LINES.filter(([k]) => v.show?.[k]).map(([k, l]) => (
@@ -190,8 +229,9 @@ export function NamePlateEditor({ value, onChange, person }) {
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">{NP_FONTS.map(f => <FontTile key={f.id} f={f} line={k} on={fonts[k] === f.id} onPick={() => set({ fonts: { ...fonts, [k]: f.id } })} />)}</div>
         </div>
       ))}
+      </>}
       <div className="bg-gray-50 rounded-xl p-3">
-        <span className={lbl}>Preview — {(FINISHES[v.finish] || FINISHES.silver).label} {(PLATES[v.size] || PLATES.large).label} plate</span>
+        <span className={lbl}>Preview — {(FINISHES[v.finish] || FINISHES.silver).label} {manual ? "" : (PLATES[v.size] || PLATES.large).label + " "}plate</span>
         <NamePlatePreview spec={spec} />
         {!spec.firstName && !spec.lastName && <p className="text-xs text-gray-500 mt-2">The name and dates appear once the deceased's details are filled in.</p>}
       </div>
@@ -216,12 +256,16 @@ export function NamePlateModal({ c, plate, person: personIn, onClose, onDownload
           <button type="button" onClick={onClose} aria-label="Close" className="text-2xl leading-none text-gray-400 hover:text-gray-900 px-2">×</button>
         </div>
         <NamePlateEditor value={v} onChange={setV} person={person} />
+        {(PLATES[v.size] || {}).manual ? <>
+        <button type="button" disabled={!sets} onClick={async () => { try { await downloadEtchPdf(spec, sets, c); onDownloaded && onDownloaded(v, person); } catch (e) { alert("Couldn't make the PDF: " + e.message); } }} className="w-full mt-5 py-4 rounded-xl bg-gray-900 text-white font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-700">⬇ Download PDF for hand etching</button>
+        <p className="text-xs text-gray-500 mt-2">Europag Brass is etched on the manual machine, not the xTool. Print the PDF at 100% (actual size) and follow the wording.</p>
+        </> : <>
         <div className="grid sm:grid-cols-2 gap-2 mt-5">
           <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, true); onDownloaded && onDownloaded(v, person); }} className="py-4 rounded-xl bg-gray-900 text-white font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-700">⬇ Download for xTool</button>
           <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, false); onDownloaded && onDownloaded(v, person); }} className="py-4 rounded-xl border-2 border-gray-900 font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-50">⬇ Text only</button>
-        </div>
+        </div></>}
         <button type="button" onClick={onClose} className="w-full mt-2 py-3 rounded-xl border-2 border-gray-200 font-black uppercase text-sm text-gray-600 hover:border-gray-900">Done</button>
-        <p className="text-xs text-gray-500 mt-3">In xTool Studio: open the SVG. The red plate outline is only there to line it up — set it to <b>not output</b> (or use <b>Text only</b>). Engrave the black text.</p>
+        {!(PLATES[v.size] || {}).manual && <p className="text-xs text-gray-500 mt-3">In xTool Studio: open the SVG. The red plate outline is only there to line it up — set it to <b>not output</b> (or use <b>Text only</b>). Engrave the black text.</p>}
       </div>
     </div>
   );
