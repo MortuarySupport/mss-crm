@@ -1513,7 +1513,7 @@ function buildCompletedEmail(c, prep, billable, otherUsed) {
   const viewingDetail = prep.viewing === "Yes"
     ? `Yes${prep.viewingLocation ? " — " + prep.viewingLocation : ""}${prep.viewingHost ? " (Hosted by " + prep.viewingHost + ")" : ""}${fullSlot(prep) ? " @ " + fmtDayLong(fullSlot(prep).split("_")[0]) + " " + fullSlot(prep).split("_")[1] : ""}`
     : prep.viewing || "—";
-  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection/Delivery Date: ${fmtDayLong(prep.collectionDate) || "—"}\nFuneral Date: ${fmtDayLong(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\n─────────────────────────────\nITEMS USED\n─────────────────────────────\n${otherList}\n\n─────────────────────────────\nBILLABLE ITEMS\n─────────────────────────────\n${billableList}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
+  return `Hi ${c.funeralHomeName} Team,\n\n${c.firstName} ${c.lastName} is now ready for collection from MSS Mortuary Support Services.\n\n─────────────────────────────\nDECEASED DETAILS\n─────────────────────────────\nName: ${c.firstName} ${c.lastName}\nDOB: ${fmt(c.dob)} | DOD: ${fmt(c.dod)} | Age: ${c.ageAtDeath ?? "—"} | Sex: ${c.sex || "—"}\nCase Reference: ${c.caseRef}\n\n─────────────────────────────\nPREPARATION SUMMARY\n─────────────────────────────\nPreparation: ${prepList}\nDisposition: ${prep.disposition || "—"}\nViewing: ${viewingDetail}\nCollection/Delivery Date: ${fmtDayLong(prep.collectionDate) || "—"}\nFuneral Date: ${fmtDayLong(prep.funeralDate) || "—"}\nComments: ${prep.comments || "None"}\n\n─────────────────────────────\nPAPERWORK & VALUABLES\n─────────────────────────────\nPaperwork: ${c.paperwork || "None"}\nValuables: ${c.valuables || "Nil"}\n\nPlease contact us to arrange collection.${MSS_FOOTER}`;
 }
 
 function buildCheckOutEmail(c, coData) {
@@ -2391,7 +2391,7 @@ async function saveAndEmail(){
       headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=minimal"},
       body:JSON.stringify({case_id:caseData.id,case_ref:caseData.caseRef,first_name:caseData.firstName,last_name:caseData.lastName,dob:caseData.dob,dod:caseData.dod,funeral_home_name:caseData.funeralHomeName||"",removal_date:date,embalmer_name:name,signature_data:sig||""})});
     if(!r.ok)throw new Error("Save failed: "+r.status);
-    btn.textContent="FILLING PDF…";
+    btn.textContent="FILLING PDF…";window.__pmAtt=null;
     try{
       const {PDFDocument,rgb,StandardFonts}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
       const pdfB64=window.__PACEMAKER_PDF_B64__;
@@ -2407,15 +2407,17 @@ async function saveAndEmail(){
       const filledBytes=await pdfDoc.save();
       const dd=new Date();const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
       const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
-      const filePath=caseData.id+"/"+Date.now()+"_"+fileName;
+      const filePath=caseData.id+"/"+Date.now()+"_"+fileName;window.__pmAtt={filename:fileName,path:getDocumentUrl(filePath)};
       const upRes=await fetch(SU+"/storage/v1/object/"+STORAGE_BUCKET+"/"+filePath,{method:"POST",headers:{"apikey":SK,"Authorization":"Bearer "+SK,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
       if(upRes.ok){await fetch(SU+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json","apikey":SK,"Authorization":"Bearer "+SK,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()})});}
     }catch(pdfErr){console.error("PDF fill error:",pdfErr);}
     const to="info@mortuarysupport.com.au";
     const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
     const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(date)+"\nBy: "+name+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500\ninfo@mortuarysupport.com.au");
-    window.open("mailto:"+to+"?subject="+subj+"&body="+body);
-    alert("Certificate saved to case documents.");
+    const pmText=decodeURIComponent(body)+"\n\nThe certificate PDF is attached.";
+    if(await sendAppEmail(to,decodeURIComponent(subj),pmText,window.__pmAtt?[window.__pmAtt]:[]))alert("✓ Certificate saved and emailed to info@");
+    else{alert("Certificate saved. The email couldn't be sent automatically — your mail app will open. Press Send.");window.location.href="mailto:"+to+"?subject="+subj+"&body="+body;}
+    window.__pmAtt=null;
     closeOverlay();
   }catch(e){alert("Error: "+e.message);btn.disabled=false;btn.textContent="SAVE & EMAIL";}
 }
@@ -2512,6 +2514,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
       })});
 
       // Fill and upload official PDF
+      window.__pmAtt=null;
       try{
         const {PDFDocument,rgb,StandardFonts}=await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
         const pdfBytes=Uint8Array.from(atob(PACEMAKER_PDF_B64),ch=>ch.charCodeAt(0));
@@ -2530,7 +2533,7 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         const dd=new Date();
         const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
         const fileName="PACEMAKER_"+caseData.caseRef+"_"+caseData.lastName+"_"+ddStr+".pdf";
-        const filePath=caseData.id+"/"+Date.now()+"_"+fileName;
+        const filePath=caseData.id+"/"+Date.now()+"_"+fileName;window.__pmAtt={filename:fileName,path:getDocumentUrl(filePath)};
         const upRes=await fetch(SUPABASE_URL+"/storage/v1/object/"+STORAGE_BUCKET+"/"+filePath,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Content-Type":"application/pdf","x-upsert":"true"},body:filledBytes});
         if(upRes.ok){
           await fetch(SUPABASE_URL+"/rest/v1/case_documents",{method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY,"Prefer":"return=minimal"},body:JSON.stringify({case_id:caseData.id,name:fileName,path:filePath,size:filledBytes.length,uploaded_at:new Date().toISOString()})});
@@ -2541,8 +2544,10 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
       const to="info@mortuarysupport.com.au";
       const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
       const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
-      window.open("mailto:"+to+"?subject="+subj+"&body="+body);
-      alert("Certificate saved to case documents.");
+      const pmText=decodeURIComponent(body)+"\n\nThe certificate PDF is attached.";
+      if(await sendAppEmail(to,decodeURIComponent(subj),pmText,window.__pmAtt?[window.__pmAtt]:[]))alert("✓ Certificate saved and emailed to info@");
+      else{alert("Certificate saved. The email couldn't be sent automatically — your mail app will open. Press Send.");window.location.href="mailto:"+to+"?subject="+subj+"&body="+body;}
+      window.__pmAtt=null;
       onSaved&&onSaved();
       onClose&&onClose();
     }catch(e){alert("Error: "+e.message);}
@@ -3064,12 +3069,16 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   async function handleStatus(status){
     if(status==="completed"){
       if(window.confirm("Are you sure this case is finished?")){
+        const firstTime=c.prepStatus!=="completed";
         await upd(c.id,{prepStatus:"completed"});
         const fhContacts=c.funeralHomeId==="OTHER"?[]:getFHContacts(c.funeralHomeId);
         const to=[MORTUARY_EMAIL,...fhContacts].join(",");
         const subj=encodeURIComponent(`T/L ${c.firstName} ${c.lastName} is now ready for departure`);
         const body=encodeURIComponent(buildCompletedEmail(c, prep, billable, otherUsed));
-        // EMAIL DISABLED — window.open(`mailto:${to}?subject=${subj}&body=${body}`);
+        if(firstTime){
+          if(await sendAppEmail(to,decodeURIComponent(subj),decodeURIComponent(body)))alert("✓ Ready for departure — emailed to the FD & Mortuary");
+          else{alert("The email couldn't be sent automatically — your mail app will open. Press Send.");window.location.href=`mailto:${to}?subject=${subj}&body=${body}`;}
+        }
       }
     } else await upd(c.id,{prepStatus:status});
   }
