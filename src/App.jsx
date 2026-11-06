@@ -3490,7 +3490,10 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const [coMail,setCoMail]=useState(null);
   const [coMailSent,setCoMailSent]=useState(false);
   const [saving,setSaving]=useState(false);
-  const [checkoutTime]=useState(new Date());
+  const [checkoutTime,setCheckoutTime]=useState(new Date());
+  const [coTimeEdited,setCoTimeEdited]=useState(false);const [coTimeOpen,setCoTimeOpen]=useState(false);
+  const coAdmin=user?.role==="admin";
+  const toLocalInput=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,16);};
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[step,selCase?.id,done]);
 
   const isFD=user?.role==="fd";
@@ -3544,7 +3547,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
     const e=validate();
     if(Object.keys(e).length){setErrors(e);window.scrollTo({top:0,behavior:"smooth"});return;}
     setSaving(true);
-    const coData={checklist,disposition,destination:finalDestination,valuablesStatus,signedName:signature?.name,signatureImage:signature?.pad,checkedOutAt:new Date().toISOString(),checkedOutBy:user.name,checkedOutRole:checkoutRole};
+    const coData={checklist,disposition,destination:finalDestination,valuablesStatus,signedName:signature?.name,signatureImage:signature?.pad,checkedOutAt:(coAdmin&&coTimeEdited?checkoutTime:new Date()).toISOString(),checkedOutBy:user.name,...(coAdmin&&coTimeEdited?{checkedOutAtSetBy:user.name}:{}),checkedOutRole:checkoutRole};
     try{
       await updateCase(selCase.id,{checked_out:true,checkout_data:coData,status:"pending-lock"});
       onUpdateCase(selCase.id,{checkedOut:true,checkout:coData,status:"pending-lock"});
@@ -3618,9 +3621,12 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
           {/* Date/Time */}
           <div className="bg-gray-900 text-white rounded-2xl px-5 py-3 mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-gray-400">Check Out Date & Time</p>
-              <p className="text-base font-black">{fmtDTDay(checkoutTime.toISOString())}</p>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-400">Check Out Date & Time{coTimeEdited?" · changed by Admin":""}</p>
+              {coAdmin&&coTimeOpen
+                ?<input type="datetime-local" className="mt-1 px-3 py-2 rounded-lg text-gray-900 font-bold" value={toLocalInput(checkoutTime)} max={toLocalInput(new Date())} onChange={e=>{const d=new Date(e.target.value);if(!isNaN(d)){setCheckoutTime(d);setCoTimeEdited(true);}}}/>
+                :<p className="text-base font-black">{fmtDTDay(checkoutTime.toISOString())}</p>}
             </div>
+            {coAdmin&&<button type="button" onClick={()=>setCoTimeOpen(o=>!o)} className="shrink-0 ml-3 px-4 py-2 rounded-xl bg-white text-gray-900 font-black text-xs uppercase">{coTimeOpen?"✓ Done":"✎ Change"}</button>}
           </div>
 
           <div className="mb-5"><CaseViewCard c={selCase}/></div>
