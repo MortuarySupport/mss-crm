@@ -593,8 +593,9 @@ function ApprovalsView({user,cases,onUpdateCase,onBack}){
       const prep=c.prep||{},billable=c.billable||{},otherUsed=c.otherUsed||{};
       const to="accounts@mortuarysupport.com.au";
       const subj=encodeURIComponent(`Job Card — ${c.firstName} ${c.lastName} — ${c.caseRef}`);
-      const body=encodeURIComponent(buildApproveEmail(c,prep,billable,otherUsed));
-      window.open(`mailto:${to}?subject=${subj}&body=${body}`);
+      const text=buildApproveEmail(c,prep,billable,otherUsed);
+      if(await sendAppEmail(to,decodeURIComponent(subj),text)){alert("✓ Approved — Job card emailed to accounts");}
+      else{alert("Approved, but the email couldn't be sent automatically — your mail app will open instead. Press Send.");window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;}
     }catch(err){alert("Error: "+err.message);}
   }
 
@@ -3751,8 +3752,9 @@ function MyCases({user,cases,onUpdateCase}) {
       const prep=c.prep||{},billable=c.billable||{},otherUsed=c.otherUsed||{};
       const to="accounts@mortuarysupport.com.au";
       const subj=encodeURIComponent(`Job Card — ${c.firstName} ${c.lastName} — ${c.caseRef}`);
-      const body=encodeURIComponent(buildApproveEmail(c,prep,billable,otherUsed));
-      window.open(`mailto:${to}?subject=${subj}&body=${body}`);
+      const text=buildApproveEmail(c,prep,billable,otherUsed);
+      if(await sendAppEmail(to,decodeURIComponent(subj),text)){alert("✓ Approved — Job card emailed to accounts");}
+      else{alert("Approved, but the email couldn't be sent automatically — your mail app will open instead. Press Send.");window.location.href=`mailto:${to}?subject=${subj}&body=${encodeURIComponent(text)}`;}
     }catch(err){alert("Error: "+err.message);}
   }
 
