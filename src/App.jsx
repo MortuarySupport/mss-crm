@@ -3374,7 +3374,6 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
     return()=>{live=false;};},[idKey]);
   async function mark(c,plate,person){const np={...(c.prep||{}),namePlate:{at:new Date().toISOString(),by:user?.name||"",plate,person}};try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});setOpen(o=>o&&o.c.id===c.id?{...o,c:{...o.c,prep:np}}:o);}catch(e){alert("Couldn't record the download: "+e.message);}}
   async function markNone(c,undo){
-    if(!undo&&!window.confirm("Mark "+(c.lastName||"").toUpperCase()+", "+c.firstName+" as completed — no name plate needed?"))return;
     const np={...(c.prep||{})};if(undo)delete np.namePlate;else np.namePlate={at:new Date().toISOString(),by:user?.name||"",none:true};
     try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){alert("Couldn't save: "+(e.message||e));}}
   const done=c=>!!c.prep?.namePlate?.at;
