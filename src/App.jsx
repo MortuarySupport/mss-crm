@@ -1373,7 +1373,50 @@ function PartCheckInList({cases,onPick,title}){
   </div>);
 }
 const prepOne=c=>{const o=(c.prep?.prepOptions||[]).filter(x=>PREP_OPTIONS.some(p=>p.label===x));return o.length?o[o.length-1]:null;};
-function PrepBoard({cases,onAction}){
+// Move a case to another preparation: updates the case prep and the Job Sheet prep code (keeps OS / Coroner version)
+async function movePrep(c,label,onUpdateCase){
+  const b={...(c.billable||{})};const prev=JS_PREP_CODES.find(k=>b[k]);
+  let ver="std";if(prev)JS_PREP.forEach(p=>Object.entries(p.v).forEach(([v,code])=>{if(code===prev)ver=v;}));
+  JS_PREP_CODES.forEach(k=>delete b[k]);
+  const base=label?JS_PREP.find(p=>p.prep===label):null;
+  if(base)b[base.v[ver]||base.v.std]=true;
+  const prep={...(c.prep||{}),prepOptions:label?[label]:[]};
+  await updateCase(c.id,{prep,billable:b});
+  onUpdateCase&&onUpdateCase(c.id,{prep,billable:b});
+}
+function PrepBoard({cases,onAction,onUpdateCase}){
+  const [drag,setDrag]=useState(null);const [over,setOver]=useState(null);const [busy,setBusy]=useState(null);
+  const dragRef=useRef(null);
+  function startDrag(e,c){
+    if(!onUpdateCase||e.button>0)return;
+    const st={c,x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=="mouse",timer:null,id:e.pointerId};
+    if(st.touch)st.timer=setTimeout(()=>{st.on=true;setDrag({c,x:st.x,y:st.y});},350);
+    dragRef.current=st;
+  }
+  useEffect(()=>{
+    const colAt=(x,y)=>{const el=document.elementFromPoint(x,y);const col=el&&el.closest("[data-prep-col]");return col?col.getAttribute("data-prep-col"):null;};
+    const mv=e=>{const st=dragRef.current;if(!st)return;
+      if(!st.on){if(st.touch){if(Math.hypot(e.clientX-st.x,e.clientY-st.y)>10){clearTimeout(st.timer);dragRef.current=null;}return;}
+        if(Math.hypot(e.clientX-st.x,e.clientY-st.y)<6)return;st.on=true;}
+      e.preventDefault();setDrag({c:st.c,x:e.clientX,y:e.clientY});setOver(colAt(e.clientX,e.clientY));};
+    const up=async e=>{const st=dragRef.current;dragRef.current=null;if(!st)return;clearTimeout(st.timer);
+      if(!st.on)return;
+      st.moved=true;window.__prepDragJustEnded=Date.now();
+      const key=colAt(e.clientX,e.clientY);setDrag(null);setOver(null);
+      const cur=prepOne(st.c)||"none";if(!key||key===cur)return;
+      setBusy(st.c.id);try{await movePrep(st.c,key==="none"?null:key,onUpdateCase);}catch(err){alert("Couldn't move: "+(err.message||err));}setBusy(null);};
+    // iPad: once the press-and-hold starts a drag, follow the finger with touch events and stop the page scrolling
+    const tmv=e=>{const st=dragRef.current;if(!st||!st.touch)return;const t=e.touches[0];if(!t)return;
+      if(!st.on){if(Math.hypot(t.clientX-st.x,t.clientY-st.y)>10){clearTimeout(st.timer);dragRef.current=null;}return;}
+      e.preventDefault();st.lx=t.clientX;st.ly=t.clientY;setDrag({c:st.c,x:t.clientX,y:t.clientY});setOver(colAt(t.clientX,t.clientY));};
+    const tend=e=>{const st=dragRef.current;if(!st||!st.touch)return;if(st.on){e.preventDefault();up({clientX:st.lx??st.x,clientY:st.ly??st.y,fromTouch:true});}else{clearTimeout(st.timer);dragRef.current=null;}};
+    const pmv=e=>{if(e.pointerType!=="mouse")return;mv(e);};
+    const pup=e=>{if(e.pointerType!=="mouse")return;up(e);};
+    window.addEventListener("pointermove",pmv,{passive:false});window.addEventListener("pointerup",pup);window.addEventListener("pointercancel",pup);
+    window.addEventListener("touchmove",tmv,{passive:false});window.addEventListener("touchend",tend,{passive:false});window.addEventListener("touchcancel",tend,{passive:false});
+    return()=>{window.removeEventListener("pointermove",pmv);window.removeEventListener("pointerup",pup);window.removeEventListener("pointercancel",pup);
+      window.removeEventListener("touchmove",tmv);window.removeEventListener("touchend",tend);window.removeEventListener("touchcancel",tend);};
+  },[onUpdateCase]);
   const active=(cases||[]).filter(c=>c.status==="active"&&!c.checkedOut);
   const todo=active.filter(c=>c.prepStatus!=="completed"); // finished in Mortuary = off the board
   const rows=[
@@ -1381,16 +1424,16 @@ function PrepBoard({cases,onAction}){
     ...PREP_OPTIONS.map(p=>({key:p.label,label:`${p.label} (${p.short})`,tone:"gray"})),
   ].map(r=>({...r,list:todo.filter(c=>{const o=prepOne(c);return r.key==="none"?!o:o===r.key;})
     .sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""))}));
-  const open=c=>{_openCaseId=c.id;onAction("mortuary");};
+  const open=c=>{if(Date.now()-(window.__prepDragJustEnded||0)<400)return;_openCaseId=c.id;onAction("mortuary");};
   return(
     <div className="mb-6">
       <div className="flex items-baseline justify-between mb-3">
-        <p className="text-xs font-black uppercase tracking-widest text-gray-400">Cases in care by preparation</p>
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400">Cases in care by preparation{onUpdateCase&&<span className="ml-2 normal-case tracking-normal font-bold text-gray-400">· drag a name to change its preparation{" "}<span className="hidden sm:inline">(on iPad, press and hold)</span></span>}</p>
         <p className="text-xs font-black uppercase text-gray-500">{active.length} in care · {active.length-todo.length} completed</p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {rows.map(r=>{const warn=r.tone==="amber"&&r.list.length>0;return(
-          <div key={r.key} className={`rounded-2xl border-2 overflow-hidden ${warn?"border-amber-400 bg-amber-50":"border-gray-200 bg-white"}`}>
+          <div key={r.key} data-prep-col={r.key} className={`rounded-2xl border-2 overflow-hidden transition ${over===r.key&&drag?"ring-4 ring-green-500 border-green-500":""} ${warn?"border-amber-400 bg-amber-50":"border-gray-200 bg-white"}`}>
             <div className={`flex items-center justify-between gap-2 px-3 py-2 ${warn?"bg-amber-400 text-white":"bg-gray-900 text-white"}`}>
               <span className="text-[11px] font-black uppercase leading-tight">{r.label}</span>
               <span className={`text-base font-black ${warn?"text-white":""}`}>{r.list.length}</span>
@@ -1398,20 +1441,22 @@ function PrepBoard({cases,onAction}){
             <div className="p-2 space-y-1.5">
               {r.list.length===0&&<p className="text-xs text-gray-300 text-center py-2">—</p>}
               {r.list.map(c=>(
-                <button key={c.id} type="button" onClick={()=>open(c)} title={c.caseRef}
-                  className={`block w-full text-left px-2.5 py-1.5 rounded-lg border text-xs font-bold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition ${warn?"border-amber-300 bg-white text-amber-900":"border-gray-200 bg-gray-50 text-gray-800"}`}>
+                <button key={c.id} type="button" onClick={()=>open(c)} onPointerDown={e=>startDrag(e,c)} onContextMenu={e=>onUpdateCase&&e.preventDefault()} title={c.caseRef}
+                  style={{WebkitUserSelect:"none",userSelect:"none",WebkitTouchCallout:"none"}}
+                  className={`block w-full text-left px-2.5 py-1.5 rounded-lg border text-xs font-bold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition ${onUpdateCase?"cursor-grab":""} ${drag?.c.id===c.id||busy===c.id?"opacity-40":""} ${warn?"border-amber-300 bg-white text-amber-900":"border-gray-200 bg-gray-50 text-gray-800"}`}>
                   <span className="block break-words leading-tight">{(c.lastName||"").toUpperCase()}, {c.firstName}</span>
                   <span className="block truncate font-normal opacity-60 text-[11px]">{c.funeralHomeName}</span>
                 </button>))}
             </div>
           </div>);})}
       </div>
+      {drag&&<div style={{position:"fixed",left:drag.x+8,top:drag.y+8,zIndex:9999,pointerEvents:"none"}} className="px-3 py-2 rounded-lg bg-gray-900 text-white text-xs font-black shadow-2xl">{(drag.c.lastName||"").toUpperCase()}, {drag.c.firstName}</div>}
     </div>
   );
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
+function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
   const isAdmin=user?.role==="admin";
   const isMSS=user?.role==="mss"||isAdmin;
   const isTransfer=user?.role==="transfer";
@@ -1454,7 +1499,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
-            <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction}/></div>
+            <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction} onUpdateCase={onUpdateCase}/></div>
           </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
           {row1.map(b=>(<button key={b.action} onClick={()=>onAction(b.action)} className={s.btnLg}>{b.label}</button>))}
@@ -5037,7 +5082,7 @@ function NewCheckInsView({cases,user,onAction}){
 }
 
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
-function AdminDashboard({cases,calendarBookings,onAction}){
+function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase}){
   const now=new Date();
   const past24=new Date(now.getTime()-24*60*60*1000);
 
@@ -5118,7 +5163,7 @@ function AdminDashboard({cases,calendarBookings,onAction}){
 
       {/* Prep Types */}
       <div className="mb-6">
-        <PrepBoard cases={cases} onAction={onAction}/>
+        <PrepBoard cases={cases} onAction={onAction} onUpdateCase={onUpdateCase}/>
       </div>
 
       {/* Workflow */}
@@ -6763,7 +6808,7 @@ export default function App() {
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
-  if(action==="dashboard") return wrap(<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
+  if(action==="dashboard") return wrap(<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
@@ -6779,7 +6824,7 @@ export default function App() {
 
   return wrap(
     <main>
-      {tab==="home"&&<HomeScreen user={user} cases={cases} onAction={a=>setAction(a)}/>}
+      {tab==="home"&&<HomeScreen user={user} cases={cases} onAction={a=>setAction(a)} onUpdateCase={handleUpdateCase}/>}
       {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={liveCases}/>}
       {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>}
@@ -6787,7 +6832,7 @@ export default function App() {
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={liveCases}/>}
       {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
-      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={liveCases} onUpdateCase={handleUpdateCase}/>}
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
