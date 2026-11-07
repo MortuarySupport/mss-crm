@@ -3909,12 +3909,41 @@ const PRICE_LIST={
   CL5:350,NSNA:1252.90,
 };
 const PRICE_DEFAULTS={...PRICE_LIST};
-async function loadPrices(){try{const rows=await sb("price_list?select=code,price");(rows||[]).forEach(r=>{if(r.code&&r.price!==null&&!isNaN(Number(r.price)))PRICE_LIST[r.code]=Number(r.price);});return true;}catch(e){return false;}}
+const CUSTOM_ITEMS={};
+function applyCustomItem(r){
+  if(!r||!r.code||!r.label)return;
+  CUSTOM_ITEMS[r.code]={label:r.label,section:r.section||"Other Items",qty:!!r.qty,hidden:!!r.hidden};
+  SERVICE_LABELS_XERO[r.code]=r.label;
+  if(r.qty&&!JS_QTY.includes(r.code))JS_QTY.push(r.code);
+  JS_SECTIONS.forEach(s=>{s.codes=s.codes.filter(x=>x!==r.code||!CUSTOM_ITEMS[x]);});
+  if(!r.hidden){let sec=JS_SECTIONS.find(s=>s.title===(r.section||"Other Items"));if(!sec){sec={title:r.section||"Other Items",codes:[]};JS_SECTIONS.push(sec);}if(!sec.codes.includes(r.code))sec.codes.push(r.code);}
+}
+async function loadPrices(){try{let rows;try{rows=await sb("price_list?select=code,price,label,section,qty,hidden");}catch(e){rows=await sb("price_list?select=code,price");}
+  (rows||[]).forEach(r=>{if(r.code&&r.price!==null&&!isNaN(Number(r.price)))PRICE_LIST[r.code]=Number(r.price);applyCustomItem(r);});return true;}catch(e){return false;}}
 function PriceListView({user,onBack}){
   const [vals,setVals]=useState(()=>Object.fromEntries(Object.keys(PRICE_LIST).map(k=>[k,String(PRICE_LIST[k])])));
   const [q,setQ]=useState("");const [saving,setSaving]=useState(false);const [msg,setMsg]=useState("");const [ready,setReady]=useState(null);
   useEffect(()=>{loadPrices().then(ok=>{setReady(ok);setVals(Object.fromEntries(Object.keys(PRICE_LIST).map(k=>[k,String(PRICE_LIST[k])])));});},[]);
-  const codes=Object.keys(PRICE_DEFAULTS);
+  const [,bump]=useState(0);
+  const [add,setAdd]=useState(null);
+  const codes=Object.keys(PRICE_LIST);
+  async function saveNew(){
+    const code=(add.code||"").trim().toUpperCase(),label=(add.label||"").trim(),price=Number(add.price);
+    if(!/^[A-Z0-9]{2,8}$/.test(code)){setMsg("Code must be 2–8 letters/numbers, e.g. URN1");return;}
+    if(PRICE_LIST[code]!==undefined){setMsg("Code "+code+" is already used.");return;}
+    if(!label){setMsg("Enter the item name.");return;}
+    if(add.price===""||isNaN(price)||price<0){setMsg("Enter a price.");return;}
+    const row={code,price,label,section:add.section||"Other Items",qty:!!add.qty,hidden:false,updated_at:new Date().toISOString(),updated_by:user?.name||"Admin"};
+    setSaving(true);
+    try{await sb("price_list",{method:"POST",prefer:"resolution=merge-duplicates,return=representation",body:JSON.stringify([row])});
+      PRICE_LIST[code]=price;applyCustomItem(row);setVals(v=>({...v,[code]:String(price)}));setAdd(null);setMsg("✓ Added "+code+" – "+label+" ($"+price+"). It's now on the Job Sheet under "+row.section+".");}
+    catch(e){setMsg("Couldn't add — run the new Supabase step first ("+String(e.message||e).slice(0,100)+")");}
+    setSaving(false);
+  }
+  async function toggleHidden(k){const it=CUSTOM_ITEMS[k];if(!it)return;
+    if(!window.confirm((it.hidden?"Show ":"Hide ")+it.label+(it.hidden?" on the Job Sheet again?":" from the Job Sheet? Cases already using it keep it.")))return;
+    const row={code:k,price:PRICE_LIST[k],label:it.label,section:it.section,qty:it.qty,hidden:!it.hidden,updated_at:new Date().toISOString(),updated_by:user?.name||"Admin"};
+    try{await sb("price_list",{method:"POST",prefer:"resolution=merge-duplicates,return=representation",body:JSON.stringify([row])});applyCustomItem(row);bump(x=>x+1);}catch(e){setMsg("Couldn't change it ("+String(e.message||e).slice(0,100)+")");}}
   const changed=codes.filter(k=>vals[k]!==""&&Number(vals[k])!==PRICE_LIST[k]);
   const bad=codes.filter(k=>vals[k]===""||isNaN(Number(vals[k]))||Number(vals[k])<0);
   const shown=codes.filter(k=>!q||(k+" "+(SERVICE_LABELS_XERO[k]||"")).toLowerCase().includes(q.toLowerCase()));
@@ -3925,7 +3954,7 @@ function PriceListView({user,onBack}){
     setSaving(true);setMsg("");
     try{
       const now=new Date().toISOString();
-      await sb("price_list",{method:"POST",prefer:"resolution=merge-duplicates,return=representation",body:JSON.stringify(changed.map(k=>({code:k,price:Number(vals[k]),updated_at:now,updated_by:user?.name||"Admin"})))});
+      await sb("price_list",{method:"POST",prefer:"resolution=merge-duplicates,return=representation",body:JSON.stringify(changed.map(k=>({code:k,price:Number(vals[k]),updated_at:now,updated_by:user?.name||"Admin",...(CUSTOM_ITEMS[k]?{label:CUSTOM_ITEMS[k].label,section:CUSTOM_ITEMS[k].section,qty:CUSTOM_ITEMS[k].qty,hidden:CUSTOM_ITEMS[k].hidden}:{})})))});
       changed.forEach(k=>{PRICE_LIST[k]=Number(vals[k]);});
       setMsg("✓ Saved "+changed.length+" price"+(changed.length>1?"s":"")+". New prices apply now on Job Sheets, Invoicing and the Xero export.");
     }catch(e){setMsg("Couldn't save — has the price_list table been set up in Supabase? ("+String(e.message||e).slice(0,120)+")");}
@@ -3942,11 +3971,29 @@ function PriceListView({user,onBack}){
         <button onClick={save} disabled={saving} className={"px-5 py-3 rounded-xl font-black text-sm uppercase text-white "+(changed.length?"bg-green-600 hover:bg-green-700":"bg-gray-400")}>{saving?"Saving…":"Save"+(changed.length?" ("+changed.length+")":"")}</button>
       </div>
       {msg&&<div className="my-3 p-3 rounded-xl bg-white border border-gray-200 text-sm font-bold">{msg}</div>}
+      {add===null
+        ?<button onClick={()=>{setAdd({code:"",label:"",price:"",section:"Other Items",qty:false});setMsg("");}} className="w-full my-2 py-3 rounded-xl border-2 border-dashed border-gray-400 font-black text-sm uppercase text-gray-700 hover:border-gray-900">＋ Add Item</button>
+        :<div className="my-2 p-4 rounded-2xl bg-white border-2 border-gray-900 space-y-3">
+          <p className="text-xs font-black uppercase tracking-widest text-gray-500">New item</p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <input value={add.code} onChange={e=>setAdd({...add,code:e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8)})} placeholder="Code e.g. URN1" className="px-3 py-2 rounded-lg border-2 border-gray-200 font-black"/>
+            <input value={add.label} onChange={e=>setAdd({...add,label:e.target.value})} placeholder="Item name" className="sm:col-span-2 px-3 py-2 rounded-lg border-2 border-gray-200 font-bold"/>
+            <input inputMode="decimal" value={add.price} onChange={e=>setAdd({...add,price:e.target.value.replace(/[^0-9.]/g,"")})} placeholder="$ Price inc GST" className="px-3 py-2 rounded-lg border-2 border-gray-200 font-black text-right"/>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-sm font-bold text-gray-600">Job Sheet section
+              <select value={add.section} onChange={e=>setAdd({...add,section:e.target.value})} className="ml-2 px-2 py-2 rounded-lg border-2 border-gray-200 font-bold">
+                {[...new Set([...JS_SECTIONS.map(s=>s.title),"Other Items"])].map(t=><option key={t}>{t}</option>)}
+              </select></label>
+            <label className="flex items-center gap-2 text-sm font-bold text-gray-600"><input type="checkbox" checked={add.qty} onChange={e=>setAdd({...add,qty:e.target.checked})} className="w-5 h-5"/>Has a quantity (+ / −)</label>
+          </div>
+          <div className="flex gap-2"><button onClick={saveNew} disabled={saving} className="flex-1 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase">Add Item</button><button onClick={()=>setAdd(null)} className="px-5 py-3 rounded-xl bg-gray-200 font-black text-sm uppercase">Cancel</button></div>
+        </div>}
       <div className="bg-white border border-gray-200 rounded-2xl divide-y divide-gray-100 mt-2">
-        {shown.map(k=>{const ch=changed.includes(k),wr=bad.includes(k),dif=Number(vals[k])!==PRICE_DEFAULTS[k];return(
+        {shown.map(k=>{const ch=changed.includes(k),wr=bad.includes(k),cu=CUSTOM_ITEMS[k],dif=!cu&&Number(vals[k])!==PRICE_DEFAULTS[k];return(
           <div key={k} className={"flex items-center gap-3 px-4 py-2 "+(ch?"bg-green-50":"")}>
             <span className="w-14 shrink-0 text-xs font-black text-gray-500">{k}</span>
-            <span className="flex-1 min-w-0 text-sm font-bold text-gray-800">{SERVICE_LABELS_XERO[k]||k}{dif&&<span className="block text-[11px] font-normal text-gray-400">Original ${PRICE_DEFAULTS[k]}</span>}</span>
+            <span className="flex-1 min-w-0 text-sm font-bold text-gray-800">{SERVICE_LABELS_XERO[k]||k}{dif&&<span className="block text-[11px] font-normal text-gray-400">Original ${PRICE_DEFAULTS[k]}</span>}{cu&&<span className="block text-[11px] font-normal text-gray-400">Added item · {cu.section}{cu.qty?" · quantity":""}{cu.hidden?" · hidden":""} · <button type="button" onClick={()=>toggleHidden(k)} className="underline font-bold">{cu.hidden?"Show on Job Sheet":"Hide"}</button></span>}</span>
             <span className="text-gray-500 font-bold">$</span>
             <input inputMode="decimal" value={vals[k]} onChange={e=>setVals(v=>({...v,[k]:e.target.value.replace(/[^0-9.]/g,"")}))} className={"w-28 px-3 py-2 rounded-lg border-2 text-right font-black "+(wr?"border-red-500":ch?"border-green-600":"border-gray-200")}/>
           </div>);})}
@@ -4098,7 +4145,7 @@ function InvoicingView({user,cases,onUpdateCase}){
   }
 
   if(selCase){
-    const items=Object.entries(selCase.billable||selCase.prep?.billable||{}).filter(([k,v])=>v&&serviceLabels[k]);
+    const items=Object.entries(selCase.billable||selCase.prep?.billable||{}).filter(([k,v])=>v&&(serviceLabels[k]||SERVICE_LABELS_XERO[k]));
     const nights=selCase.checkedInAt&&selCase.checkout?.checkedOutAt?calNights(selCase.checkedInAt,selCase.checkout.checkedOutAt):1;
     return(
       <div className="max-w-7xl mx-auto px-4 py-4">
@@ -4119,7 +4166,7 @@ function InvoicingView({user,cases,onUpdateCase}){
                 return(
                   <tr key={code} className={i%2===0?"bg-white":"bg-gray-50"}>
                     <td className="px-4 py-3 font-mono text-xs font-black text-gray-700">{serviceMap[code]}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900">{serviceLabels[code]}</td>
+                    <td className="px-4 py-3 font-semibold text-gray-900">{serviceLabels[code]||SERVICE_LABELS_XERO[code]}</td>
                     <td className="px-4 py-3 text-center">
                       {isVar?(
                         <input type="number" min={1} value={qty} onChange={e=>setQtys(q=>({...q,[selCase.id+"_"+code]:parseInt(e.target.value)||1}))}
