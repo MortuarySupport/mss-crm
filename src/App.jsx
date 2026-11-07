@@ -3373,6 +3373,10 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
     sb(`second_notes?select=case_id,answers,submitted_at&case_id=in.(${inCare.map(c=>`"${c.id}"`).join(",")})&order=submitted_at.desc`).then(r=>{if(!live||!Array.isArray(r))return;const m={};r.forEach(n=>{if(!(n.case_id in m))m[n.case_id]=n.answers?._plate||null;});inCare.forEach(c=>{if(!(c.id in m))m[c.id]=null;});setPlates(m);}).catch(()=>{});
     return()=>{live=false;};},[idKey]);
   async function mark(c,plate,person){const np={...(c.prep||{}),namePlate:{at:new Date().toISOString(),by:user?.name||"",plate,person}};try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});setOpen(o=>o&&o.c.id===c.id?{...o,c:{...o.c,prep:np}}:o);}catch(e){alert("Couldn't record the download: "+e.message);}}
+  async function markNone(c,undo){
+    if(!undo&&!window.confirm("Mark "+(c.lastName||"").toUpperCase()+", "+c.firstName+" as completed — no name plate needed?"))return;
+    const np={...(c.prep||{})};if(undo)delete np.namePlate;else np.namePlate={at:new Date().toISOString(),by:user?.name||"",none:true};
+    try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){alert("Couldn't save: "+(e.message||e));}}
   const done=c=>!!c.prep?.namePlate?.at;
   const todo=inCare.filter(c=>!done(c)),dl=inCare.filter(done);
   const completed=cases.filter(c=>c.prep?.namePlate?.at).sort((a,b)=>new Date(b.prep.namePlate.at)-new Date(a.prep.namePlate.at));
@@ -3387,18 +3391,22 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
       <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK TO HOME</button>
       <h2 className="text-xl font-black text-gray-900 mb-1">🪧 Name Plates</h2>
       <p className="text-sm text-gray-500 mb-4">Every deceased in our care. Open one to check the plate and download it for xTool. A case leaves the in-care lists once the body is checked out; <b>Completed</b> keeps the final version of every plate.</p>
-      <div className="flex flex-wrap gap-2 mb-4">{tabBtn("todo","To do",todo.length)}{tabBtn("done","Downloaded",dl.length)}{tabBtn("all","All in care",inCare.length)}{tabBtn("completed","✓ Completed",completed.length)}</div>
+      <div className="flex flex-wrap gap-2 mb-4">{tabBtn("todo","To do",todo.length)}{tabBtn("done","Downloaded / Done",dl.length)}{tabBtn("all","All in care",inCare.length)}{tabBtn("completed","✓ Completed",completed.length)}</div>
       {tab!=="completed"&&<>
-        {list.length===0&&<p className="text-center text-sm text-gray-400 py-10">{tab==="todo"?"All name plates have been downloaded.":"Nothing here."}</p>}
-        <div className="space-y-2">{list.map(c=>{const p=plates[c.id];return(
-          <button key={c.id} type="button" onClick={()=>setOpen({c,plate:rec(c).plate||p||null})} className={"w-full text-left bg-white border-2 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 transition hover:border-gray-900 "+(done(c)?"border-green-300":"border-gray-200")}>
+        {list.length===0&&<p className="text-center text-sm text-gray-400 py-10">{tab==="todo"?"All name plates are done.":"Nothing here."}</p>}
+        <div className="space-y-2">{list.map(c=>{const p=plates[c.id],none=!!rec(c).none;return(
+          <div key={c.id} className="flex items-stretch gap-2">
+          <button type="button" onClick={()=>setOpen({c,plate:rec(c).plate||p||null})} className={"w-full text-left bg-white border-2 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 transition hover:border-gray-900 "+(done(c)?"border-green-300":"border-gray-200")}>
             <div className="min-w-0 flex-1">
               <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
               <div className="text-sm text-gray-500">{c.caseRef} · {c.funeralHomeName}</div>
             </div>
             <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(p?"bg-gray-100 text-gray-700":"bg-amber-50 text-amber-800")}>{p===undefined?"…":p?"From 2nd Note":"No plate on 2nd Note"}</span>
-            <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(done(c)?"bg-green-100 text-green-800":"bg-red-50 text-red-700")}>{done(c)?`✓ Downloaded ${when(rec(c).at)}${rec(c).by?" · "+rec(c).by:""}`:"Not downloaded"}</span>
-          </button>);})}</div>
+            <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(done(c)?"bg-green-100 text-green-800":"bg-red-50 text-red-700")}>{done(c)?`✓ ${none?"No plate needed":"Downloaded"} ${when(rec(c).at)}${rec(c).by?" · "+rec(c).by:""}`:"Not downloaded"}</span>
+          </button>
+          {!done(c)&&<button type="button" onClick={()=>markNone(c)} className="shrink-0 w-28 rounded-2xl bg-green-600 hover:bg-green-700 text-white text-xs font-black uppercase leading-tight px-2">✓ Completed<span className="block text-[10px] font-bold normal-case opacity-90">No plate needed</span></button>}
+          {none&&<button type="button" onClick={()=>markNone(c,true)} className="shrink-0 w-28 rounded-2xl border-2 border-gray-300 bg-white hover:border-gray-900 text-gray-700 text-xs font-black uppercase">↩ Undo</button>}
+          </div>);})}</div>
       </>}
       {tab==="completed"&&<>
         <input className={`${s.inp} mb-4`} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by name, case number or funeral director…"/>
@@ -3410,8 +3418,8 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
                 <div className="text-xs text-gray-500">{c.caseRef} · {c.funeralHomeName}</div></div>
               <span className={"shrink-0 text-[10px] font-black uppercase px-2 py-1 rounded-full "+(c.status==="active"?"bg-amber-50 text-amber-800":"bg-gray-100 text-gray-600")}>{c.status==="active"?"In care":"Checked out"}</span>
             </div>
-            {r.plate?<NamePlatePreview spec={{...r.plate,...person}}/>:<p className="text-xs text-gray-400 py-6 text-center">Downloaded before plate records were kept</p>}
-            <div className="text-xs font-black text-green-700 mt-2">✓ Final version · {when(r.at)}{r.by?" · "+r.by:""}</div>
+            {r.none?<p className="text-sm font-black text-gray-500 py-6 text-center bg-gray-50 rounded-xl">No name plate needed</p>:r.plate?<NamePlatePreview spec={{...r.plate,...person}}/>:<p className="text-xs text-gray-400 py-6 text-center">Downloaded before plate records were kept</p>}
+            <div className="text-xs font-black text-green-700 mt-2">✓ {r.none?"Completed – no plate":"Final version"} · {when(r.at)}{r.by?" · "+r.by:""}</div>
           </button>);})}</div>
       </>}
       {open&&<NamePlateModal c={open.c} plate={open.plate} person={open.person} onClose={()=>setOpen(null)} onDownloaded={(pl,pe)=>mark(open.c,pl,pe)}/>}
