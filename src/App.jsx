@@ -1463,6 +1463,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock}) {
         <button onClick={()=>onAction("ashes")} className={s.btnLg}>🏺 ASHES REGISTER</button>
         <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
         <button onClick={()=>onAction("nameplates")} className={s.btnLg}>🪧 NAME PLATES</button>
+        <button onClick={()=>onAction("prices")} className={s.btnLg}>💲 PRICE LIST</button>
       </div>}
 
     </div>
@@ -3907,6 +3908,52 @@ const PRICE_LIST={
   TR1:395,TR2:495,TR3:495,TR4:495,TR5:655,TR6:655,
   CL5:350,NSNA:1252.90,
 };
+const PRICE_DEFAULTS={...PRICE_LIST};
+async function loadPrices(){try{const rows=await sb("price_list?select=code,price");(rows||[]).forEach(r=>{if(r.code&&r.price!==null&&!isNaN(Number(r.price)))PRICE_LIST[r.code]=Number(r.price);});return true;}catch(e){return false;}}
+function PriceListView({user,onBack}){
+  const [vals,setVals]=useState(()=>Object.fromEntries(Object.keys(PRICE_LIST).map(k=>[k,String(PRICE_LIST[k])])));
+  const [q,setQ]=useState("");const [saving,setSaving]=useState(false);const [msg,setMsg]=useState("");const [ready,setReady]=useState(null);
+  useEffect(()=>{loadPrices().then(ok=>{setReady(ok);setVals(Object.fromEntries(Object.keys(PRICE_LIST).map(k=>[k,String(PRICE_LIST[k])])));});},[]);
+  const codes=Object.keys(PRICE_DEFAULTS);
+  const changed=codes.filter(k=>vals[k]!==""&&Number(vals[k])!==PRICE_LIST[k]);
+  const bad=codes.filter(k=>vals[k]===""||isNaN(Number(vals[k]))||Number(vals[k])<0);
+  const shown=codes.filter(k=>!q||(k+" "+(SERVICE_LABELS_XERO[k]||"")).toLowerCase().includes(q.toLowerCase()));
+  async function save(){
+    if(bad.length){setMsg("Check the price for: "+bad.join(", "));return;}
+    if(!changed.length){setMsg("No changes to save.");return;}
+    if(!window.confirm("Save "+changed.length+" price change"+(changed.length>1?"s":"")+"?\n\n"+changed.map(k=>k+": $"+PRICE_LIST[k]+" → $"+Number(vals[k])).join("\n")))return;
+    setSaving(true);setMsg("");
+    try{
+      const now=new Date().toISOString();
+      await sb("price_list",{method:"POST",prefer:"resolution=merge-duplicates,return=representation",body:JSON.stringify(changed.map(k=>({code:k,price:Number(vals[k]),updated_at:now,updated_by:user?.name||"Admin"})))});
+      changed.forEach(k=>{PRICE_LIST[k]=Number(vals[k]);});
+      setMsg("✓ Saved "+changed.length+" price"+(changed.length>1?"s":"")+". New prices apply now on Job Sheets, Invoicing and the Xero export.");
+    }catch(e){setMsg("Couldn't save — has the price_list table been set up in Supabase? ("+String(e.message||e).slice(0,120)+")");}
+    setSaving(false);
+  }
+  return(
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      <button onClick={onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
+      <h1 className="text-2xl font-black mb-1">💲 Price List</h1>
+      <p className="text-sm text-gray-500 mb-4">Prices include GST. Change any price, then tap Save. Admin only.</p>
+      {ready===false&&<div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-800 text-sm font-bold">The price_list table isn't set up in Supabase yet, so these are the built-in prices and changes can't be saved.</div>}
+      <div className="sticky top-14 z-10 bg-gray-50 py-2 flex gap-2">
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search code or item…" className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 font-bold"/>
+        <button onClick={save} disabled={saving} className={"px-5 py-3 rounded-xl font-black text-sm uppercase text-white "+(changed.length?"bg-green-600 hover:bg-green-700":"bg-gray-400")}>{saving?"Saving…":"Save"+(changed.length?" ("+changed.length+")":"")}</button>
+      </div>
+      {msg&&<div className="my-3 p-3 rounded-xl bg-white border border-gray-200 text-sm font-bold">{msg}</div>}
+      <div className="bg-white border border-gray-200 rounded-2xl divide-y divide-gray-100 mt-2">
+        {shown.map(k=>{const ch=changed.includes(k),wr=bad.includes(k),dif=Number(vals[k])!==PRICE_DEFAULTS[k];return(
+          <div key={k} className={"flex items-center gap-3 px-4 py-2 "+(ch?"bg-green-50":"")}>
+            <span className="w-14 shrink-0 text-xs font-black text-gray-500">{k}</span>
+            <span className="flex-1 min-w-0 text-sm font-bold text-gray-800">{SERVICE_LABELS_XERO[k]||k}{dif&&<span className="block text-[11px] font-normal text-gray-400">Original ${PRICE_DEFAULTS[k]}</span>}</span>
+            <span className="text-gray-500 font-bold">$</span>
+            <input inputMode="decimal" value={vals[k]} onChange={e=>setVals(v=>({...v,[k]:e.target.value.replace(/[^0-9.]/g,"")}))} className={"w-28 px-3 py-2 rounded-lg border-2 text-right font-black "+(wr?"border-red-500":ch?"border-green-600":"border-gray-200")}/>
+          </div>);})}
+      </div>
+    </div>
+  );
+}
 const SERVICE_LABELS_XERO={
   BP:"Basic Preparation",TP:"Temporary Preservation",FE:"Full Embalm",
   BP1:"Basic Preparation (Over 100kg)",TP1:"Temporary Preservation (Over 100kg)",FE1:"Full Embalm (Over 100kg)",
@@ -6468,6 +6515,8 @@ function GuestCheckOut({cases,onUpdateCase,onBack}){
 }
 
 export default function App() {
+  const [,setPriceRev]=useState(0);
+  useEffect(()=>{loadPrices().then(()=>setPriceRev(x=>x+1));},[]);
   const [users,setUsers]=useState([]);
   const [maintenanceMode,setMaintenanceMode]=useState(null);
 
@@ -6647,6 +6696,7 @@ export default function App() {
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard") return wrap(<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
+  if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
   if(action==="invoicing"&&isAdmin) return wrap(<ErrorBoundary><InvoicingView user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/></ErrorBoundary>);
