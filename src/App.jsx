@@ -3098,7 +3098,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
       </div>
       <SendToAccountsBtn c={c} user={user} onUpdateCase={onUpdateCase}/>
-      <JobSheet c={c} prep={prep} billable={billable} upd={upd} handleStatus={handleStatus} onPacemaker={()=>setShowPacemakerCert(true)} onAcceptChanges={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}}/>
+      <JobSheet isAdmin={user?.role==="admin"} c={c} prep={prep} billable={billable} upd={upd} handleStatus={handleStatus} onPacemaker={()=>setShowPacemakerCert(true)} onAcceptChanges={async()=>{try{await updateCase(c.id,caseToDb({...c,pendingChanges:[]}));onUpdateCase(c.id,{pendingChanges:[]});setSelCase(p=>p?.id===c.id?{...p,pendingChanges:[]}:p);}catch(err){alert("Error: "+err.message);}}}/>
       <div id="docsSection" className="mt-4"><DocumentSection key={docReload} caseId={c.id} filesDeletedAt={c.filesDeletedAt} backupFolder={c.backupFolder} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/></div>
 
       {showPacemakerCert&&<PacemakerCertificate caseData={c} onClose={()=>setShowPacemakerCert(false)} onSaved={()=>{setShowPacemakerCert(false);setDocReload(p=>p+1);}}/>}
@@ -3128,9 +3128,14 @@ const JS_SECTIONS=[
   {title:"Labour & Accommodation",codes:["CL4","CL5","ACC"]},
 ];
 const jsMoney=n=>"$"+(Math.round(n*100)/100).toLocaleString("en-AU",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
-const jsNights=c=>{if(!c.checkedInAt)return 1;const end=c.checkout?.checkedOutAt?new Date(c.checkout.checkedOutAt):new Date();return Math.max(1,Math.ceil((end-new Date(c.checkedInAt))/86400000));};
+function calNights(a,b){const d=x=>Date.parse(new Date(x).toLocaleDateString("en-CA",{timeZone:"Australia/Sydney"}));return Math.max(1,Math.round((d(b)-d(a))/86400000));}
+const jsNights=c=>{if(!c.checkedInAt)return 1;return calNights(c.checkedInAt,c.checkout?.checkedOutAt||new Date());};
 const jsQty=(b,code,c)=>code==="ACC"?(b.ACC?jsNights(c):0):typeof b[code]==="number"?b[code]:(b[code]?(parseInt(c.prep?.[code+"Qty"])||1):0);
-function JobSheet({c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}){
+function JobSheet({isAdmin,c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}){
+  const [coEdit,setCoEdit]=useState(null);
+  const toLocalIn=x=>{const d=new Date(x);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+  async function saveCoDate(){const d=new Date(coEdit);if(isNaN(d))return;if(c.checkedInAt&&d<new Date(c.checkedInAt)){alert("Check out can't be before check in.");return;}
+    await upd(c.id,{checkout:{...c.checkout,checkedOutAt:d.toISOString(),checkedOutAtSetBy:"Admin"}});setCoEdit(null);}
   const [note,setNote]=useState(null);const [showPlate,setShowPlate]=useState(false);
   useEffect(()=>{let live=true;sb(`second_notes?case_id=eq.${c.id}&select=pdf_path,submitted_at,answers&order=submitted_at.desc&limit=1`).then(r=>{if(live&&Array.isArray(r)&&r[0])setNote(r[0]);}).catch(()=>{});return()=>{live=false;};},[c.id]);
   const b=billable||{};
@@ -3162,7 +3167,13 @@ function JobSheet({c,prep,billable,upd,handleStatus,onPacemaker,onAcceptChanges}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {info("Checked in",c.checkedInAt?fmtDTDay(c.checkedInAt):"—")}
-          {info("Checked out",c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"Still in care")}
+          {isAdmin&&c.checkout?.checkedOutAt
+            ?<div className="bg-gray-800 rounded-xl px-3 py-2"><div className="flex items-center justify-between gap-2"><span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Checked out</span>{coEdit===null&&<button type="button" onClick={()=>setCoEdit(toLocalIn(c.checkout.checkedOutAt))} className="text-[10px] font-black uppercase text-amber-300 hover:text-white">✎ Change</button>}</div>
+              {coEdit===null
+                ?<div className="text-sm font-bold">{fmtDTDay(c.checkout.checkedOutAt)}</div>
+                :<div className="mt-1 space-y-1"><input type="datetime-local" value={coEdit} max={toLocalIn(new Date())} onChange={e=>setCoEdit(e.target.value)} className="w-full px-2 py-1 rounded text-gray-900 text-xs font-bold"/><div className="flex gap-1"><button type="button" onClick={saveCoDate} className="flex-1 py-1 rounded bg-green-600 text-white text-[10px] font-black uppercase">Save</button><button type="button" onClick={()=>setCoEdit(null)} className="flex-1 py-1 rounded bg-gray-600 text-white text-[10px] font-black uppercase">Cancel</button></div></div>}
+            </div>
+            :info("Checked out",c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"Still in care")}
           {info("Nights",jsNights(c)+(c.checkout?.checkedOutAt?"":" so far"))}
           {info("Prep",askedPrep||"—")}
           {info("Disposition",prep.disposition||"—")}
@@ -3939,7 +3950,7 @@ function exportXeroCSV(cases,qtys){
       else if(typeof billable[code]==="number") qty=billable[code];
       else if(code==="NPL"||code==="NPS") qty=parseInt(cas.prep?.coffinPlateQty||1);
       else if(code==="ACC"&&cas.checkedInAt&&cas.checkout?.checkedOutAt){
-        qty=Math.max(1,Math.ceil((new Date(cas.checkout.checkedOutAt)-new Date(cas.checkedInAt))/(1000*60*60*24)));
+        qty=calNights(cas.checkedInAt,cas.checkout.checkedOutAt);
       }
       const price=PRICE_LIST[code]||0;
       const desc=`${SERVICE_LABELS_XERO[code]} - ${(cas.lastName||"").toUpperCase()}, ${cas.firstName} (${cas.caseRef})`;
@@ -4019,8 +4030,7 @@ function InvoicingView({user,cases,onUpdateCase}){
     if(code==="NPL"||code==="NPS")return parseInt(c.prep?.coffinPlateQty||1);
     if(code==="ACC"){
       if(c.checkedInAt&&c.checkout?.checkedOutAt){
-        const days=Math.ceil((new Date(c.checkout.checkedOutAt)-new Date(c.checkedInAt))/(1000*60*60*24));
-        return Math.max(1,days);
+        return calNights(c.checkedInAt,c.checkout.checkedOutAt);
       }
       return 1;
     }
@@ -4042,7 +4052,7 @@ function InvoicingView({user,cases,onUpdateCase}){
 
   if(selCase){
     const items=Object.entries(selCase.billable||selCase.prep?.billable||{}).filter(([k,v])=>v&&serviceLabels[k]);
-    const nights=selCase.checkedInAt&&selCase.checkout?.checkedOutAt?Math.max(1,Math.ceil((new Date(selCase.checkout.checkedOutAt)-new Date(selCase.checkedInAt))/(1000*60*60*24))):1;
+    const nights=selCase.checkedInAt&&selCase.checkout?.checkedOutAt?calNights(selCase.checkedInAt,selCase.checkout.checkedOutAt):1;
     return(
       <div className="max-w-7xl mx-auto px-4 py-4">
         <button onClick={()=>setSelCase(null)} className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-900 mb-6">← Back to Invoicing</button>
