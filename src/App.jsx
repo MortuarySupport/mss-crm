@@ -1017,6 +1017,19 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt
 }
 
 // ─── CASE VIEW CARD ───────────────────────────────────────────────────────────
+function CheckOutDateEdit({c,onUpdateCase,label="Out: "}){
+  const [ed,setEd]=useState(null);const [busy,setBusy]=useState(false);
+  if(!c.checkout?.checkedOutAt)return null;
+  const toIn=x=>{const d=new Date(x);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+  async function save(){const d=new Date(ed);if(isNaN(d))return;
+    if(c.checkedInAt&&d<new Date(c.checkedInAt)){alert("Check out can't be before check in.");return;}
+    if(c.invoicedAt&&!window.confirm("This case has already been invoiced. Changing the check out date can change the accommodation nights. Continue?"))return;
+    setBusy(true);const co={...c.checkout,checkedOutAt:d.toISOString(),checkedOutAtSetBy:"Admin"};
+    try{await updateCase(c.id,{checkout_data:co});onUpdateCase&&onUpdateCase(c.id,{checkout:co});setEd(null);}catch(e){alert("Couldn't save: "+(e.message||e));}
+    setBusy(false);}
+  if(ed===null)return(<span>{label}<span className="text-gray-800 font-medium">{fmtDTDay(c.checkout.checkedOutAt)}</span> <button type="button" onClick={()=>setEd(toIn(c.checkout.checkedOutAt))} className="ml-1 text-[11px] font-black uppercase text-blue-600 hover:underline">✎ Change</button></span>);
+  return(<span className="inline-flex flex-wrap items-center gap-1">{label}<input type="datetime-local" value={ed} max={toIn(new Date())} onChange={e=>setEd(e.target.value)} className="px-2 py-1 rounded border border-gray-300 text-gray-900 text-xs font-bold"/><button type="button" disabled={busy} onClick={save} className="px-2 py-1 rounded bg-green-600 text-white text-[11px] font-black uppercase">{busy?"…":"Save"}</button><button type="button" onClick={()=>setEd(null)} className="px-2 py-1 rounded bg-gray-200 text-[11px] font-black uppercase">Cancel</button></span>);
+}
 function CaseViewCard({c,isAdmin,onSave}) {
   const prep=c.prep||{};
   const prepShorts=(prep.prepOptions||[]).map(p=>PREP_OPTIONS.find(x=>x.label===p)?.short||p).join(", ")||"—";
@@ -3851,6 +3864,7 @@ function MyCases({user,cases,onUpdateCase}) {
            <div className="text-xs text-gray-500 mb-1">{c.funeralHomeName}</div>
            {c.prep?.collectionDate&&<div className="text-xs text-gray-400 mb-2">Collection: {fmtDayLong(c.prep.collectionDate)}</div>}
            {c.prep?.disposition&&<div className="text-xs text-gray-400 mb-2">{c.prep.disposition}</div>}
+           {isAdmin&&c.checkedOut&&<div className="text-xs text-gray-500 mb-2"><CheckOutDateEdit c={c} onUpdateCase={onUpdateCase} label="Checked out: "/></div>}
            <div className="flex flex-wrap gap-1 mb-2">
              {isMSS&&c.checkedOut&&c.status==="pending-lock"&&<button onClick={()=>approveCase(c)} className="text-xs bg-blue-600 text-white rounded-lg px-2 py-1 font-black uppercase">APPROVE</button>}
              {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-2 py-1 font-black uppercase">UNDO</button>}
@@ -5483,7 +5497,7 @@ function RecordsView({user,cases,onUpdateCase}) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-500 mt-3">
               <span>In: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkedInAt)}</span></span>
               <span>By: <span className="text-gray-800 font-medium">{c.checkedInBy}</span></span>
-              {c.checkedOut&&<><span>Out: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkout?.checkedOutAt)}</span></span><span>Signed: <span className="text-gray-800 font-medium">{c.checkout?.signedName}</span></span></>}
+              {c.checkedOut&&<>{isAdmin?<CheckOutDateEdit c={c} onUpdateCase={onUpdateCase}/>:<span>Out: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkout?.checkedOutAt)}</span></span>}<span>Signed: <span className="text-gray-800 font-medium">{c.checkout?.signedName}</span></span></>}
             </div>
             <DocumentSection caseId={c.id} filesDeletedAt={c.filesDeletedAt} backupFolder={c.backupFolder} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
           </div>
