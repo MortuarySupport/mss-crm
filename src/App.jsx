@@ -1495,7 +1495,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         ?(()=>{const staffRow=(items,width)=>(<div className="flex gap-3 mb-3 mx-auto" style={{maxWidth:width||"100%"}}>
             {items.map(([a,l,x])=>(<button key={a} onClick={()=>onAction(a)} className={s.btnLg.replace("text-sm","text-[11px] sm:text-sm")+" flex-1 min-w-0 px-1 break-words "+(x||"")}>{l}</button>))}</div>);
           return <>
-            {staffRow([["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"]])}
+            {staffRow([["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"],["dashboard","📊 DASHBOARD"]])}
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
@@ -5082,8 +5082,13 @@ function NewCheckInsView({cases,user,onAction}){
 }
 
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
-function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase}){
+function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=true}){
   const now=new Date();
+  // 2nd Notes waiting for MSS: new ones and ones the FD has updated
+  const [newNotes,setNewNotes]=useState([]);
+  useEffect(()=>{let live=true;const load=()=>sb("second_notes?select=id,deceased_name,edit_count,accepted_at&accepted_at=is.null&order=submitted_at.desc").then(r=>{if(live)setNewNotes(r||[]);}).catch(()=>{});
+    load();const t=setInterval(load,60000);return()=>{live=false;clearInterval(t);};},[]);
+  const notesUpd=newNotes.filter(n=>n.edit_count>0).length,notesNew=newNotes.length-notesUpd;
   const past24=new Date(now.getTime()-24*60*60*1000);
 
   // All active check ins
@@ -5129,11 +5134,11 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase}){
 
   function StatCard({value,label,color="gray",sub,onClick}){
     const Wrap=onClick?"button":"div";
-    const clickProps=onClick?{onClick,style:{cursor:"pointer",textAlign:"left",width:"100%"}}:{};
+    const clickProps=onClick?{onClick,style:{cursor:"pointer",textAlign:"left",width:"100%",height:"100%"}}:{};
     const colors={green:"bg-green-50 border-green-200 text-green-800",amber:"bg-amber-50 border-amber-200 text-amber-800",red:"bg-red-50 border-red-200 text-red-800",blue:"bg-blue-50 border-blue-200 text-blue-800",gray:"bg-gray-50 border-gray-200 text-gray-800",black:"bg-gray-900 border-gray-900 text-white"};
     return(
       <Wrap {...clickProps}>
-      <div className={`border-2 rounded-2xl p-4 ${colors[color]}${onClick?" hover:opacity-80 transition":""}`}>
+      <div className={`h-full border-2 rounded-2xl p-4 ${colors[color]}${onClick?" hover:opacity-80 transition":""}`}>
         <div className="text-3xl font-black">{value}</div>
         <div className="text-xs font-black uppercase tracking-widest mt-1 opacity-70">{label}</div>
         {sub&&<div className="text-xs mt-2 opacity-60">{sub}</div>}
@@ -5152,7 +5157,9 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase}){
       {/* Last 24 Hours */}
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <StatCard value={newNotes.length} label="New 2nd Notes" color={newNotes.length>0?"red":"gray"} onClick={()=>onAction("secondnotes")}
+            sub={newNotes.length>0?`${notesNew} new · ${notesUpd} updated — `+newNotes.slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(newNotes.length>6?" …":""):null}/>
           <StatCard value={recentCheckIns.length} label="Active Cases" color="green" onClick={()=>onAction("mortuary")}/>
           <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue" onClick={()=>onAction("mycases")}/>
@@ -5171,8 +5178,8 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase}){
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Workflow</p>
         <div className="grid grid-cols-3 gap-3">
           <StatCard value={toApprove} label="To Approve" color={toApprove>0?"amber":"gray"} onClick={()=>onAction("approvals")}/>
-          <StatCard value={toLock} label="To Lock" color={toLock>0?"amber":"gray"} onClick={()=>onAction("lockview")}/>
-          <StatCard value={toInvoice} label="To Invoice" color={toInvoice>0?"red":"gray"} onClick={()=>onAction("invoicing")}/>
+          {isAdmin&&<StatCard value={toLock} label="To Lock" color={toLock>0?"amber":"gray"} onClick={()=>onAction("lockview")}/>}
+          {isAdmin&&<StatCard value={toInvoice} label="To Invoice" color={toInvoice>0?"red":"gray"} onClick={()=>onAction("invoicing")}/>}
         </div>
       </div>
 
@@ -6808,7 +6815,7 @@ export default function App() {
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
-  if(action==="dashboard") return wrap(<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
+  if(action==="dashboard"&&(isAdmin||user?.role==="mss")) return wrap(<AdminDashboard isAdmin={isAdmin} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
