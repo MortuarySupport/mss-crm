@@ -464,8 +464,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       answers, deceased_name: nameOf(answers), case_id: c?.id || null, case_ref: c?.caseRef || null,
       pdf_path: path, status: c ? "linked" : "awaiting",
       edited_at: now, edited_by: user?.name || "", edit_count: (n.edit_count || 0) + 1,
-      // An FD edit goes back to MSS for acceptance; an edit by MSS staff/admin is accepted straight away
-      ...(isFD ? { accepted_at: null, accepted_by: null } : { accepted_at: now, accepted_by: user?.name || "" }),
+      // Every edit (FD, staff or admin) goes to Updated 2nd Notes for MSS to check and accept
+      accepted_at: null, accepted_by: null,
     }) });
     if (n.pdf_path && n.pdf_path !== path) await removePdf(n.pdf_path);
     const conflicts = c ? await applyToCase(c, answers, n.id, form, fhName, c.id === n.case_id ? n.answers : null) : [];
