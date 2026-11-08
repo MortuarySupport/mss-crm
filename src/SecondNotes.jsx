@@ -337,7 +337,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const [editing, setEditing] = useState(null);
   const [linking, setLinking] = useState(null);
   const [picking, setPicking] = useState(false);
-  const [tab, setTab] = useState("new");
+  const [tab, setTab] = useState(() => { const t = window.__snTab; window.__snTab = null; return t || "new"; });
 
   const form = FORMS[fhId];
   const fhName = FUNERAL_HOMES.find(f => f.id === fhId)?.name || "";

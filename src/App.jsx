@@ -5160,9 +5160,11 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
       {/* Last 24 Hours */}
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <StatCard value={newNotes.length} label="New 2nd Notes" color={newNotes.length>0?"red":"gray"} onClick={()=>onAction("secondnotes")}
-            sub={newNotes.length>0?`${notesNew} new · ${notesUpd} updated — `+newNotes.slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(newNotes.length>6?" …":""):null}/>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <StatCard value={notesNew} label="New 2nd Notes" color={notesNew>0?"red":"gray"} onClick={()=>{window.__snTab="new";onAction("secondnotes");}}
+            sub={notesNew>0?newNotes.filter(n=>!(n.edit_count>0)).slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(notesNew>6?" …":""):null}/>
+          <StatCard value={notesUpd} label="Updated 2nd Notes" color={notesUpd>0?"amber":"gray"} onClick={()=>{window.__snTab="edited";onAction("secondnotes");}}
+            sub={notesUpd>0?newNotes.filter(n=>n.edit_count>0).slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(notesUpd>6?" …":""):null}/>
           <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={newRooms.length} label="New Room Requests" color={newRooms.length>0?"blue":"gray"} onClick={()=>onAction("calendar")}
             sub={newRooms.length>0?newRooms.slice(0,4).map(b=>`${b.type==="Family Meeting Room"?"Family Meeting":"Viewing"} ${roomWhen(b)}${b.deceased_label?" — "+b.deceased_label:""}`).join(" · ")+(newRooms.length>4?" …":""):null}/>
