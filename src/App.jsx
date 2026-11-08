@@ -1495,7 +1495,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         ?(()=>{const staffRow=(items,width)=>(<div className="flex gap-3 mb-3 mx-auto" style={{maxWidth:width||"100%"}}>
             {items.map(([a,l,x])=>(<button key={a} onClick={()=>onAction(a)} className={s.btnLg.replace("text-sm","text-[11px] sm:text-sm")+" flex-1 min-w-0 px-1 break-words "+(x||"")}>{l}</button>))}</div>);
           return <>
-            {staffRow([["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"],["dashboard","📊 DASHBOARD"]])}
+            {staffRow([["dashboard","📊 DASHBOARD","bg-green-600 hover:bg-green-700"],["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"]])}
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
