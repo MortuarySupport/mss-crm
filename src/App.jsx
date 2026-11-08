@@ -809,6 +809,7 @@ function Header({user,onSignOut,onNav,activeTab}) {
 
 
 // ─── 4x6 BODY LABEL (MUNBYN thermal printer) ─────────────────────────────────
+function isInf(c){return c?.prep?.infectious==="Yes"||c?.statusItems?.mccd==="infectious";}
 function printCaseLabel(c,kinds){
   const e=s=>String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
   const d=v=>v?String(v).slice(0,10).split("-").reverse().join("/"):"—";
@@ -838,7 +839,7 @@ table{flex:1;border-collapse:collapse;font-size:12.5pt;align-self:stretch}td{bor
 <tr><td colspan="2"><b>CHECKED IN</b>${inAt}</td></tr>
 <tr><td><b>PAPERWORK</b>${e(c.paperwork||"—")}</td><td><b>VALUABLES</b>${e(vals)}</td></tr></table>
 </div>
-${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
+${isInf(c)?'<div class="pace" style="background:#dc2626">☣ INFECTIOUS — TAKE PRECAUTIONS</div>':""}${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
 </div>`).join("")}</body></html>`;
   const fr=document.createElement("iframe");
   fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
@@ -1036,10 +1037,10 @@ function CaseViewCard({c,isAdmin,onSave}) {
   const age=calcAge(c.dob,c.dod);
   function save(field,val){onSave&&onSave({[field]:val});}
   function savePrep(field,val){onSave&&onSave({prep:{...prep,[field]:val}});}
-  const isInfectious=c.statusItems?.mccd==="infectious";
+  const isInfectious=isInf(c);
   return (
     <div className={"rounded-2xl p-4 "+(isInfectious?"bg-red-50 border-2 border-red-500":"bg-white border border-gray-200")}>
-      {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">INFECTIOUS CASE</span></div>}
+      {isInfectious&&<div className="flex items-center gap-2 mb-3 bg-red-600 text-white rounded-xl px-3 py-2"><span className="text-base">⚠️</span><span className="text-sm font-black uppercase tracking-wide">☣ INFECTIOUS CASE — TAKE PRECAUTIONS</span></div>}
       {c.pacemaker&&<div className="flex items-center gap-2 mb-3 bg-amber-500 text-white rounded-xl px-3 py-2"><span className="text-base">⚡</span><span className="text-sm font-black uppercase tracking-wide">PACEMAKER FITTED — REMOVAL REQUIRED</span></div>}
       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
         <div style={{width:"100%",minWidth:0}}>
@@ -1444,7 +1445,7 @@ function PrepBoard({cases,onAction,onUpdateCase}){
                 <button key={c.id} type="button" onClick={()=>open(c)} onPointerDown={e=>startDrag(e,c)} onContextMenu={e=>onUpdateCase&&e.preventDefault()} title={c.caseRef}
                   style={{WebkitUserSelect:"none",userSelect:"none",WebkitTouchCallout:"none"}}
                   className={`block w-full text-left px-2.5 py-1.5 rounded-lg border text-xs font-bold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition ${onUpdateCase?"cursor-grab":""} ${drag?.c.id===c.id||busy===c.id?"opacity-40":""} ${warn?"border-amber-300 bg-white text-amber-900":"border-gray-200 bg-gray-50 text-gray-800"}`}>
-                  <span className="block break-words leading-tight">{(c.lastName||"").toUpperCase()}, {c.firstName}</span>
+                  <span className="block break-words leading-tight">{isInf(c)&&<span className="text-red-600" title="Infectious">☣ </span>}{(c.lastName||"").toUpperCase()}, {c.firstName}</span>
                   <span className="block truncate font-normal opacity-60 text-[11px]">{c.funeralHomeName}</span>
                 </button>))}
             </div>
@@ -1561,6 +1562,7 @@ Valuables: ${r.valuables || "Nil"}
 
 DETAILS OF ${(r.firstName+" "+r.lastName).toUpperCase()}
 Size: ${r.size || "—"} | Weight: ${r.weight || "—"}
+Infectious disease: ${r.prep?.infectious === "Yes" ? "☣ YES — INFECTIOUS" : r.prep?.infectious === "No" ? "No" : "—"}
 ${mccdWarning}
 Please go to the website and enter the 2nd note with preparation instructions when you can.${MSS_FOOTER}`;
 }
@@ -1862,6 +1864,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
     if(!form.dob) e.dob="Required";
     if(!form.dod) e.dod="Required";
     if(!form.sex) e.sex="Required";
+    if(!form.infectious) e.infectious="Please answer Yes or No";
     if(!form.transferFrom) e.transferFrom="Required";
     if(!form.transferDate) e.transferDate="Required";
     if(!isTransfer&&!isFD&&!form.transferredBy) e.transferredBy="Please choose who transferred (company and person)";
@@ -1906,7 +1909,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
       checkedInBy:user.name,checkedInRole:checkinRole,
       checkedInAt:new Date().toISOString(),
       status:part?"part":"active",prepStatus:"not-started",step:1,checkedOut:false,
-      prep:{...(completing?.prep||{}),...(form.transferTime?{transferTime:form.transferTime}:{}),...(partInfo?{partCheckIn:partInfo}:{})},billable:completing?.billable||{},otherUsed:completing?.otherUsed||{},statusItems:completing?.statusItems||{},
+      prep:{...(completing?.prep||{}),infectious:form.infectious||completing?.prep?.infectious||"",...(form.transferTime?{transferTime:form.transferTime}:{}),...(partInfo?{partCheckIn:partInfo}:{})},billable:completing?.billable||{},otherUsed:completing?.otherUsed||{},statusItems:completing?.statusItems||{},
     };
     try {
       if(completing){await updateCase(record.id,caseToDb(record));}
@@ -2192,6 +2195,7 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
             </Field>
             <Field label="WEIGHT (IF KNOWN)">
               <input className={s.inp} placeholder="e.g. 85kg" value={form.weight} onChange={e=>setF("weight",e.target.value)}/>
+            <Field label="Does this deceased have an infectious disease? *"><div className="grid grid-cols-2 gap-2">{["Yes","No"].map(v=><button key={v} type="button" onClick={()=>setF("infectious",v)} className={"py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(form.infectious===v?(v==="Yes"?"bg-red-600 text-white border-red-600":"bg-green-600 text-white border-green-600"):"border-gray-200 text-gray-600 hover:border-gray-400")}>{v==="Yes"?"☣ YES — INFECTIOUS":"NO"}</button>)}</div>{errors.infectious&&<p className="text-red-500 text-xs mt-1">{errors.infectious}</p>}</Field>
             <Field label="Pacemaker Fitted"><button type="button" onClick={()=>setF("pacemaker",!form.pacemaker)} className={"w-full py-3 rounded-xl border-2 font-black text-sm uppercase transition "+(form.pacemaker?"bg-red-600 text-white border-red-600":"border-gray-200 text-gray-600 hover:border-red-400")}>⚠️ {form.pacemaker?"YES — PACEMAKER FITTED":"No Pacemaker"}</button></Field>
             </Field>
           </div>
@@ -2819,7 +2823,7 @@ td{padding:8px 10px;border-bottom:1px solid #eee;font-size:15px;}
   </div>
 </div>
 
-${si.mccd==="infectious"?'<div class="infectious-banner">⚠️ INFECTIOUS CASE — TAKE APPROPRIATE PRECAUTIONS ⚠️</div>':""}
+${isInf({prep,statusItems:si})?'<div class="infectious-banner">⚠️ INFECTIOUS CASE — TAKE APPROPRIATE PRECAUTIONS ⚠️</div>':""}
 
 <div class="name-block">
   <div>
@@ -3152,6 +3156,11 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
       )}
       <PresenceDotInCase caseId={c.id} user={user}/>
+      <div className="flex flex-wrap items-center gap-2 mb-3 rounded-xl px-3 py-2 bg-white border border-gray-200 text-gray-700">
+        <span className="text-xs font-black uppercase tracking-widest text-gray-500 flex-1">Infectious disease?</span>
+        {["Yes","No"].map(v=><button key={v} type="button" onClick={()=>updPrep("infectious",v)} className={"px-4 py-1.5 rounded-lg text-xs font-black uppercase border-2 "+((prep.infectious||"")===v?(v==="Yes"?"bg-red-600 text-white border-red-600":"bg-green-600 text-white border-green-600"):"border-gray-300 text-gray-500 hover:border-gray-500")}>{v==="Yes"?"☣ Yes":"No"}</button>)}
+        {!prep.infectious&&<span className="text-[11px] font-bold text-amber-600">Not answered</span>}
+      </div>
       <div className={s.card}>
         <p className={s.section}>Received — Checklist</p>
         <ChecklistItems c={c} prep={prep} statusItems={statusItems} updStatus={updStatus} updPrep={updPrep}/>
