@@ -5089,6 +5089,9 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
   useEffect(()=>{let live=true;const load=()=>sb("second_notes?select=id,deceased_name,edit_count,accepted_at&accepted_at=is.null&order=submitted_at.desc").then(r=>{if(live)setNewNotes(r||[]);}).catch(()=>{});
     load();const t=setInterval(load,60000);return()=>{live=false;clearInterval(t);};},[]);
   const notesUpd=newNotes.filter(n=>n.edit_count>0).length,notesNew=newNotes.length-notesUpd;
+  // Room bookings (Viewing Room / Family Meeting Room) made in the last 24 hours
+  const newRooms=(calendarBookings||[]).filter(b=>b.booked_at&&new Date(b.booked_at)>=new Date(Date.now()-86400000)).sort((a,b)=>String(a.slot).localeCompare(String(b.slot)));
+  const roomWhen=b=>{const [d,t]=String(b.slot||"").split("_");const dt=d?new Date(d+"T12:00:00"):null;return (dt&&!isNaN(dt)?dt.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"}):"")+(t?" "+t:"");};
   const past24=new Date(now.getTime()-24*60*60*1000);
 
   // All active check ins
@@ -5157,9 +5160,11 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
       {/* Last 24 Hours */}
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard value={newNotes.length} label="New 2nd Notes" color={newNotes.length>0?"red":"gray"} onClick={()=>onAction("secondnotes")}
             sub={newNotes.length>0?`${notesNew} new · ${notesUpd} updated — `+newNotes.slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(newNotes.length>6?" …":""):null}/>
+          <StatCard value={newRooms.length} label="New Room Requests" color={newRooms.length>0?"blue":"gray"} onClick={()=>onAction("calendar")}
+            sub={newRooms.length>0?newRooms.slice(0,4).map(b=>`${b.type==="Family Meeting Room"?"Family Meeting":"Viewing"} ${roomWhen(b)}${b.deceased_label?" — "+b.deceased_label:""}`).join(" · ")+(newRooms.length>4?" …":""):null}/>
           <StatCard value={recentCheckIns.length} label="Active Cases" color="green" onClick={()=>onAction("mortuary")}/>
           <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={recentCheckOuts.length} label="Check Outs" color="blue" onClick={()=>onAction("mycases")}/>
