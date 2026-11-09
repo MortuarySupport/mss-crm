@@ -322,12 +322,14 @@ const card = "bg-white rounded-2xl border border-gray-200 p-4 mb-3";
 // ── Dr Ref (medical referee) request to Certa, shown on cremations ──
 const DR_DOCS = [
   { key: "mccd", label: "MCCD", req: true, re: /mccd/i },
-  { key: "cra", label: "CRA", req: true, re: /(^|[^a-z])cra([^a-z]|$)|cremation risk/i },
+  { key: "cra", label: "CRA (if not part of the MCCD)", req: false, re: /(^|[^a-z])cra([^a-z]|$)|cremation risk/i },
   { key: "aform", label: "Application for Cremation (A-Form)", req: true, re: /a.?form|application for (permission for )?cremation/i },
   { key: "pace", label: "Pacemaker / device removal form", req: false, re: /pacemaker|device removal/i },
 ];
 const isCremation = a => /cremat/i.test(String(a.disposition || ""));
-function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, onResend, canResend }) {
+const BIG = 15 * 1024 * 1024;
+const mb = f => (f.size / 1024 / 1024).toFixed(1) + " MB";
+function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, onResend, canResend, onSaveDocs, busy }) {
   const d = answers._drref;
   const fmt = x => new Date(x).toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
   const wrap = "rounded-2xl border-2 p-4 mb-4 " + (error ? "border-red-400 bg-red-50" : "border-gray-200 bg-white");
@@ -338,7 +340,21 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
       {d.receivedAt
         ? <p className="mt-2 text-sm font-black text-green-700">✓ Dr Ref received {fmt(d.receivedAt)} from {d.receivedBy} · <a className="underline" href={pubUrl(d.receivedPath)} target="_blank" rel="noreferrer">View</a>{d.receivedNote ? <span className="block font-normal text-gray-600">Note: {d.receivedNote}</span> : null}</p>
         : <p className="mt-2 text-sm font-black text-amber-700">⏳ Waiting for the Dr Ref from Certa</p>}
-      {!d.sentAt && canResend && <button type="button" onClick={onResend} className="mt-3 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">Send request to Certa now</button>}
+      {!d.receivedAt && <div className="mt-3 space-y-2">
+        <p className="text-xs font-black uppercase tracking-wide text-gray-500">Documents sent to Certa</p>
+        {DR_DOCS.map(dd => { const have = (d.docs || []).find(x => x.key === dd.key), f = files[dd.key]; return (
+          <div key={dd.key} className="flex flex-wrap items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
+            <span className="flex-1 min-w-[180px] text-sm font-bold">{dd.label}{dd.req ? " *" : ""}
+              <span className="block text-xs font-normal text-gray-500">{f ? <span className="text-blue-700 font-bold">New: {f.name} ({mb(f)}) — will replace</span> : have ? <a className="underline" href={pubUrl(have.path)} target="_blank" rel="noreferrer">📄 {have.name || "View"}</a> : "Not included"}</span>
+              {f && f.size > BIG && <span className="block text-xs font-bold text-amber-700">Large file — it may be too big to attach to the email, but Certa can still open it from their link.</span>}</span>
+            {canResend && <label className="px-3 py-2 rounded-lg border-2 border-gray-900 text-xs font-black uppercase cursor-pointer">{have || f ? "Replace" : "＋ Add"}
+              <input type="file" accept="application/pdf,image/*" className="hidden" onChange={e => { const x = e.target.files[0]; if (x) setFiles(v => ({ ...v, [dd.key]: x })); e.target.value = ""; }} /></label>}
+            {f && <button type="button" onClick={() => setFiles(v => { const n = { ...v }; delete n[dd.key]; return n; })} className="text-xs underline text-gray-500">Undo</button>}
+          </div>); })}
+        {canResend && Object.keys(files).length > 0 && <button type="button" disabled={busy} onClick={onSaveDocs} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase disabled:opacity-60">{busy ? "Saving…" : "Save changes & resend to Certa"}</button>}
+        {canResend && <p className="text-xs text-gray-500">Replace a file that is too large or wrong, then tap Save changes & resend. Certa gets an UPDATED request email.</p>}
+      </div>}
+      {!d.sentAt && canResend && !Object.keys(files).length && <button type="button" onClick={onResend} className="mt-3 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">Send request to Certa now</button>}
     </div>);
   const on = !!answers._drreq;
   const chosen = k => files[k] || null;
@@ -349,11 +365,12 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
       <button type="button" onClick={() => setA("_drreq", !on)} className={"w-full text-left px-4 py-3 rounded-xl border-2 font-black text-sm " + (on ? "bg-gray-900 text-white border-gray-900" : "border-gray-300 text-gray-700")}>
         {on ? "☑" : "☐"} Request a Dr Ref from Certa Medical Referee Services</button>
       {on && <div className="mt-3 space-y-2">
-        <p className="text-xs text-gray-500">Certa is emailed when you submit, with these documents and a secure link to upload the Dr Ref. It comes back into Lumière and you are emailed. * required</p>
+        <p className="text-xs text-gray-500">Certa is emailed when you submit, with these documents and a secure link to upload the Dr Ref. It comes back into Lumière and you are emailed. * required. The CRA is often part of the MCCD; only add it if it's a separate document.</p>
         {DR_DOCS.map(dd => { const f = chosen(dd.key), have = onFile(dd); return (
           <div key={dd.key} className={"flex flex-wrap items-center gap-2 border rounded-xl px-3 py-2 " + (error && dd.req && !f && !have ? "border-red-400" : "border-gray-200")}>
-            <span className="flex-1 min-w-[180px] text-sm font-bold">{dd.label}{dd.req ? " *" : " (if applicable)"}
-              <span className="block text-xs font-normal text-gray-500">{f ? "📄 " + f.name : have ? "✓ On file: " + have.name : "Not uploaded"}</span></span>
+            <span className="flex-1 min-w-[180px] text-sm font-bold">{dd.label}{dd.req ? " *" : dd.label.includes("(") ? "" : " (if applicable)"}
+              <span className="block text-xs font-normal text-gray-500">{f ? "📄 " + f.name + " (" + mb(f) + ")" : have ? "✓ On file: " + have.name : "Not uploaded"}</span>
+              {f && f.size > BIG && <span className="block text-xs font-bold text-amber-700">Large file — it may be too big to attach to the email, but Certa can still open it from their link.</span>}</span>
             <label className="px-3 py-2 rounded-lg border-2 border-gray-900 text-xs font-black uppercase cursor-pointer">{f || have ? "Upload different" : "⬆ Upload"}
               <input type="file" accept="application/pdf,image/*" className="hidden" onChange={e => { const x = e.target.files[0]; if (x) setFiles(v => ({ ...v, [dd.key]: x })); }} /></label>
             {f && <button type="button" onClick={() => setFiles(v => { const n = { ...v }; delete n[dd.key]; return n; })} className="text-xs underline text-gray-500">Remove</button>}
@@ -401,25 +418,46 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     const docs = [];
     for (const dd of DR_DOCS) {
       const f = drFiles[dd.key], have = caseDocs.find(c => dd.re.test(c.name || ""));
-      if (f) {
-        const ext = (f.name.split(".").pop() || "pdf").toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
-        const path = `drref/${noteId}/${dd.key}_${Date.now()}.${ext}`;
-        const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": f.type || "application/octet-stream", "x-upsert": "true" }, body: f });
-        if (!r.ok) throw new Error(dd.label + " upload failed: " + (await r.text()));
-        docs.push({ key: dd.key, label: dd.label, path, name: f.name });
-      } else if (have) docs.push({ key: dd.key, label: dd.label, path: have.path, name: have.name });
+      if (f) docs.push(await uploadDrFile(noteId, dd, f));
+      else if (have) docs.push({ key: dd.key, label: dd.label, path: have.path, name: have.name });
     }
     const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, "0")).join("");
     a._drref = { token, requestedAt: new Date().toISOString(), requestedBy: `${user?.name || ""}${fhName ? " (" + fhName + ")" : ""}`, docs };
-    drSend.current = noteId;
+    drSend.current = noteId; setDrFiles({});
     return a;
   }
-  async function sendDrRef(noteId, quiet) {
+  async function uploadDrFile(noteId, dd, f) {
+    const ext = (f.name.split(".").pop() || "pdf").toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+    const path = `drref/${noteId}/${dd.key}_${Date.now()}.${ext}`;
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": f.type || "application/octet-stream", "x-upsert": "true" }, body: f });
+    if (!r.ok) throw new Error(dd.label + " upload failed (" + r.status + "). If the file is very large, try a smaller scan or PDF.");
+    return { key: dd.key, label: dd.label, path, name: f.name };
+  }
+  // Replace / add Dr Ref documents after the request was made, then send Certa an updated request
+  const [drBusy, setDrBusy] = useState(false);
+  async function saveDrDocs() {
+    if (!editing) return;
+    setDrBusy(true);
     try {
-      const r = await fetch("/api/drref", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "request", noteId }) });
+      const fresh = (await sb(`second_notes?select=answers&id=eq.${editing.id}`))?.[0]?.answers || {};
+      const d = fresh._drref; if (!d?.token) throw new Error("No Dr Ref request on this 2nd Note");
+      if (d.receivedAt) throw new Error("The Dr Ref has already been received");
+      const docs = [...(d.docs || [])];
+      for (const dd of DR_DOCS) { const f = drFiles[dd.key]; if (!f) continue; const item = await uploadDrFile(editing.id, dd, f); const i = docs.findIndex(x => x.key === dd.key); if (i >= 0) docs[i] = item; else docs.push(item); }
+      const _drref = { ...d, docs, docsUpdatedAt: new Date().toISOString(), docsUpdatedBy: user?.name || "" };
+      await sb(`second_notes?id=eq.${editing.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...fresh, _drref } }) });
+      setAnswers(a => ({ ...a, _drref })); setDrFiles({});
+      await sendDrRef(editing.id, false, true);
+      loadNotes();
+    } catch (e) { alert("Couldn't update the Dr Ref documents: " + e.message); }
+    setDrBusy(false);
+  }
+  async function sendDrRef(noteId, quiet, resend) {
+    try {
+      const r = await fetch("/api/drref", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "request", noteId, resend: !!resend }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || r.status);
-      if (!quiet) alert("✓ Dr Ref request emailed to Certa. You'll be emailed when the Dr Ref comes back.");
+      if (!quiet) alert(resend ? "✓ Updated Dr Ref request emailed to Certa." : "✓ Dr Ref request emailed to Certa. You'll be emailed when the Dr Ref comes back.");
       return true;
     } catch (e) { alert("The 2nd Note is saved, but the Dr Ref request couldn't be emailed to Certa (" + e.message + "). Open the 2nd Note and tap 'Send request to Certa now', or call MSS."); return false; }
   }
@@ -476,6 +514,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     setAnswers({ arrangedBy: pre }); setCaseId(""); setErrors({}); setDone(null); setEditing(null); setView("form");
   }
   function startEdit(note) {
+    setDrFiles({});
     const a = { ...(note.answers || {}) };
     // Older notes stored one "deceasedName" - split it into the first/last name fields
     if (!a.firstName && !a.lastName && (a.deceasedName || note.deceased_name)) {
@@ -848,7 +887,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
         <NamePlateEditor value={answers._plate||defaultPlate(answers)} onChange={val=>setA("_plate",val)} person={answers}/>
       </div>
       {(isCremation(answers) || answers._drref?.token) && <DrRefCard answers={answers} setA={setA} files={drFiles} setFiles={setDrFiles} caseDocs={caseDocs} error={errors._drref} pubUrl={pubUrl}
-        canResend={!!editing} onResend={async () => { if (await sendDrRef(editing.id)) { const r = await sb(`second_notes?select=answers&id=eq.${editing.id}`); if (r?.[0]) setAnswers(a => ({ ...a, _drref: r[0].answers._drref })); loadNotes(); } }}/>}
+        canResend={!!editing} onSaveDocs={saveDrDocs} busy={drBusy} onResend={async () => { if (await sendDrRef(editing.id)) { const r = await sb(`second_notes?select=answers&id=eq.${editing.id}`); if (r?.[0]) setAnswers(a => ({ ...a, _drref: r[0].answers._drref })); loadNotes(); } }}/>}
       <button disabled={busy} onClick={submit} className={btn + " w-full bg-gray-900 text-white border-gray-900 disabled:opacity-50"}>{busy ? "Submitting…" : editing ? "Submit changes" : "Submit 2nd Note"}</button>
     </div>
   );
