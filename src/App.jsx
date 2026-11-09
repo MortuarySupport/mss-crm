@@ -841,11 +841,46 @@ table{flex:1;border-collapse:collapse;font-size:12.5pt;align-self:stretch}td{bor
 </div>
 ${isInf(c)?'<div class="pace" style="background:#dc2626">☣ INFECTIOUS — TAKE PRECAUTIONS</div>':""}${pace?'<div class="pace">⚠ PACEMAKER FITTED</div>':""}
 </div>`).join("")}</body></html>`;
+  // Android: Chrome can't see the Munbyn, so build a PDF and share it to the Munbyn Print app
+  if(/Android/i.test(navigator.userAgent)&&navigator.canShare){shareLabelPdf(html,`${String(c.caseRef||"label").replace(/[^a-z0-9-]+/gi,"_")}.pdf`);return;}
   const fr=document.createElement("iframe");
   fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr);
   fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(err){const w=window.open("","_blank");if(w){w.document.write(html);w.document.close();w.focus();w.print();}}setTimeout(()=>fr.remove(),60000);},250);};
   fr.srcdoc=html;
+}
+// Renders each 6x4 label, rotates it to 4x6 portrait (how the Munbyn feeds), one PDF page per label
+async function shareLabelPdf(html,fileName){
+  const fr=document.createElement("iframe");
+  fr.style.cssText="position:fixed;left:-10000px;top:0;width:6in;height:8in;border:0";
+  document.body.appendChild(fr);
+  try{
+    await new Promise(r=>{fr.onload=r;fr.srcdoc=html;});
+    await new Promise(r=>setTimeout(r,150));
+    const [{jsPDF},{default:html2canvas}]=await Promise.all([import("jspdf"),import("html2canvas")]);
+    const pdf=new jsPDF({orientation:"portrait",unit:"in",format:[4,6]});
+    const labs=[...fr.contentDocument.querySelectorAll(".lab")];
+    for(let i=0;i<labs.length;i++){
+      const src=await html2canvas(labs[i],{scale:3,backgroundColor:"#ffffff"});
+      const rot=document.createElement("canvas");rot.width=src.height;rot.height=src.width;
+      const g=rot.getContext("2d");g.translate(rot.width,0);g.rotate(Math.PI/2);g.drawImage(src,0,0);
+      if(i>0)pdf.addPage([4,6],"portrait");
+      pdf.addImage(rot.toDataURL("image/png"),"PNG",0,0,4,6);
+    }
+    const file=new File([pdf.output("blob")],fileName,{type:"application/pdf"});
+    const share=()=>navigator.share({files:[file],title:fileName}).catch(err=>{if(err.name!=="AbortError")alert("Couldn't share label: "+err.message);});
+    try{await navigator.share({files:[file],title:fileName});}
+    catch(err){
+      if(err.name==="AbortError")return;
+      // Tap expired while the PDF was being built — ask for one more tap
+      const b=document.createElement("button");
+      b.textContent="🏷️ Send label to Munbyn Print";
+      b.style.cssText="position:fixed;inset:auto 16px 24px 16px;z-index:99999;padding:20px;font-size:18px;font-weight:900;border-radius:16px;background:#111;color:#fff;border:0";
+      b.onclick=()=>{b.remove();share();};
+      document.body.appendChild(b);
+    }
+  }catch(err){alert("Couldn't create label PDF: "+err.message);}
+  finally{fr.remove();}
 }
 // ─── DOCUMENT SECTION ─────────────────────────────────────────────────────────
 const DOC_LABELS = ["MCCD","VOD","BO","LE","CRA","DR REF","PHOTO","OTHER"];
