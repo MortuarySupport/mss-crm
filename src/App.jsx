@@ -848,7 +848,7 @@ ${isInf(c)?'<div class="pace" style="background:#dc2626">☣ INFECTIOUS — TAKE
   fr.srcdoc=html;
 }
 // ─── DOCUMENT SECTION ─────────────────────────────────────────────────────────
-const DOC_LABELS = ["MCCD","VOD","BO","LE","CRA","PHOTO","OTHER"];
+const DOC_LABELS = ["MCCD","VOD","BO","LE","CRA","DR REF","PHOTO","OTHER"];
 
 function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt, backupFolder}){
   const [viewingDoc,setViewingDoc]=useState(null);
@@ -860,8 +860,11 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt
   const[label,setLabel]=useState("MCCD");
   const[viewingCert,setViewingCert]=useState(null);
   const[scanOpen,setScanOpen]=useState(false);
+  const[drRefs,setDrRefs]=useState([]);
 
   useEffect(()=>{loadDocs();},[caseId]);
+  // Dr Ref requests on this case's 2nd Notes (requested / received from Certa)
+  useEffect(()=>{if(!caseId)return;fetch(SUPABASE_URL+"/rest/v1/second_notes?select=id,answers&case_id=eq."+caseId+"&answers->_drref->>token=not.is.null",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}}).then(r=>r.json()).then(r=>setDrRefs(Array.isArray(r)?r.map(n=>({...n.answers._drref,_id:n.id})):[])).catch(()=>{});},[caseId]);
 
   async function loadDocs(){
     setLoading(true);
@@ -967,6 +970,19 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt
         :<p className="text-xs font-bold text-gray-400 uppercase text-center py-3">No documents attached</p>)}
 
       <div className="space-y-2">
+        {drRefs.map((d,i)=>(
+          <div key={"dr"+i} className={"flex items-center gap-3 rounded-xl p-3 border "+(d.receivedAt?"bg-green-50 border-green-200":"bg-blue-50 border-blue-200")}>
+            <div className="text-2xl flex-shrink-0">{d.receivedAt?"✅":"⏳"}</div>
+            <div className="flex-1 min-w-0">
+              <div className={"text-sm font-black uppercase "+(d.receivedAt?"text-green-900":"text-blue-900")}>{d.receivedAt?"DR REF RECEIVED (CERTA)":"DR REF REQUESTED — AWAITING CERTA"}</div>
+              <div className={"text-xs font-bold "+(d.receivedAt?"text-green-700":"text-blue-700")}>{d.receivedAt?`${d.receivedBy||""} · ${new Date(d.receivedAt).toLocaleString("en-AU",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"})}${d.receivedNote?" · “"+d.receivedNote+"”":""}`:`Requested ${new Date(d.requestedAt).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}${d.requestedBy?" by "+d.requestedBy:""}`}</div>
+            </div>
+            {d.receivedAt&&<a href={getDocumentUrl(String(d.receivedPath).split("/").map(encodeURIComponent).join("/"))} target="_blank" rel="noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-black uppercase transition">VIEW</a>}
+            {d.receivedAt&&<button onClick={()=>resendDrRefToFD(d._id,funeralHomeName)}
+              className="px-3 py-1.5 rounded-lg border-2 border-green-700 text-green-800 hover:bg-green-100 text-xs font-black uppercase transition">✉ RESEND TO FD</button>}
+          </div>
+        ))}
         {paceCerts.map(cert=>(
           <div key={cert.id} className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
             <div className="text-2xl flex-shrink-0">💛</div>
@@ -3996,8 +4012,14 @@ function applyCustomItem(r){
 }
 async function loadPrices(){try{let rows;try{rows=await sb("price_list?select=code,price,label,section,qty,hidden");}catch(e){rows=await sb("price_list?select=code,price");}
   (rows||[]).forEach(r=>{if(r.code&&r.price!==null&&!isNaN(Number(r.price)))PRICE_LIST[r.code]=Number(r.price);applyCustomItem(r);});return true;}catch(e){return false;}}
+// Emails a received Dr Ref to the funeral director's contacts only (not info@)
+async function resendDrRefToFD(noteId,fhName,by){
+  if(!window.confirm("Email this Dr Ref to "+(fhName||"the funeral director")+" again?"))return;
+  try{const r=await fetch("/api/drref",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"resend",noteId,by})});const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||r.status);alert("✓ Dr Ref sent to "+j.to.join(", "));}catch(e){alert("Couldn't send: "+e.message);}
+}
 // All Dr Ref requests and the Dr Refs uploaded by Certa, searchable
-function DrRefsView({onBack}){
+function DrRefsView({onBack,user}){
   const [rows,setRows]=useState(null);const [q,setQ]=useState("");const [tab,setTab]=useState("received");
   useEffect(()=>{sb("second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=1000")
     .then(r=>setRows((r||[]).map(n=>({...n,d:n.answers._drref})).sort((a,b)=>String(b.d.receivedAt||b.d.requestedAt).localeCompare(String(a.d.receivedAt||a.d.requestedAt))))).catch(()=>setRows([]));},[]);
@@ -4025,7 +4047,8 @@ function DrRefsView({onBack}){
               ?<div className="text-xs font-bold text-green-700 mt-0.5">✓ Received {when(n.d.receivedAt)} from {n.d.receivedBy}{n.d.receivedNote?<span className="block font-normal italic text-gray-600">“{n.d.receivedNote}”</span>:null}</div>
               :<div className="text-xs font-bold text-blue-700 mt-0.5">⏳ Awaiting Certa{n.d.sentAt?"":" — request not emailed yet"}</div>}
           </div>
-          {n.d.receivedAt&&<a href={url(n.d.receivedPath)} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase">📄 View Dr Ref</a>}
+          {n.d.receivedAt&&<div className="flex flex-col gap-2"><a href={url(n.d.receivedPath)} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase text-center">📄 View Dr Ref</a>
+            <button onClick={()=>resendDrRefToFD(n.id,n.funeral_home_name,user?.name)} className="px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-xs uppercase">✉ Resend to FD</button></div>}
         </div>))}</div>}
     </div>);
 }
@@ -6892,7 +6915,7 @@ export default function App() {
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard"&&(isAdmin||user?.role==="mss")) return wrap(<AdminDashboard user={user} isAdmin={isAdmin} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
-  if(action==="drrefs"&&(isAdmin||user?.role==="mss")) return wrap(<DrRefsView onBack={()=>setAction(null)}/>);
+  if(action==="drrefs"&&(isAdmin||user?.role==="mss")) return wrap(<DrRefsView user={user} onBack={()=>setAction(null)}/>);
   if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);

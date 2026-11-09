@@ -387,7 +387,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const [caseDocs, setCaseDocs] = useState([]);
   const drSend = useRef(null);
   useEffect(() => { setDrFiles({}); if (!caseId || caseId === "none") { setCaseDocs([]); return; }
-    sb(`case_documents?select=name,path&case_id=eq.${caseId}&order=uploaded_at.desc`).then(r => setCaseDocs(r || [])).catch(() => setCaseDocs([])); }, [caseId]);
+    fetch(`${SUPABASE_URL}/storage/v1/object/list/${STORAGE_BUCKET}`, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ prefix: `${caseId}/`, limit: 100, sortBy: { column: "created_at", order: "desc" } }) })
+      .then(r => r.json()).then(l => setCaseDocs((Array.isArray(l) ? l : []).filter(f => f.name && !f.name.endsWith("/")).map(f => ({ name: f.name.replace(/^\d+_/, "").replace(/_/g, " "), path: `${caseId}/${f.name}` })))).catch(() => setCaseDocs([])); }, [caseId]);
   const pubUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p || "").split("/").map(encodeURIComponent).join("/")}`;
   function drMissing(a) {
     if (!a._drreq || a._drref?.token || !isCremation(a)) return [];
@@ -622,7 +623,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       if (note.pdf_path && note.pdf_path !== path) await removePdf(note.pdf_path);
       const conflicts = await applyToCase(c, note.answers, note.id, frm, note.funeral_home_name);
       const dr = note.answers?._drref;
-      if (dr?.receivedPath) await sb("case_documents", { method: "POST", body: JSON.stringify({ case_id: c.id, name: `Dr Ref – ${note.answers.lastName || ""}.${dr.receivedPath.split(".").pop()}`, path: dr.receivedPath, uploaded_at: new Date().toISOString() }) }).catch(() => {});
+      if (dr?.receivedPath) await fetch(`${SUPABASE_URL}/storage/v1/object/copy`, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ bucketId: STORAGE_BUCKET, sourceKey: dr.receivedPath, destinationKey: `${c.id}/${Date.now()}_DR_REF.${dr.receivedPath.split(".").pop()}` }) }).catch(() => {});
       logActivity(user, "2ND NOTE LINKED", `${note.deceased_name} → ${c.caseRef}`, c.caseRef, c.id);
       if (!isFD && !note.accepted_at) printPdf(bytes, win);
       alert(`Linked to ${c.caseRef}. Job Card updated.` + (conflicts.length ? `\n\nNot applied (already set):\n• ${conflicts.join("\n• ")}` : ""));

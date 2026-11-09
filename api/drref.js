@@ -80,12 +80,25 @@ export default async function handler(req, res) {
       const now = new Date().toISOString();
       const answers = { ...a, _drref: { ...d, receivedAt: now, receivedBy: doctor, receivedNote: note, receivedPath: path, receivedName: String(b.filename || "Dr Ref").slice(0, 150) } };
       await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) });
-      if (n.case_id) await sb("case_documents", { method: "POST", prefer: "return=minimal", body: JSON.stringify({ case_id: n.case_id, name: `Dr Ref – ${a.lastName || ""}.${path.split(".").pop()}`, path, size: Number(head.headers.get("content-length")) || null, uploaded_at: now }) }).catch(() => {});
+      if (n.case_id) await fetch(`${SUPABASE_URL}/storage/v1/object/copy`, { method: "POST", headers: H, body: JSON.stringify({ bucketId: BUCKET, sourceKey: path, destinationKey: `${n.case_id}/${Date.now()}_DR_REF.${path.split(".").pop()}` }) }).catch(() => {});
       const fh = FUNERAL_HOMES.find(f => f.id === n.funeral_home_id) || {};
       const to = [...new Set([INFO, ...(fh.contacts || [])])];
       const text = `Hi ${n.funeral_home_name} Team,\n\nThe Dr Ref for ${nameOf(a)}${n.case_ref ? " (" + n.case_ref + ")" : ""} has been received from ${DRREF_NAME}.\n\nUploaded by: ${doctor} on ${when(now)}${note ? "\nNote: " + note : ""}\n\nThe Dr Ref is attached${n.case_id ? " and saved to the case documents in Lumière" : ""}.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\n${INFO}`;
       await send({ to, subject: `Dr Ref received – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: [{ filename: `Dr Ref – ${a.lastName || "deceased"}.${path.split(".").pop()}`, path: pub(path) }] }).catch(() => {});
       return res.status(200).json({ ok: true, name: title(a), caseRef: n.case_ref || "", at: when(now) });
+    }
+    if (b.action === "resend") {
+      const n = await noteBy(`id=eq.${encodeURIComponent(b.noteId || "")}`);
+      const a = n?.answers || {}, d = a._drref || {};
+      if (!d.receivedPath) return res.status(400).json({ error: "No Dr Ref has been received for this deceased yet." });
+      const fh = FUNERAL_HOMES.find(f => f.id === n.funeral_home_id) || {};
+      const to = [...new Set(fh.contacts || [])];
+      if (!to.length) return res.status(400).json({ error: "No email address is set up for " + (n.funeral_home_name || "this funeral home") + "." });
+      const text = `Hi ${n.funeral_home_name} Team,\n\nAs requested, here is the Dr Ref for ${nameOf(a)}${n.case_ref ? " (" + n.case_ref + ")" : ""}.\n\nReceived from ${DRREF_NAME} (${d.receivedBy || "medical referee"}) on ${when(d.receivedAt)}.\n\nAny questions please contact us.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\n${INFO}`;
+      await send({ to, subject: `Dr Ref – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: [{ filename: `Dr Ref – ${a.lastName || "deceased"}.${d.receivedPath.split(".").pop()}`, path: pub(d.receivedPath) }] });
+      const answers = { ...a, _drref: { ...d, resent: [...(d.resent || []), { at: new Date().toISOString(), by: String(b.by || "").slice(0, 80), to }] } };
+      await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) }).catch(() => {});
+      return res.status(200).json({ ok: true, to });
     }
     return res.status(400).json({ error: "Unknown action" });
   } catch (e) { return res.status(500).json({ error: String(e.message || e).slice(0, 300) }); }
