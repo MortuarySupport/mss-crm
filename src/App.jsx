@@ -1497,7 +1497,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
             {items.map(([a,l,x])=>(<button key={a} onClick={()=>onAction(a)} className={s.btnLg.replace("text-sm","text-[11px] sm:text-sm")+" flex-1 min-w-0 px-1 break-words "+(x||"")}>{l}</button>))}</div>);
           return <>
             {staffRow([["dashboard","📊 DASHBOARD","bg-green-600 hover:bg-green-700"],["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"]])}
-            {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"]],"66.6%")}
+            {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"],["drrefs","📄 DR REFS"]])}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
             <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction} onUpdateCase={onUpdateCase}/></div>
@@ -1523,6 +1523,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         <button onClick={()=>onAction("vehiclelog")} className={s.btnLg}>🚗 VEHICLE LOG</button>
         <button onClick={()=>onAction("nameplates")} className={s.btnLg}>🪧 NAME PLATES</button>
         <button onClick={()=>onAction("prices")} className={s.btnLg}>💲 PRICE LIST</button>
+        <button onClick={()=>onAction("drrefs")} className={s.btnLg}>📄 DR REFS</button>
       </div>}
 
     </div>
@@ -3995,6 +3996,39 @@ function applyCustomItem(r){
 }
 async function loadPrices(){try{let rows;try{rows=await sb("price_list?select=code,price,label,section,qty,hidden");}catch(e){rows=await sb("price_list?select=code,price");}
   (rows||[]).forEach(r=>{if(r.code&&r.price!==null&&!isNaN(Number(r.price)))PRICE_LIST[r.code]=Number(r.price);applyCustomItem(r);});return true;}catch(e){return false;}}
+// All Dr Ref requests and the Dr Refs uploaded by Certa, searchable
+function DrRefsView({onBack}){
+  const [rows,setRows]=useState(null);const [q,setQ]=useState("");const [tab,setTab]=useState("received");
+  useEffect(()=>{sb("second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=1000")
+    .then(r=>setRows((r||[]).map(n=>({...n,d:n.answers._drref})).sort((a,b)=>String(b.d.receivedAt||b.d.requestedAt).localeCompare(String(a.d.receivedAt||a.d.requestedAt))))).catch(()=>setRows([]));},[]);
+  const url=p=>`${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p||"").split("/").map(encodeURIComponent).join("/")}`;
+  const when=x=>x?new Date(x).toLocaleString("en-AU",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"}):"";
+  const all=rows||[];const rec=all.filter(n=>n.d.receivedAt),wait=all.filter(n=>!n.d.receivedAt);
+  const words=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const list=(tab==="received"?rec:tab==="waiting"?wait:all).filter(n=>{const hay=[n.deceased_name,n.answers?.firstName,n.answers?.lastName,n.case_ref,n.funeral_home_name,n.d.receivedBy].join(" ").toLowerCase();return words.every(w=>hay.includes(w));});
+  const tb=(k,l,n)=><button onClick={()=>setTab(k)} className={"flex-1 py-3 rounded-xl border-2 font-black text-xs uppercase "+(tab===k?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-400")}>{l} ({n})</button>;
+  return(
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      <button onClick={onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
+      <h1 className="text-2xl font-black mb-1">📄 Dr Refs</h1>
+      <p className="text-sm text-gray-500 mb-4">Every Dr Ref requested from Certa through Lumière, and the Dr Refs they uploaded. Dr Refs attached by hand to a case are in that case's Documents.</p>
+      <div className="flex gap-2 mb-3">{tb("received","Received",rec.length)}{tb("waiting","Awaiting Certa",wait.length)}{tb("all","All",all.length)}</div>
+      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by name, case number, funeral home or doctor…" className="w-full mb-3 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-gray-900 outline-none font-bold"/>
+      {rows===null?<p className="text-center text-gray-400 py-10 font-bold">Loading…</p>:list.length===0?<p className="text-center text-gray-400 py-10 font-bold">{q?"No Dr Refs match your search.":"Nothing here yet."}</p>:
+      <div className="space-y-2">{list.map(n=>(
+        <div key={n.id} className={"bg-white border rounded-2xl p-4 flex flex-wrap items-center gap-3 "+(n.d.receivedAt?"border-gray-200":"border-blue-200")}>
+          <div className="flex-1 min-w-[220px]">
+            <div className="font-black">{n.answers?.lastName?`${String(n.answers.lastName).toUpperCase()}, ${n.answers.firstName||""}`:(n.deceased_name||"—")}</div>
+            <div className="text-xs text-gray-500">{n.case_ref||"Not yet in care"} · {n.funeral_home_name}</div>
+            <div className="text-xs text-gray-600 mt-1">Requested {when(n.d.requestedAt)}{n.d.requestedBy?" by "+n.d.requestedBy:""}</div>
+            {n.d.receivedAt
+              ?<div className="text-xs font-bold text-green-700 mt-0.5">✓ Received {when(n.d.receivedAt)} from {n.d.receivedBy}{n.d.receivedNote?<span className="block font-normal italic text-gray-600">“{n.d.receivedNote}”</span>:null}</div>
+              :<div className="text-xs font-bold text-blue-700 mt-0.5">⏳ Awaiting Certa{n.d.sentAt?"":" — request not emailed yet"}</div>}
+          </div>
+          {n.d.receivedAt&&<a href={url(n.d.receivedPath)} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase">📄 View Dr Ref</a>}
+        </div>))}</div>}
+    </div>);
+}
 function PriceListView({user,onBack}){
   const [vals,setVals]=useState(()=>Object.fromEntries(Object.keys(PRICE_LIST).map(k=>[k,String(PRICE_LIST[k])])));
   const [q,setQ]=useState("");const [saving,setSaving]=useState(false);const [msg,setMsg]=useState("");const [ready,setReady]=useState(null);
@@ -6858,6 +6892,7 @@ export default function App() {
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard"&&(isAdmin||user?.role==="mss")) return wrap(<AdminDashboard user={user} isAdmin={isAdmin} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
+  if(action==="drrefs"&&(isAdmin||user?.role==="mss")) return wrap(<DrRefsView onBack={()=>setAction(null)}/>);
   if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
