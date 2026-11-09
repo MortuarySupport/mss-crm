@@ -1,1 +1,13 @@
-{ "functions": { "api/read-document.js": { "maxDuration": 60 }, "api/send-email.js": { "maxDuration": 15 } } }
+{
+ "functions": {
+  "api/read-document.js": {
+   "maxDuration": 60
+  },
+  "api/send-email.js": {
+   "maxDuration": 15
+  },
+  "api/drref.js": {
+   "maxDuration": 30
+  }
+ }
+}

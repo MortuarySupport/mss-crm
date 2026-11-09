@@ -1,0 +1,92 @@
+// Dr Ref (medical referee) requests to Certa, and the secure upload link they use to send the Dr Ref back.
+//   POST {action:"request", noteId}           -> emails Certa the request (once per note)
+//   GET  ?t=TOKEN                              -> details + documents for the upload page
+//   POST {action:"complete", t, path, filename, doctor, note} -> files the Dr Ref and tells the FD + MSS
+import FUNERAL_HOMES from "./_funeralHomes.js";
+const SUPABASE_URL = "https://qhazwfbhbelpcfwczjdb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYXp3ZmJoYmVscGNmd2N6amRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODQ1MTEsImV4cCI6MjA5NjQ2MDUxMX0.2xg7Kj56r7n_x2nZxbttqZU6Rly6ZSSnpuequpyihBo";
+const BUCKET = "Case-documents";
+const DRREF_TO = process.env.DRREF_TO || "cases@certamedical.com.au";
+const DRREF_NAME = "Certa Medical Referee Services";
+const INFO = "info@mortuarysupport.com.au";
+const TZ = "Australia/Sydney";
+const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" };
+const sb = async (p, o = {}) => { const r = await fetch(`${SUPABASE_URL}/rest/v1/${p}`, { ...o, headers: { ...H, ...(o.prefer ? { Prefer: o.prefer } : {}) } }); if (!r.ok) throw new Error(await r.text()); const t = await r.text(); return t ? JSON.parse(t) : null; };
+const pub = p => `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${p.split("/").map(encodeURIComponent).join("/")}`;
+const longDate = s => { if (!s) return "—"; const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return y ? new Date(Date.UTC(y, m - 1, d, 2)).toLocaleDateString("en-AU", { timeZone: TZ, day: "numeric", month: "long", year: "numeric" }) : s; };
+const when = s => new Date(s).toLocaleString("en-AU", { timeZone: TZ, day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const nameOf = a => a.deceasedName || [a.firstName, a.lastName].filter(Boolean).join(" ");
+const title = a => `${String(a.lastName || "").toUpperCase()}, ${a.firstName || ""}`.trim();
+
+async function send(msg) {
+  const key = process.env.RESEND_API_KEY, from = process.env.EMAIL_FROM;
+  if (!key || !from) throw new Error("Email not set up");
+  const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, reply_to: INFO, ...msg }) });
+  if (!r.ok) throw new Error("Email failed: " + (await r.text()).slice(0, 200));
+}
+async function noteBy(q) { const rows = await sb(`second_notes?select=*&${q}&limit=1`); return rows && rows[0]; }
+
+export default async function handler(req, res) {
+  try {
+    const base = process.env.APP_URL || `https://${req.headers.host}`;
+    if (req.method === "GET") {
+      const t = String(req.query?.t || "");
+      if (!/^[a-f0-9]{48}$/.test(t)) return res.status(404).json({ error: "This link is not valid." });
+      const n = await noteBy(`answers->_drref->>token=eq.${t}`);
+      if (!n) return res.status(404).json({ error: "This link is not valid." });
+      const a = n.answers || {}, d = a._drref || {};
+      return res.status(200).json({
+        name: title(a), dob: longDate(a.dob), dod: longDate(a.dod), caseRef: n.case_ref || "", fh: n.funeral_home_name || "",
+        requestedAt: d.requestedAt ? when(d.requestedAt) : "", received: !!d.receivedAt, receivedAt: d.receivedAt ? when(d.receivedAt) : "",
+        uploadDir: `drref/${n.id}`, docs: (d.docs || []).map(x => ({ label: x.label, url: pub(x.path) })),
+      });
+    }
+    if (req.method !== "POST") return res.status(405).end();
+    const b = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+
+    if (b.action === "request") {
+      const n = await noteBy(`id=eq.${encodeURIComponent(b.noteId || "")}`);
+      const a = n?.answers || {}, d = a._drref;
+      if (!d?.token) return res.status(400).json({ error: "No Dr Ref request on this 2nd Note" });
+      if (d.sentAt && !b.resend) return res.status(200).json({ ok: true, already: true });
+      const fh = FUNERAL_HOMES.find(f => f.id === n.funeral_home_id) || {};
+      const link = `${base}/?drref=${d.token}`;
+      const rows = [["Deceased", `<b>${esc(nameOf(a))}</b>`], ["Date of birth", longDate(a.dob)], ["Date of death", longDate(a.dod)], ["Case number", esc(n.case_ref || "Not yet in MSS care")], ["Funeral director", esc(n.funeral_home_name + (fh.phone ? " · " + fh.phone : ""))], ["Requested by", esc(d.requestedBy || "")]];
+      const html = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#111827"><p>Dear Doctor,</p><p>A Dr Ref (medical referee's certificate) is requested for the cremation of:</p>
+<table style="border-collapse:collapse;margin-bottom:14px">${rows.map(([k, v]) => `<tr><td style="padding:3px 18px 3px 0;color:#6b7280">${k}</td><td>${v}</td></tr>`).join("")}</table>
+<p>The ${d.docs.map(x => esc(x.label)).join(", ")} are attached. When your Dr Ref is complete, please upload it using the button below — it goes straight into the deceased's file.</p>
+<p style="margin:22px 0"><a href="${link}" style="background:#111827;color:#fff;text-decoration:none;font-weight:800;padding:14px 22px;border-radius:10px;display:inline-block">⬆ UPLOAD DR REF</a></p>
+<p style="font-size:12px;color:#6b7280">This link is only for this deceased; please don't forward it. Questions: reply to this email or call MSS on 02 8814 5500.<br>${link}</p><p>The Team at Mortuary Support | Lumière</p></div>`;
+      const text = `Dear Doctor,\n\nA Dr Ref is requested for the cremation of ${nameOf(a)} (born ${longDate(a.dob)}, died ${longDate(a.dod)}), case ${n.case_ref || "not yet in MSS care"}, funeral director ${n.funeral_home_name}.\n\nDocuments attached: ${d.docs.map(x => x.label).join(", ")}.\n\nUpload your Dr Ref here (this deceased only): ${link}\n\nQuestions: reply to this email or call MSS on 02 8814 5500.\n\nThe Team at Mortuary Support | Lumière`;
+      await send({ to: [DRREF_TO], subject: `Dr Ref request – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, html, text, attachments: d.docs.map(x => ({ filename: `${x.label} – ${a.lastName || "deceased"}.${(x.path.split(".").pop() || "pdf")}`, path: pub(x.path) })) });
+      const answers = { ...a, _drref: { ...d, sentAt: new Date().toISOString(), sentTo: DRREF_TO } };
+      await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) });
+      return res.status(200).json({ ok: true, to: DRREF_NAME });
+    }
+
+    if (b.action === "complete") {
+      const t = String(b.t || "");
+      if (!/^[a-f0-9]{48}$/.test(t)) return res.status(404).json({ error: "This link is not valid." });
+      const n = await noteBy(`answers->_drref->>token=eq.${t}`);
+      if (!n) return res.status(404).json({ error: "This link is not valid." });
+      const a = n.answers || {}, d = a._drref || {};
+      if (d.receivedAt) return res.status(409).json({ error: "This link has already been used." });
+      const path = String(b.path || ""), doctor = String(b.doctor || "").trim().slice(0, 120), note = String(b.note || "").trim().slice(0, 500);
+      if (!path.startsWith(`drref/${n.id}/`) || path.includes("..")) return res.status(400).json({ error: "Upload not found." });
+      if (!doctor) return res.status(400).json({ error: "Please type your name." });
+      const head = await fetch(pub(path), { method: "HEAD" });
+      if (!head.ok) return res.status(400).json({ error: "The file didn't upload. Please try again." });
+      const now = new Date().toISOString();
+      const answers = { ...a, _drref: { ...d, receivedAt: now, receivedBy: doctor, receivedNote: note, receivedPath: path, receivedName: String(b.filename || "Dr Ref").slice(0, 150) } };
+      await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) });
+      if (n.case_id) await sb("case_documents", { method: "POST", prefer: "return=minimal", body: JSON.stringify({ case_id: n.case_id, name: `Dr Ref – ${a.lastName || ""}.${path.split(".").pop()}`, path, size: Number(head.headers.get("content-length")) || null, uploaded_at: now }) }).catch(() => {});
+      const fh = FUNERAL_HOMES.find(f => f.id === n.funeral_home_id) || {};
+      const to = [...new Set([INFO, ...(fh.contacts || [])])];
+      const text = `Hi ${n.funeral_home_name} Team,\n\nThe Dr Ref for ${nameOf(a)}${n.case_ref ? " (" + n.case_ref + ")" : ""} has been received from ${DRREF_NAME}.\n\nUploaded by: ${doctor} on ${when(now)}${note ? "\nNote: " + note : ""}\n\nThe Dr Ref is attached${n.case_id ? " and saved to the case documents in Lumière" : ""}.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\n${INFO}`;
+      await send({ to, subject: `Dr Ref received – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: [{ filename: `Dr Ref – ${a.lastName || "deceased"}.${path.split(".").pop()}`, path: pub(path) }] }).catch(() => {});
+      return res.status(200).json({ ok: true, name: title(a), caseRef: n.case_ref || "", at: when(now) });
+    }
+    return res.status(400).json({ error: "Unknown action" });
+  } catch (e) { return res.status(500).json({ error: String(e.message || e).slice(0, 300) }); }
+}
