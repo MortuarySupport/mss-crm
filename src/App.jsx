@@ -5091,13 +5091,22 @@ function NewCheckInsView({cases,user,onAction}){
 }
 
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
-function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=true}){
+function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=true,user}){
   const now=new Date();
   // 2nd Notes waiting for MSS: new ones and ones the FD has updated
   const [newNotes,setNewNotes]=useState([]);
   useEffect(()=>{let live=true;const load=()=>sb("second_notes?select=id,deceased_name,edit_count,accepted_at&accepted_at=is.null&order=submitted_at.desc").then(r=>{if(live)setNewNotes(r||[]);}).catch(()=>{});
     load();const t=setInterval(load,60000);return()=>{live=false;clearInterval(t);};},[]);
   const notesUpd=newNotes.filter(n=>n.edit_count>0).length,notesNew=newNotes.length-notesUpd;
+  // Dr Refs uploaded by the medical referee (Certa) that staff haven't ticked as seen
+  const [drRefs,setDrRefs]=useState([]);const [drOpen,setDrOpen]=useState(false);const [drWaiting,setDrWaiting]=useState(0);
+  const loadDr=()=>{sb("second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>receivedAt=not.is.null&answers->_drref->>seenAt=is.null").then(r=>setDrRefs((r||[]).sort((a,b)=>String(b.answers._drref.receivedAt).localeCompare(String(a.answers._drref.receivedAt))))).catch(()=>{});
+    sb("second_notes?select=id&answers->_drref->>token=not.is.null&answers->_drref->>receivedAt=is.null").then(r=>setDrWaiting((r||[]).length)).catch(()=>{});};
+  useEffect(()=>{loadDr();const t=setInterval(loadDr,60000);return()=>clearInterval(t);},[]);
+  const drUrl=p=>`${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p||"").split("/").map(encodeURIComponent).join("/")}`;
+  const drWhen=x=>new Date(x).toLocaleString("en-AU",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+  async function drSeen(n){const a={...n.answers,_drref:{...n.answers._drref,seenAt:new Date().toISOString(),seenBy:user?.name||""}};
+    try{await sb(`second_notes?id=eq.${n.id}`,{method:"PATCH",body:JSON.stringify({answers:a})});setDrRefs(v=>v.filter(x=>x.id!==n.id));}catch(e){alert("Couldn't save: "+(e.message||e));}}
   // Room bookings (Viewing Room / Family Meeting Room) made in the last 24 hours
   const newRooms=(calendarBookings||[]).filter(b=>b.booked_at&&new Date(b.booked_at)>=new Date(Date.now()-86400000)).sort((a,b)=>String(a.slot).localeCompare(String(b.slot)));
   const roomWhen=b=>{const [d,t]=String(b.slot||"").split("_");const dt=d?new Date(d+"T12:00:00"):null;return (dt&&!isNaN(dt)?dt.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"}):"")+(t?" "+t:"");};
@@ -5144,6 +5153,22 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
     return b.type==="Family Meeting Room"&&slotDate===todayStr;
   });
 
+  const drModal=drOpen&&(
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-4 overflow-y-auto" onClick={()=>setDrOpen(false)}>
+      <div className="bg-white rounded-2xl w-full max-w-2xl p-5" onClick={e=>e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3"><h2 className="text-xl font-black">Dr Refs received</h2><button onClick={()=>setDrOpen(false)} className="px-3 py-1.5 rounded-lg border-2 border-gray-300 font-black text-sm">✕</button></div>
+        <p className="text-sm text-gray-500 mb-4">Uploaded by the medical referee. Each one is already saved to the case documents (if the deceased is in care) and emailed to the FD and info@. Tap <b>✓ Seen</b> once you've checked it. {drWaiting} still awaiting from Certa.</p>
+        {drRefs.length===0?<p className="text-center text-gray-400 py-8 font-bold">No new Dr Refs.</p>:
+        <div className="space-y-2">{drRefs.map(n=>{const d=n.answers._drref;return(
+          <div key={n.id} className="border border-gray-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[200px]"><div className="font-black">{n.deceased_name||"—"}</div>
+              <div className="text-xs text-gray-500">{n.case_ref||"Not yet in care"} · {n.funeral_home_name}</div>
+              <div className="text-xs text-gray-600 mt-0.5">Received {drWhen(d.receivedAt)} from {d.receivedBy}{d.receivedNote?<span className="block italic">“{d.receivedNote}”</span>:null}</div></div>
+            <a href={drUrl(d.receivedPath)} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-xs uppercase">View</a>
+            <button onClick={()=>drSeen(n)} className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase">✓ Seen</button>
+          </div>);})}</div>}
+      </div>
+    </div>);
   function StatCard({value,label,color="gray",sub,onClick}){
     const Wrap=onClick?"button":"div";
     const clickProps=onClick?{onClick,style:{cursor:"pointer",textAlign:"left",width:"100%",height:"100%"}}:{};
@@ -5161,6 +5186,7 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
 
   return(
     <div className="max-w-7xl mx-auto px-4 py-6">
+      {drModal}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-black text-gray-900">Dashboard</h2>
         <div className="text-xs text-gray-400 font-bold uppercase">{new Date().toLocaleDateString("en-AU",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
@@ -5169,11 +5195,13 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
       {/* Last 24 Hours */}
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Last 24 Hours</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <StatCard value={notesNew} label="New 2nd Notes" color={notesNew>0?"red":"gray"} onClick={()=>{window.__snTab="new";onAction("secondnotes");}}
             sub={notesNew>0?newNotes.filter(n=>!(n.edit_count>0)).slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(notesNew>6?" …":""):null}/>
           <StatCard value={notesUpd} label="Updated 2nd Notes" color={notesUpd>0?"amber":"gray"} onClick={()=>{window.__snTab="edited";onAction("secondnotes");}}
             sub={notesUpd>0?newNotes.filter(n=>n.edit_count>0).slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(notesUpd>6?" …":""):null}/>
+          <StatCard value={drRefs.length} label="Dr Refs Received" color={drRefs.length>0?"green":"gray"} onClick={()=>setDrOpen(true)}
+            sub={(drRefs.length>0?drRefs.slice(0,5).map(n=>n.deceased_name||"—").join(" · ")+(drRefs.length>5?" …":"")+" — ":"")+`${drWaiting} awaiting from Certa`}/>
           <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={newRooms.length} label="New Room Requests" color={newRooms.length>0?"blue":"gray"} onClick={()=>onAction("calendar")}
             sub={newRooms.length>0?newRooms.slice(0,4).map(b=>`${b.type==="Family Meeting Room"?"Family Meeting":"Viewing"} ${roomWhen(b)}${b.deceased_label?" — "+b.deceased_label:""}`).join(" · ")+(newRooms.length>4?" …":""):null}/>
@@ -6829,7 +6857,7 @@ export default function App() {
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
-  if(action==="dashboard"&&(isAdmin||user?.role==="mss")) return wrap(<AdminDashboard isAdmin={isAdmin} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
+  if(action==="dashboard"&&(isAdmin||user?.role==="mss")) return wrap(<AdminDashboard user={user} isAdmin={isAdmin} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
   if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
@@ -6853,7 +6881,7 @@ export default function App() {
       {tab==="mycases"&&isFD&&<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="transfers"&&isTransfer&&<MyTransfers user={user} cases={liveCases}/>}
       {tab==="pins"&&isAdmin&&<PinManagement users={users} onPinUpdate={handlePinUpdate}/>
-      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={liveCases} onUpdateCase={handleUpdateCase}/>}
+      }{tab==="activitylog"&&isAdmin&&<ActivityLogView/>}{tab==="dashboard"&&isAdmin&&<AdminDashboard user={user} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>}{tab==="invoicing"&&isAdmin&&<InvoicingView cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="mypin"&&isMSS&&!isAdmin&&<MyPin user={user} users={users}/>}
     </main>
   );
