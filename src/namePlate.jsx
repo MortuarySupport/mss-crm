@@ -93,8 +93,13 @@ export function plateLayout(spec, sets) {
   if (sh.name && name) add(nameF, sc ? titleCase(name) : name.toUpperCase(), nameSz);
   const d1 = npDate(spec.dob), d2 = npDate(spec.dod);
   if (sh.dates && (d1 || d2)) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates));
-  const msg = String(spec.message || "").trim();
-  if (sh.message && msg) add(msgF, msg, smSz(sets.message));
+  const msgs = [spec.message, spec.message2].map(x => String(x || "").trim()).filter(Boolean);
+  if (sh.message && msgs.length) {
+    const from = lines.length;
+    msgs.forEach(m => add(msgF, m, smSz(sets.message)));
+    const mn = Math.min(...lines.slice(from).map(l => l.sz));
+    lines.slice(from).forEach(l => (l.sz = mn));
+  }
   }
   let total = lines.reduce((s, l) => s + l.sz, 0) + gap * Math.max(0, lines.length - 1);
   const shrink = total > maxH ? maxH / total : 1;
@@ -204,8 +209,11 @@ export function NamePlateEditor({ value, onChange, person }) {
         </div>
       </div>
       {v.show?.message && <div>
-        <label className={lbl} htmlFor="np-msg">Message</label>
+        <label className={lbl} htmlFor="np-msg">Message line 1</label>
         <input id="np-msg" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message || ""} onChange={e => set({ message: e.target.value })} placeholder="e.g. Forever in our hearts" />
+        <label className={lbl + " mt-3 block"} htmlFor="np-msg2">Message line 2 <span className="normal-case font-bold text-gray-400">(optional)</span></label>
+        <input id="np-msg2" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message2 || ""} onChange={e => set({ message2: e.target.value })} placeholder="e.g. Loved and remembered always" />
+        <p className="text-xs text-gray-500 mt-1">A long line wraps onto the next line by itself. Check the preview.</p>
       </div>}</>}
       <div>
         <span className={lbl}>Plate colour</span>
