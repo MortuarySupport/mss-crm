@@ -6,9 +6,9 @@ import FUNERAL_HOMES from "./_funeralHomes.js";
 const SUPABASE_URL = "https://qhazwfbhbelpcfwczjdb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYXp3ZmJoYmVscGNmd2N6amRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODQ1MTEsImV4cCI6MjA5NjQ2MDUxMX0.2xg7Kj56r7n_x2nZxbttqZU6Rly6ZSSnpuequpyihBo";
 const BUCKET = "Case-documents";
-// Disconnected from Certa: requests go to MSS (info@) until a medical referee is chosen. DRREF_TO can point them elsewhere (never Certa).
-const DRREF_TO = process.env.DRREF_TO && !/certa/i.test(process.env.DRREF_TO) ? process.env.DRREF_TO : "info@mortuarysupport.com.au";
-const DRREF_NAME = "the medical referee";
+// Dr Ref requests go to Barrett Medical (MSS is copied in). DRREF_TO can point them elsewhere (never Certa).
+const DRREF_TO = process.env.DRREF_TO && !/certa/i.test(process.env.DRREF_TO) ? process.env.DRREF_TO : "doctor@barrettmedical.com.au";
+const DRREF_NAME = "Barrett Medical";
 const INFO = "info@mortuarysupport.com.au";
 const TZ = "Australia/Sydney";
 const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" };
@@ -65,7 +65,7 @@ ${updated ? "<p><b>This is an updated request: the documents have changed since 
 <p style="margin:22px 0"><a href="${link}" style="background:#111827;color:#fff;text-decoration:none;font-weight:800;padding:14px 22px;border-radius:10px;display:inline-block">⬆ UPLOAD DR REF</a></p>
 <p style="font-size:12px;color:#6b7280">This link is only for this deceased; please don't forward it. Questions: reply to this email or call MSS on 02 8814 5500.<br>${link}</p><p>The Team at Mortuary Support | Lumière</p></div>`;
       const text = `Dear Doctor,\n\nA Dr Ref is requested for the cremation of ${nameOf(a)} (born ${longDate(a.dob)}, died ${longDate(a.dod)}), case ${n.case_ref || "not yet in MSS care"}, funeral director ${n.funeral_home_name}.\n\n${updated ? "UPDATED REQUEST: the documents have changed since our earlier email.\n\n" : ""}Documents attached: ${attach.map(x => x.label).join(", ") || "none"}.${big.length ? " Too large to attach (open from the link): " + big.map(x => x.label).join(", ") + "." : ""}\n\nUpload your Dr Ref here (this deceased only): ${link}\n\nQuestions: reply to this email or call MSS on 02 8814 5500.\n\nThe Team at Mortuary Support | Lumière`;
-      await send({ to: [DRREF_TO], subject: `${updated ? "UPDATED " : ""}Dr Ref request – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, html, text, attachments: attach.map(x => ({ filename: `${x.label} – ${a.lastName || "deceased"}.${(x.path.split(".").pop() || "pdf")}`, path: pub(x.path) })) });
+      await send({ to: [DRREF_TO], cc: [INFO], subject: `${updated ? "UPDATED " : ""}Dr Ref request – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, html, text, attachments: attach.map(x => ({ filename: `${x.label} – ${a.lastName || "deceased"}.${(x.path.split(".").pop() || "pdf")}`, path: pub(x.path) })) });
       const answers = { ...a, _drref: { ...d, sentAt: new Date().toISOString(), sentTo: DRREF_TO } };
       await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) });
       return res.status(200).json({ ok: true, to: DRREF_NAME });
