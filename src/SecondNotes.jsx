@@ -1010,6 +1010,16 @@ export function DrRefOnly({ user, cases, onBack, api }) {
     setBusy(false);
   }
   const open = n => { setPick(""); setTimeout(() => { setFiles({}); setSent(""); setErr(""); setFound(n); }, 0); };
+  // Saves the received Dr Ref straight to the device (Downloads), named after the deceased
+  async function download(n) {
+    const d = n.answers._drref, ext = (d.receivedPath.split(".").pop() || "pdf").toLowerCase();
+    const name = `Dr_Ref_${String(n.answers?.lastName || "").toUpperCase()}_${n.answers?.firstName || ""}`.replace(/[^A-Za-z0-9]+/g, "_").replace(/_+$/, "") + "." + ext;
+    try {
+      const r = await fetch(pubUrl(d.receivedPath)); if (!r.ok) throw new Error(r.status);
+      const url = URL.createObjectURL(await r.blob()), a = document.createElement("a");
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) { window.open(pubUrl(d.receivedPath), "_blank"); }
+  }
   const nm = n => n.answers?.lastName ? `${String(n.answers.lastName).toUpperCase()}, ${n.answers.firstName || ""}` : (n.deceased_name || "—");
   const has = found?.answers?._drref?.token;
   const pickBtn = on => "text-left px-4 py-3 rounded-xl border-2 font-black text-sm transition " + (on ? "bg-gray-900 text-white border-gray-900" : "bg-white border-gray-200 text-gray-800 hover:border-gray-600");
@@ -1053,10 +1063,13 @@ export function DrRefOnly({ user, cases, onBack, api }) {
         <p className={lbl + " mt-8"}>{isFD ? "Your Dr Ref requests" : fhName + " Dr Ref requests"}</p>
         {list === null ? <p className="text-sm text-gray-400">Loading…</p> : list.length === 0 ? <p className="text-sm text-gray-400">None yet.</p> :
           <div className="space-y-2">{list.map(n => { const d = n.answers._drref; return (
-            <button key={n.id} type="button" onClick={() => open(n)} className="w-full text-left bg-white border border-gray-200 hover:border-gray-500 rounded-2xl p-3 flex items-center gap-3">
-              <div className="flex-1"><div className="font-black text-sm">{nm(n)}</div><div className="text-xs text-gray-500">{n.case_ref || "Not yet in care"} · requested {fmt(d.requestedAt)}</div></div>
-              {d.receivedAt ? <span className="text-xs font-black text-green-700">✓ Received</span> : <span className="text-xs font-black text-amber-700">⏳ Waiting</span>}
-            </button>); })}</div>}
+            <div key={n.id} className="bg-white border border-gray-200 hover:border-gray-500 rounded-2xl flex items-center gap-2 pr-3">
+              <button type="button" onClick={() => open(n)} className="flex-1 text-left p-3 flex items-center gap-3">
+                <div className="flex-1"><div className="font-black text-sm">{nm(n)}</div><div className="text-xs text-gray-500">{n.case_ref || "Not yet in care"} · requested {fmt(d.requestedAt)}</div></div>
+                {d.receivedAt ? <span className="text-xs font-black text-green-700">✓ Received</span> : <span className="text-xs font-black text-amber-700">⏳ Waiting</span>}
+              </button>
+              {d.receivedPath && <button type="button" onClick={() => download(n)} className="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-black uppercase">⬇ Download</button>}
+            </div>); })}</div>}
       </>}
       </>}
     </div>);
