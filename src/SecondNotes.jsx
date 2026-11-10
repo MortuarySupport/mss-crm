@@ -319,7 +319,7 @@ const lbl = "block text-xs font-black uppercase text-gray-500 tracking-widest mb
 const card = "bg-white rounded-2xl border border-gray-200 p-4 mb-3";
 
 
-// ── Dr Ref (medical referee) request to Certa, shown on cremations ──
+// ── Dr Ref (medical referee) request to the doctor, shown on cremations ──
 const DR_DOCS = [
   { key: "mccd", label: "MCCD", req: true, re: /mccd/i },
   { key: "cra", label: "CRA (if not part of the MCCD)", req: false, re: /(^|[^a-z])cra([^a-z]|$)|cremation risk/i },
@@ -335,26 +335,26 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
   const wrap = "rounded-2xl border-2 p-4 mb-4 " + (error ? "border-red-400 bg-red-50" : "border-gray-200 bg-white");
   if (d?.token) return (
     <div className={wrap}>
-      <p className="text-sm font-black uppercase tracking-wide mb-2">Dr Ref (Certa)</p>
-      <p className="text-sm">Requested {fmt(d.requestedAt)}{d.requestedBy ? " by " + d.requestedBy : ""}{d.sentAt ? " · emailed to Certa " + fmt(d.sentAt) : ""}</p>
+      <p className="text-sm font-black uppercase tracking-wide mb-2">Dr Ref (medical referee)</p>
+      <p className="text-sm">Requested {fmt(d.requestedAt)}{d.requestedBy ? " by " + d.requestedBy : ""}{d.sentAt ? " · emailed to the doctor " + fmt(d.sentAt) : ""}</p>
       {d.receivedAt
         ? <p className="mt-2 text-sm font-black text-green-700">✓ Dr Ref received {fmt(d.receivedAt)} from {d.receivedBy} · <a className="underline" href={pubUrl(d.receivedPath)} target="_blank" rel="noreferrer">View</a>{d.receivedNote ? <span className="block font-normal text-gray-600">Note: {d.receivedNote}</span> : null}</p>
-        : <p className="mt-2 text-sm font-black text-amber-700">⏳ Waiting for the Dr Ref from Certa</p>}
+        : <p className="mt-2 text-sm font-black text-amber-700">⏳ Waiting for the Dr Ref from the doctor</p>}
       {!d.receivedAt && <div className="mt-3 space-y-2">
-        <p className="text-xs font-black uppercase tracking-wide text-gray-500">Documents sent to Certa</p>
+        <p className="text-xs font-black uppercase tracking-wide text-gray-500">Documents sent to the doctor</p>
         {DR_DOCS.map(dd => { const have = (d.docs || []).find(x => x.key === dd.key), f = files[dd.key]; return (
           <div key={dd.key} className="flex flex-wrap items-center gap-2 border border-gray-200 rounded-xl px-3 py-2">
             <span className="flex-1 min-w-[180px] text-sm font-bold">{dd.label}{dd.req ? " *" : ""}
               <span className="block text-xs font-normal text-gray-500">{f ? <span className="text-blue-700 font-bold">New: {f.name} ({mb(f)}) — will replace</span> : have ? <a className="underline" href={pubUrl(have.path)} target="_blank" rel="noreferrer">📄 {have.name || "View"}</a> : "Not included"}</span>
-              {f && f.size > BIG && <span className="block text-xs font-bold text-amber-700">Large file — it may be too big to attach to the email, but Certa can still open it from their link.</span>}</span>
+              {f && f.size > BIG && <span className="block text-xs font-bold text-amber-700">Large file — it may be too big to attach to the email, but the doctor can still open it from their link.</span>}</span>
             {canResend && <label className="px-3 py-2 rounded-lg border-2 border-gray-900 text-xs font-black uppercase cursor-pointer">{have || f ? "Replace" : "＋ Add"}
               <input type="file" accept="application/pdf,image/*" className="hidden" onChange={e => { const x = e.target.files[0]; if (x) setFiles(v => ({ ...v, [dd.key]: x })); e.target.value = ""; }} /></label>}
             {f && <button type="button" onClick={() => setFiles(v => { const n = { ...v }; delete n[dd.key]; return n; })} className="text-xs underline text-gray-500">Undo</button>}
           </div>); })}
-        {canResend && Object.keys(files).length > 0 && <button type="button" disabled={busy} onClick={onSaveDocs} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase disabled:opacity-60">{busy ? "Saving…" : "Save changes & resend to Certa"}</button>}
-        {canResend && <p className="text-xs text-gray-500">Replace a file that is too large or wrong, then tap Save changes & resend. Certa gets an UPDATED request email.</p>}
+        {canResend && Object.keys(files).length > 0 && <button type="button" disabled={busy} onClick={onSaveDocs} className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase disabled:opacity-60">{busy ? "Saving…" : "Save changes & resend to the doctor"}</button>}
+        {canResend && <p className="text-xs text-gray-500">Replace a file that is too large or wrong, then tap Save changes & resend. The doctor gets an UPDATED request email.</p>}
       </div>}
-      {!d.sentAt && canResend && !Object.keys(files).length && <button type="button" onClick={onResend} className="mt-3 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">Send request to Certa now</button>}
+      {!d.sentAt && canResend && !Object.keys(files).length && <button type="button" onClick={onResend} className="mt-3 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">Send request to the doctor now</button>}
     </div>);
   const on = standalone || !!answers._drreq;
   const chosen = k => files[k] || null;
@@ -363,14 +363,14 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
     <div className={wrap}>
       <p className="text-sm font-black uppercase tracking-wide mb-2">Dr Ref (medical referee) for cremation</p>
       {!standalone && <button type="button" onClick={() => setA("_drreq", !on)} className={"w-full text-left px-4 py-3 rounded-xl border-2 font-black text-sm " + (on ? "bg-gray-900 text-white border-gray-900" : "border-gray-300 text-gray-700")}>
-        {on ? "☑" : "☐"} Request a Dr Ref from Certa Medical Referee Services</button>}
+        {on ? "☑" : "☐"} Request a Dr Ref from the medical referee</button>}
       {on && <div className="mt-3 space-y-2">
-        <p className="text-xs text-gray-500">Certa is emailed when you {standalone ? "send the request" : "submit"}, with these documents and a secure link to upload the Dr Ref. It comes back into Lumière and you are emailed. * required. The CRA is often part of the MCCD; only add it if it's a separate document.</p>
+        <p className="text-xs text-gray-500">The doctor is emailed when you {standalone ? "send the request" : "submit"}, with these documents and a secure link to upload the Dr Ref. It comes back into Lumière and you are emailed. * required. The CRA is often part of the MCCD; only add it if it's a separate document.</p>
         {DR_DOCS.map(dd => { const f = chosen(dd.key), have = onFile(dd); return (
           <div key={dd.key} className={"flex flex-wrap items-center gap-2 border rounded-xl px-3 py-2 " + (error && dd.req && !f && !have ? "border-red-400" : "border-gray-200")}>
             <span className="flex-1 min-w-[180px] text-sm font-bold">{dd.label}{dd.req ? " *" : dd.label.includes("(") ? "" : " (if applicable)"}
               <span className="block text-xs font-normal text-gray-500">{f ? "📄 " + f.name + " (" + mb(f) + ")" : have ? "✓ On file: " + have.name : "Not uploaded"}</span>
-              {f && f.size > BIG && <span className="block text-xs font-bold text-amber-700">Large file — it may be too big to attach to the email, but Certa can still open it from their link.</span>}</span>
+              {f && f.size > BIG && <span className="block text-xs font-bold text-amber-700">Large file — it may be too big to attach to the email, but the doctor can still open it from their link.</span>}</span>
             <label className="px-3 py-2 rounded-lg border-2 border-gray-900 text-xs font-black uppercase cursor-pointer">{f || have ? "Upload different" : "⬆ Upload"}
               <input type="file" accept="application/pdf,image/*" className="hidden" onChange={e => { const x = e.target.files[0]; if (x) setFiles(v => ({ ...v, [dd.key]: x })); }} /></label>
             {f && <button type="button" onClick={() => setFiles(v => { const n = { ...v }; delete n[dd.key]; return n; })} className="text-xs underline text-gray-500">Remove</button>}
@@ -411,7 +411,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (!a._drreq || a._drref?.token || !isCremation(a)) return [];
     return DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label);
   }
-  // Uploads the Dr Ref documents and records the request on the 2nd Note (emailed to Certa once the note is saved)
+  // Uploads the Dr Ref documents and records the request on the 2nd Note (emailed to the doctor once the note is saved)
   async function prepDrRef(noteId, base) {
     const a = { ...(base || answers) }; const want = a._drreq && isCremation(a) && !a._drref?.token; delete a._drreq;
     if (!want) return a;
@@ -457,9 +457,9 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       const r = await fetch("/api/drref", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "request", noteId, resend: !!resend }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || r.status);
-      if (!quiet) alert(resend ? "✓ Updated Dr Ref request emailed to Certa." : "✓ Dr Ref request emailed to Certa. You'll be emailed when the Dr Ref comes back.");
+      if (!quiet) alert(resend ? "✓ Updated Dr Ref request emailed to the doctor." : "✓ Dr Ref request emailed to the doctor. You'll be emailed when the Dr Ref comes back.");
       return true;
-    } catch (e) { alert("The 2nd Note is saved, but the Dr Ref request couldn't be emailed to Certa (" + e.message + "). Open the 2nd Note and tap 'Send request to Certa now', or call MSS."); return false; }
+    } catch (e) { alert("The 2nd Note is saved, but the Dr Ref request couldn't be emailed to the doctor (" + e.message + "). Open the 2nd Note and tap 'Send request to the doctor now', or call MSS."); return false; }
   }
 
   const form = FORMS[fhId];
@@ -987,8 +987,8 @@ export function DrRefOnly({ user, cases, onBack, api }) {
         submitted_by: user?.name || "", submitted_role: user?.role || "", status: c ? "linked" : "awaiting",
         accepted_at: new Date().toISOString(), accepted_by: "Dr Ref only" }) });
       setFiles({});
-      try { await email(noteId); setSent("✓ Dr Ref request emailed to Certa. You'll be emailed when the Dr Ref comes back."); }
-      catch (e) { setSent("The request is saved, but it couldn't be emailed to Certa (" + e.message + "). Tap 'Send request to Certa now' below, or call MSS."); }
+      try { await email(noteId); setSent("✓ Dr Ref request emailed to the doctor. You'll be emailed when the Dr Ref comes back."); }
+      catch (e) { setSent("The request is saved, but it couldn't be emailed to the doctor (" + e.message + "). Tap 'Send request to the doctor now' below, or call MSS."); }
       logActivity(user, "DR REF REQUESTED", `${fhName} Dr Ref for ${who.firstName} ${who.lastName}${c ? "" : " (not in care yet)"}`, c?.caseRef || "", c?.id || "");
       await reload(noteId);
     } catch (e) { setErr("Error: " + e.message); }
@@ -1002,7 +1002,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
       const docs = [...(d.docs || [])];
       for (const dd of DR_DOCS) { const f = files[dd.key]; if (!f) continue; const item = await upFile(found.id, dd, f); const i = docs.findIndex(x => x.key === dd.key); if (i >= 0) docs[i] = item; else docs.push(item); }
       await sb(`second_notes?id=eq.${found.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...fresh, _drref: { ...d, docs, docsUpdatedAt: new Date().toISOString(), docsUpdatedBy: user?.name || "" } } }) });
-      setFiles({}); await email(found.id, true); setSent("✓ Updated Dr Ref request emailed to Certa."); await reload(found.id);
+      setFiles({}); await email(found.id, true); setSent("✓ Updated Dr Ref request emailed to the doctor."); await reload(found.id);
     } catch (e) { alert("Couldn't update the Dr Ref documents: " + e.message); }
     setBusy(false);
   }
@@ -1018,7 +1018,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
         <div className={card}><div className="font-black">{nm(found)}</div><div className="text-xs text-gray-500">{found.case_ref || "Not yet in MSS care"} · {found.funeral_home_name}</div></div>
         {sent && <p className={"mb-3 text-sm font-bold " + (sent.startsWith("✓") ? "text-green-700" : "text-red-600")}>{sent}</p>}
         <DrRefCard answers={found.answers} setA={() => {}} files={files} setFiles={setFiles} caseDocs={[]} pubUrl={pubUrl} canResend busy={busy} onSaveDocs={saveDocs}
-          onResend={async () => { try { await email(found.id); setSent("✓ Dr Ref request emailed to Certa."); await reload(found.id); } catch (e) { alert("Couldn't email Certa: " + e.message); } }} />
+          onResend={async () => { try { await email(found.id); setSent("✓ Dr Ref request emailed to the doctor."); await reload(found.id); } catch (e) { alert("Couldn't email the doctor: " + e.message); } }} />
       </> : <>
         <div className={card}>
           <label className={lbl}>1. Deceased</label>
@@ -1037,7 +1037,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
           <p className={lbl + " mt-2"}>2. Documents</p>
           <DrRefCard answers={{}} setA={() => {}} files={files} setFiles={setFiles} caseDocs={caseDocs} error={err.startsWith("Upload") ? err : ""} pubUrl={pubUrl} standalone />
           {err && !err.startsWith("Upload") && <p className="text-red-600 text-sm font-bold mb-2">{err}</p>}
-          <button type="button" disabled={busy} onClick={request} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black uppercase tracking-wide">{busy ? "Sending…" : "📄 Send Dr Ref request to Certa"}</button>
+          <button type="button" disabled={busy} onClick={request} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black uppercase tracking-wide">{busy ? "Sending…" : "📄 Send Dr Ref request to the doctor"}</button>
         </>}
         <p className={lbl + " mt-8"}>Your Dr Ref requests</p>
         {list === null ? <p className="text-sm text-gray-400">Loading…</p> : list.length === 0 ? <p className="text-sm text-gray-400">None yet.</p> :

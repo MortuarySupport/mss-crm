@@ -6,8 +6,9 @@ import FUNERAL_HOMES from "./_funeralHomes.js";
 const SUPABASE_URL = "https://qhazwfbhbelpcfwczjdb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYXp3ZmJoYmVscGNmd2N6amRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODQ1MTEsImV4cCI6MjA5NjQ2MDUxMX0.2xg7Kj56r7n_x2nZxbttqZU6Rly6ZSSnpuequpyihBo";
 const BUCKET = "Case-documents";
-const DRREF_TO = process.env.DRREF_TO || "cases@certamedical.com.au";
-const DRREF_NAME = "Certa Medical Referee Services";
+// Disconnected from Certa: requests go to MSS (info@) until a medical referee is chosen. DRREF_TO can point them elsewhere (never Certa).
+const DRREF_TO = process.env.DRREF_TO && !/certa/i.test(process.env.DRREF_TO) ? process.env.DRREF_TO : "info@mortuarysupport.com.au";
+const DRREF_NAME = "the medical referee";
 const INFO = "info@mortuarysupport.com.au";
 const TZ = "Australia/Sydney";
 const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" };

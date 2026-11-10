@@ -863,7 +863,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt
   const[drRefs,setDrRefs]=useState([]);
 
   useEffect(()=>{loadDocs();},[caseId]);
-  // Dr Ref requests on this case's 2nd Notes (requested / received from Certa)
+  // Dr Ref requests on this case's 2nd Notes (requested / received from the doctor)
   useEffect(()=>{if(!caseId)return;fetch(SUPABASE_URL+"/rest/v1/second_notes?select=id,answers&case_id=eq."+caseId+"&answers->_drref->>token=not.is.null",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}}).then(r=>r.json()).then(r=>setDrRefs(Array.isArray(r)?r.map(n=>({...n.answers._drref,_id:n.id})):[])).catch(()=>{});},[caseId]);
 
   async function loadDocs(){
@@ -974,7 +974,7 @@ function DocumentSection({caseId, funeralHomeName, lastName, dod, filesDeletedAt
           <div key={"dr"+i} className={"flex items-center gap-3 rounded-xl p-3 border "+(d.receivedAt?"bg-green-50 border-green-200":"bg-blue-50 border-blue-200")}>
             <div className="text-2xl flex-shrink-0">{d.receivedAt?"✅":"⏳"}</div>
             <div className="flex-1 min-w-0">
-              <div className={"text-sm font-black uppercase "+(d.receivedAt?"text-green-900":"text-blue-900")}>{d.receivedAt?"DR REF RECEIVED (CERTA)":"DR REF REQUESTED — AWAITING CERTA"}</div>
+              <div className={"text-sm font-black uppercase "+(d.receivedAt?"text-green-900":"text-blue-900")}>{d.receivedAt?"DR REF RECEIVED":"DR REF REQUESTED — AWAITING DOCTOR"}</div>
               <div className={"text-xs font-bold "+(d.receivedAt?"text-green-700":"text-blue-700")}>{d.receivedAt?`${d.receivedBy||""} · ${new Date(d.receivedAt).toLocaleString("en-AU",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"})}${d.receivedNote?" · “"+d.receivedNote+"”":""}`:`Requested ${new Date(d.requestedAt).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}${d.requestedBy?" by "+d.requestedBy:""}`}</div>
             </div>
             {d.receivedAt&&<a href={getDocumentUrl(String(d.receivedPath).split("/").map(encodeURIComponent).join("/"))} target="_blank" rel="noreferrer"
@@ -4019,7 +4019,7 @@ async function resendDrRefToFD(noteId,fhName,by){
   try{const r=await fetch("/api/drref",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"resend",noteId,by})});const j=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(j.error||r.status);alert("✓ Dr Ref sent to "+j.to.join(", "));}catch(e){alert("Couldn't send: "+e.message);}
 }
-// All Dr Ref requests and the Dr Refs uploaded by Certa, searchable
+// All Dr Ref requests and the Dr Refs uploaded by the doctor, searchable
 function DrRefsView({onBack,user}){
   const [rows,setRows]=useState(null);const [q,setQ]=useState("");const [tab,setTab]=useState("received");
   useEffect(()=>{sb("second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=1000")
@@ -4034,8 +4034,8 @@ function DrRefsView({onBack,user}){
     <div className="max-w-3xl mx-auto px-4 py-6">
       <button onClick={onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
       <h1 className="text-2xl font-black mb-1">📄 Dr Refs</h1>
-      <p className="text-sm text-gray-500 mb-4">Every Dr Ref requested from Certa through Lumière, and the Dr Refs they uploaded. Dr Refs attached by hand to a case are in that case's Documents.</p>
-      <div className="flex gap-2 mb-3">{tb("received","Received",rec.length)}{tb("waiting","Awaiting Certa",wait.length)}{tb("all","All",all.length)}</div>
+      <p className="text-sm text-gray-500 mb-4">Every Dr Ref requested through Lumière, and the Dr Refs they uploaded. Dr Refs attached by hand to a case are in that case's Documents.</p>
+      <div className="flex gap-2 mb-3">{tb("received","Received",rec.length)}{tb("waiting","Awaiting doctor",wait.length)}{tb("all","All",all.length)}</div>
       <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by name, case number, funeral home or doctor…" className="w-full mb-3 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-gray-900 outline-none font-bold"/>
       {rows===null?<p className="text-center text-gray-400 py-10 font-bold">Loading…</p>:list.length===0?<p className="text-center text-gray-400 py-10 font-bold">{q?"No Dr Refs match your search.":"Nothing here yet."}</p>:
       <div className="space-y-2">{list.map(n=>(
@@ -4046,7 +4046,7 @@ function DrRefsView({onBack,user}){
             <div className="text-xs text-gray-600 mt-1">Requested {when(n.d.requestedAt)}{n.d.requestedBy?" by "+n.d.requestedBy:""}</div>
             {n.d.receivedAt
               ?<div className="text-xs font-bold text-green-700 mt-0.5">✓ Received {when(n.d.receivedAt)} from {n.d.receivedBy}{n.d.receivedNote?<span className="block font-normal italic text-gray-600">“{n.d.receivedNote}”</span>:null}</div>
-              :<div className="text-xs font-bold text-blue-700 mt-0.5">⏳ Awaiting Certa{n.d.sentAt?"":" — request not emailed yet"}</div>}
+              :<div className="text-xs font-bold text-blue-700 mt-0.5">⏳ Awaiting doctor{n.d.sentAt?"":" — request not emailed yet"}</div>}
           </div>
           {n.d.receivedAt&&<div className="flex flex-col gap-2"><a href={url(n.d.receivedPath)} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase text-center">📄 View Dr Ref</a>
             <button onClick={()=>resendDrRefToFD(n.id,n.funeral_home_name,user?.name)} className="px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-xs uppercase">✉ Resend to FD</button></div>}
@@ -5156,7 +5156,7 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
   useEffect(()=>{let live=true;const load=()=>sb("second_notes?select=id,deceased_name,edit_count,accepted_at&accepted_at=is.null&answers->>_drOnly=is.null&order=submitted_at.desc").then(r=>{if(live)setNewNotes(r||[]);}).catch(()=>{});
     load();const t=setInterval(load,60000);return()=>{live=false;clearInterval(t);};},[]);
   const notesUpd=newNotes.filter(n=>n.edit_count>0).length,notesNew=newNotes.length-notesUpd;
-  // Dr Refs uploaded by the medical referee (Certa) that staff haven't ticked as seen
+  // Dr Refs uploaded by the medical referee that staff haven't ticked as seen
   const [drRefs,setDrRefs]=useState([]);const [drOpen,setDrOpen]=useState(false);const [drWaiting,setDrWaiting]=useState(0);
   const loadDr=()=>{sb("second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>receivedAt=not.is.null&answers->_drref->>seenAt=is.null").then(r=>setDrRefs((r||[]).sort((a,b)=>String(b.answers._drref.receivedAt).localeCompare(String(a.answers._drref.receivedAt))))).catch(()=>{});
     sb("second_notes?select=id&answers->_drref->>token=not.is.null&answers->_drref->>receivedAt=is.null").then(r=>setDrWaiting((r||[]).length)).catch(()=>{});};
@@ -5215,7 +5215,7 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
     <div className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-4 overflow-y-auto" onClick={()=>setDrOpen(false)}>
       <div className="bg-white rounded-2xl w-full max-w-2xl p-5" onClick={e=>e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3"><h2 className="text-xl font-black">Dr Refs received</h2><button onClick={()=>setDrOpen(false)} className="px-3 py-1.5 rounded-lg border-2 border-gray-300 font-black text-sm">✕</button></div>
-        <p className="text-sm text-gray-500 mb-4">Uploaded by the medical referee. Each one is already saved to the case documents (if the deceased is in care) and emailed to the FD and info@. Tap <b>✓ Seen</b> once you've checked it. {drWaiting} still awaiting from Certa.</p>
+        <p className="text-sm text-gray-500 mb-4">Uploaded by the medical referee. Each one is already saved to the case documents (if the deceased is in care) and emailed to the FD and info@. Tap <b>✓ Seen</b> once you've checked it. {drWaiting} still awaiting from the doctor.</p>
         {drRefs.length===0?<p className="text-center text-gray-400 py-8 font-bold">No new Dr Refs.</p>:
         <div className="space-y-2">{drRefs.map(n=>{const d=n.answers._drref;return(
           <div key={n.id} className="border border-gray-200 rounded-xl p-3 flex flex-wrap items-center gap-3">
@@ -5259,7 +5259,7 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
           <StatCard value={notesUpd} label="Updated 2nd Notes" color={notesUpd>0?"amber":"gray"} onClick={()=>{window.__snTab="edited";onAction("secondnotes");}}
             sub={notesUpd>0?newNotes.filter(n=>n.edit_count>0).slice(0,6).map(n=>n.deceased_name||"—").join(" · ")+(notesUpd>6?" …":""):null}/>
           <StatCard value={drRefs.length} label="Dr Refs Received" color={drRefs.length>0?"green":"gray"} onClick={()=>setDrOpen(true)}
-            sub={(drRefs.length>0?drRefs.slice(0,5).map(n=>n.deceased_name||"—").join(" · ")+(drRefs.length>5?" …":"")+" — ":"")+`${drWaiting} awaiting from Certa`}/>
+            sub={(drRefs.length>0?drRefs.slice(0,5).map(n=>n.deceased_name||"—").join(" · ")+(drRefs.length>5?" …":"")+" — ":"")+`${drWaiting} awaiting from the doctor`}/>
           <StatCard value={newCheckIns.length} label="New Check Ins" color={newCheckIns.length>0?"green":"gray"} onClick={()=>onAction("newcheckins")}/>
           <StatCard value={newRooms.length} label="New Room Requests" color={newRooms.length>0?"blue":"gray"} onClick={()=>onAction("calendar")}
             sub={newRooms.length>0?newRooms.slice(0,4).map(b=>`${b.type==="Family Meeting Room"?"Family Meeting":"Viewing"} ${roomWhen(b)}${b.deceased_label?" — "+b.deceased_label:""}`).join(" · ")+(newRooms.length>4?" …":""):null}/>
