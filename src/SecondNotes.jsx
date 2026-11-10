@@ -329,7 +329,7 @@ const DR_DOCS = [
 const isCremation = a => /cremat/i.test(String(a.disposition || ""));
 const BIG = 15 * 1024 * 1024;
 const mb = f => (f.size / 1024 / 1024).toFixed(1) + " MB";
-function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, onResend, canResend, onSaveDocs, busy }) {
+function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, onResend, canResend, onSaveDocs, busy, standalone }) {
   const d = answers._drref;
   const fmt = x => new Date(x).toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
   const wrap = "rounded-2xl border-2 p-4 mb-4 " + (error ? "border-red-400 bg-red-50" : "border-gray-200 bg-white");
@@ -356,16 +356,16 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
       </div>}
       {!d.sentAt && canResend && !Object.keys(files).length && <button type="button" onClick={onResend} className="mt-3 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-black uppercase">Send request to Certa now</button>}
     </div>);
-  const on = !!answers._drreq;
+  const on = standalone || !!answers._drreq;
   const chosen = k => files[k] || null;
   const onFile = dd => caseDocs.find(c => dd.re.test(c.name || ""));
   return (
     <div className={wrap}>
       <p className="text-sm font-black uppercase tracking-wide mb-2">Dr Ref (medical referee) for cremation</p>
-      <button type="button" onClick={() => setA("_drreq", !on)} className={"w-full text-left px-4 py-3 rounded-xl border-2 font-black text-sm " + (on ? "bg-gray-900 text-white border-gray-900" : "border-gray-300 text-gray-700")}>
-        {on ? "☑" : "☐"} Request a Dr Ref from Certa Medical Referee Services</button>
+      {!standalone && <button type="button" onClick={() => setA("_drreq", !on)} className={"w-full text-left px-4 py-3 rounded-xl border-2 font-black text-sm " + (on ? "bg-gray-900 text-white border-gray-900" : "border-gray-300 text-gray-700")}>
+        {on ? "☑" : "☐"} Request a Dr Ref from Certa Medical Referee Services</button>}
       {on && <div className="mt-3 space-y-2">
-        <p className="text-xs text-gray-500">Certa is emailed when you submit, with these documents and a secure link to upload the Dr Ref. It comes back into Lumière and you are emailed. * required. The CRA is often part of the MCCD; only add it if it's a separate document.</p>
+        <p className="text-xs text-gray-500">Certa is emailed when you {standalone ? "send the request" : "submit"}, with these documents and a secure link to upload the Dr Ref. It comes back into Lumière and you are emailed. * required. The CRA is often part of the MCCD; only add it if it's a separate document.</p>
         {DR_DOCS.map(dd => { const f = chosen(dd.key), have = onFile(dd); return (
           <div key={dd.key} className={"flex flex-wrap items-center gap-2 border rounded-xl px-3 py-2 " + (error && dd.req && !f && !have ? "border-red-400" : "border-gray-200")}>
             <span className="flex-1 min-w-[180px] text-sm font-bold">{dd.label}{dd.req ? " *" : dd.label.includes("(") ? "" : " (if applicable)"}
@@ -412,8 +412,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     return DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label);
   }
   // Uploads the Dr Ref documents and records the request on the 2nd Note (emailed to Certa once the note is saved)
-  async function prepDrRef(noteId) {
-    const a = { ...answers }; const want = a._drreq && isCremation(a) && !a._drref?.token; delete a._drreq;
+  async function prepDrRef(noteId, base) {
+    const a = { ...(base || answers) }; const want = a._drreq && isCremation(a) && !a._drref?.token; delete a._drreq;
     if (!want) return a;
     const docs = [];
     for (const dd of DR_DOCS) {
@@ -473,7 +473,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
 
   async function loadNotes() {
     try {
-      const q = "second_notes?select=*&order=submitted_at.desc&limit=100" + (fhId ? `&funeral_home_id=eq.${fhId}` : "");
+      const q = "second_notes?select=*&answers->>_drOnly=is.null&order=submitted_at.desc&limit=100" + (fhId ? `&funeral_home_id=eq.${fhId}` : "");
       const rows = await sb(q);
       rows.sort((x, y) => new Date(y.edited_at || y.submitted_at) - new Date(x.edited_at || x.submitted_at));
       setNotes(rows); setLoadErr("");
@@ -531,6 +531,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (c) {
       const age = calcAge(c.dob, c.dod);
       setAnswers(a => ({ ...a, firstName: c.firstName || "", lastName: c.lastName || "", dod: c.dod || "", dob: c.dob || "", age }));
+      // A Dr Ref requested on its own (📄 Dr Ref button) shows here and joins this 2nd Note when it's submitted
+      if (!editing) sb(`second_notes?select=answers&case_id=eq.${id}&answers->>_drOnly=eq.true&limit=1`).then(r => { const d = r?.[0]?.answers?._drref; if (d?.token) setAnswers(a => ({ ...a, _drref: d, _drreq: false })); }).catch(() => {});
     }
   }
   function applyNSNA(on) {
@@ -614,24 +616,36 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     try {
       if (editing) { await submitEdit(); setBusy(false); return; }
       const c = caseId !== "none" ? cases.find(x => x.id === caseId) : null;
-      const dup = await findExisting(fhId, c?.id, answers, null);
+      let dup = await findExisting(fhId, c?.id, answers, null);
+      const adopt = dup?.answers?._drOnly ? dup : null; if (adopt) dup = null;
       if (dup) {
         setBusy(false);
         if (confirm(`A 2nd Note already exists for ${dup.deceased_name}. Only one is allowed per deceased.\n\nOpen it to edit instead?`)) startEdit(dup);
         return;
       }
-      const noteId = crypto.randomUUID();
+      const noteId = adopt ? adopt.id : crypto.randomUUID();
       const bytes = await buildPdf(form, answers);
       const name = fileName(answers);
       const path = c ? `${c.id}/${Date.now()}_${name}` : `second-notes/${noteId}.pdf`;
       await uploadPdf(path, bytes);
-      await sb("second_notes", { method: "POST", body: JSON.stringify({
-        id: noteId, funeral_home_id: fhId, funeral_home_name: fhName,
+      const row = {
+        funeral_home_id: fhId, funeral_home_name: fhName,
         case_id: c?.id || null, case_ref: c?.caseRef || null,
-        deceased_name: nameOf(answers), answers: await prepDrRef(noteId), pdf_path: path,
+        deceased_name: nameOf(answers), pdf_path: path,
         submitted_by: user?.name || "", submitted_role: user?.role || "",
         status: c ? "linked" : "awaiting",
-      }) });
+      };
+      if (adopt) {
+        // This deceased already has a Dr Ref requested on its own: the 2nd Note joins it (one record per deceased)
+        const fresh = (await sb(`second_notes?select=answers&id=eq.${adopt.id}`))?.[0]?.answers || adopt.answers;
+        const base = { ...answers }; delete base._drOnly;
+        if (fresh._drref?.token) { base._drref = fresh._drref; delete base._drreq; }
+        const ans = await prepDrRef(noteId, base);
+        await sb(`second_notes?id=eq.${adopt.id}`, { method: "PATCH", body: JSON.stringify({ ...row, answers: ans,
+          submitted_at: new Date().toISOString(), accepted_at: null, accepted_by: null, edit_count: 0, edited_at: null, edited_by: null }) });
+        const dr = ans._drref;
+        if (c && !adopt.case_id && dr?.receivedPath) await fetch(`${SUPABASE_URL}/storage/v1/object/copy`, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ bucketId: STORAGE_BUCKET, sourceKey: dr.receivedPath, destinationKey: `${c.id}/${Date.now()}_DR_REF.${dr.receivedPath.split(".").pop()}` }) }).catch(() => {});
+      } else await sb("second_notes", { method: "POST", body: JSON.stringify({ id: noteId, ...row, answers: await prepDrRef(noteId) }) });
       const conflicts = c ? await applyToCase(c, answers, noteId) : [];
       if (drSend.current) { const id = drSend.current; drSend.current = null; await sendDrRef(id); }
       logActivity(user, "2ND NOTE", `${fhName} 2nd Note for ${nameOf(answers)}${c ? "" : " (not in care yet)"}`, c?.caseRef || "", c?.id || "");
@@ -902,4 +916,136 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       {!loadErr && !notes.length && <p className="text-center text-sm text-gray-400 py-6">No 2nd Notes yet.</p>}
     </div>
   );
+}
+
+// ── 📄 Dr Ref on its own (FD home button). Same request as in the 2nd Note: one record per deceased. ──
+export function DrRefOnly({ user, cases, onBack, api }) {
+  const { sb, logActivity, SUPABASE_URL, SUPABASE_KEY, FUNERAL_HOMES, STORAGE_BUCKET } = api;
+  const fhId = user?.funeralHomeId || "", fhName = FUNERAL_HOMES.find(f => f.id === fhId)?.name || "";
+  const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+  const pubUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p || "").split("/").map(encodeURIComponent).join("/")}`;
+  const fmt = x => x ? new Date(x).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
+  const normName = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "");
+  const mine = useMemo(() => cases.filter(c => c.status === "active" && !c.checkedOut && c.funeralHomeId === fhId).sort((a, b) => (a.lastName || "").localeCompare(b.lastName || "")), [cases, fhId]);
+  const [list, setList] = useState(null);
+  const [pick, setPick] = useState("");
+  const [man, setMan] = useState({ firstName: "", lastName: "", dob: "", dod: "" });
+  const [found, setFound] = useState(null);        // the record for this deceased (2nd Note or Dr Ref only)
+  const [files, setFiles] = useState({});
+  const [caseDocs, setCaseDocs] = useState([]);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState("");
+  const c = pick && pick !== "none" ? cases.find(x => x.id === pick) : null;
+  const who = c ? { firstName: c.firstName || "", lastName: c.lastName || "", dob: c.dob || "", dod: c.dod || "" } : man;
+  const load = () => sb(`second_notes?select=*&funeral_home_id=eq.${fhId}&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=200`).then(r => setList(r || [])).catch(() => setList([]));
+  useEffect(() => { load(); }, []);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [found?.id]);
+  async function findRec(caseId, ans) {
+    const rows = await sb(`second_notes?select=*&funeral_home_id=eq.${fhId}&limit=500`);
+    return rows.find(n => (caseId && n.case_id === caseId) || (normName(n.deceased_name) && normName(n.deceased_name) === normName([ans.firstName, ans.lastName].filter(Boolean).join(" ")))) || null;
+  }
+  useEffect(() => { setFiles({}); setErr(""); setSent(""); setFound(null);
+    if (!c) { setCaseDocs([]); return; }
+    findRec(c.id, who).then(setFound).catch(() => {});
+    fetch(`${SUPABASE_URL}/storage/v1/object/list/${STORAGE_BUCKET}`, { method: "POST", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ prefix: `${c.id}/`, limit: 100, sortBy: { column: "created_at", order: "desc" } }) })
+      .then(r => r.json()).then(l => setCaseDocs((Array.isArray(l) ? l : []).filter(f => f.name && !f.name.endsWith("/")).map(f => ({ name: f.name.replace(/^\d+_/, "").replace(/_/g, " "), path: `${c.id}/${f.name}` })))).catch(() => setCaseDocs([]));
+  }, [pick]);
+  async function upFile(noteId, dd, f) {
+    const ext = (f.name.split(".").pop() || "pdf").toLowerCase().replace(/[^a-z0-9]/g, "") || "pdf";
+    const path = `drref/${noteId}/${dd.key}_${Date.now()}.${ext}`;
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, { method: "POST", headers: { ...H, "Content-Type": f.type || "application/octet-stream", "x-upsert": "true" }, body: f });
+    if (!r.ok) throw new Error(dd.label + " upload failed (" + r.status + "). If the file is very large, try a smaller scan or PDF.");
+    return { key: dd.key, label: dd.label, path, name: f.name };
+  }
+  async function email(noteId, resend) {
+    const r = await fetch("/api/drref", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "request", noteId, resend: !!resend }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.status);
+  }
+  const reload = async id => { const r = await sb(`second_notes?select=*&id=eq.${id}`); if (r?.[0]) setFound(r[0]); load(); };
+  async function request() {
+    setErr("");
+    if (!pick) return setErr("Choose the deceased.");
+    if (!who.firstName.trim() || !who.lastName.trim()) return setErr("Enter the deceased's first and last name.");
+    const miss = DR_DOCS.filter(dd => dd.req && !files[dd.key] && !caseDocs.find(x => dd.re.test(x.name || ""))).map(dd => dd.label);
+    if (miss.length) return setErr("Upload: " + miss.join(", "));
+    setBusy(true);
+    try {
+      const rec = await findRec(c?.id, who);
+      if (rec?.answers?._drref?.token) { setFound(rec); setBusy(false); return; }
+      const noteId = rec?.id || crypto.randomUUID();
+      const docs = [];
+      for (const dd of DR_DOCS) { const f = files[dd.key], have = caseDocs.find(x => dd.re.test(x.name || ""));
+        if (f) docs.push(await upFile(noteId, dd, f)); else if (have) docs.push({ key: dd.key, label: dd.label, path: have.path, name: have.name }); }
+      const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, "0")).join("");
+      const _drref = { token, requestedAt: new Date().toISOString(), requestedBy: `${user?.name || ""}${fhName ? " (" + fhName + ")" : ""}`, docs, via: "Dr Ref button" };
+      if (rec) await sb(`second_notes?id=eq.${rec.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...(rec.answers || {}), _drref } }) });
+      else await sb("second_notes", { method: "POST", body: JSON.stringify({
+        id: noteId, funeral_home_id: fhId, funeral_home_name: fhName, case_id: c?.id || null, case_ref: c?.caseRef || null,
+        deceased_name: [who.firstName, who.lastName].join(" ").trim(), pdf_path: null,
+        answers: { firstName: who.firstName.trim(), lastName: who.lastName.trim(), dob: who.dob, dod: who.dod, disposition: "Cremation", _drOnly: true, _drref },
+        submitted_by: user?.name || "", submitted_role: user?.role || "", status: c ? "linked" : "awaiting",
+        accepted_at: new Date().toISOString(), accepted_by: "Dr Ref only" }) });
+      setFiles({});
+      try { await email(noteId); setSent("✓ Dr Ref request emailed to Certa. You'll be emailed when the Dr Ref comes back."); }
+      catch (e) { setSent("The request is saved, but it couldn't be emailed to Certa (" + e.message + "). Tap 'Send request to Certa now' below, or call MSS."); }
+      logActivity(user, "DR REF REQUESTED", `${fhName} Dr Ref for ${who.firstName} ${who.lastName}${c ? "" : " (not in care yet)"}`, c?.caseRef || "", c?.id || "");
+      await reload(noteId);
+    } catch (e) { setErr("Error: " + e.message); }
+    setBusy(false);
+  }
+  async function saveDocs() {
+    setBusy(true);
+    try {
+      const fresh = (await sb(`second_notes?select=answers&id=eq.${found.id}`))?.[0]?.answers || {};
+      const d = fresh._drref; if (!d?.token || d.receivedAt) throw new Error(d?.receivedAt ? "The Dr Ref has already been received" : "No Dr Ref request");
+      const docs = [...(d.docs || [])];
+      for (const dd of DR_DOCS) { const f = files[dd.key]; if (!f) continue; const item = await upFile(found.id, dd, f); const i = docs.findIndex(x => x.key === dd.key); if (i >= 0) docs[i] = item; else docs.push(item); }
+      await sb(`second_notes?id=eq.${found.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...fresh, _drref: { ...d, docs, docsUpdatedAt: new Date().toISOString(), docsUpdatedBy: user?.name || "" } } }) });
+      setFiles({}); await email(found.id, true); setSent("✓ Updated Dr Ref request emailed to Certa."); await reload(found.id);
+    } catch (e) { alert("Couldn't update the Dr Ref documents: " + e.message); }
+    setBusy(false);
+  }
+  const open = n => { setPick(""); setTimeout(() => { setFiles({}); setSent(""); setErr(""); setFound(n); }, 0); };
+  const nm = n => n.answers?.lastName ? `${String(n.answers.lastName).toUpperCase()}, ${n.answers.firstName || ""}` : (n.deceased_name || "—");
+  const has = found?.answers?._drref?.token;
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <button onClick={has ? () => { setFound(null); setPick(""); setSent(""); } : onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
+      <h1 className="text-2xl font-black mb-1">📄 Dr Ref</h1>
+      <p className="text-sm text-gray-500 mb-4">Request a Dr Ref (medical referee) for a cremation without doing a 2nd Note. It's the same request as in the 2nd Note: when you do the 2nd Note later it joins this one, and you only request it once.</p>
+      {has ? <>
+        <div className={card}><div className="font-black">{nm(found)}</div><div className="text-xs text-gray-500">{found.case_ref || "Not yet in MSS care"} · {found.funeral_home_name}</div></div>
+        {sent && <p className={"mb-3 text-sm font-bold " + (sent.startsWith("✓") ? "text-green-700" : "text-red-600")}>{sent}</p>}
+        <DrRefCard answers={found.answers} setA={() => {}} files={files} setFiles={setFiles} caseDocs={[]} pubUrl={pubUrl} canResend busy={busy} onSaveDocs={saveDocs}
+          onResend={async () => { try { await email(found.id); setSent("✓ Dr Ref request emailed to Certa."); await reload(found.id); } catch (e) { alert("Couldn't email Certa: " + e.message); } }} />
+      </> : <>
+        <div className={card}>
+          <label className={lbl}>1. Deceased</label>
+          <select className={inp} value={pick} onChange={e => setPick(e.target.value)}>
+            <option value="">Choose…</option>
+            {mine.length > 0 && <optgroup label="In MSS care">{mine.map(x => <option key={x.id} value={x.id}>{String(x.lastName || "").toUpperCase()}, {x.firstName} — {x.caseRef}</option>)}</optgroup>}
+            <option value="none">Not in our care yet — enter details</option>
+          </select>
+          {pick === "none" && <div className="grid grid-cols-2 gap-2 mt-3">
+            {[["firstName", "First name(s)", "text"], ["lastName", "Last name", "text"], ["dob", "Date of birth", "date"], ["dod", "Date of death", "date"]].map(([k, l, t]) =>
+              <label key={k} className="block"><span className={lbl}>{l}</span><input type={t} className={inp} value={man[k]} onChange={e => setMan(m => ({ ...m, [k]: e.target.value }))} /></label>)}
+          </div>}
+          {found && !found.answers?._drref?.token && found.pdf_path && <p className="mt-2 text-xs text-gray-500">This deceased already has a 2nd Note; the Dr Ref will be added to it.</p>}
+        </div>
+        {pick && <>
+          <p className={lbl + " mt-2"}>2. Documents</p>
+          <DrRefCard answers={{}} setA={() => {}} files={files} setFiles={setFiles} caseDocs={caseDocs} error={err.startsWith("Upload") ? err : ""} pubUrl={pubUrl} standalone />
+          {err && !err.startsWith("Upload") && <p className="text-red-600 text-sm font-bold mb-2">{err}</p>}
+          <button type="button" disabled={busy} onClick={request} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black uppercase tracking-wide">{busy ? "Sending…" : "📄 Send Dr Ref request to Certa"}</button>
+        </>}
+        <p className={lbl + " mt-8"}>Your Dr Ref requests</p>
+        {list === null ? <p className="text-sm text-gray-400">Loading…</p> : list.length === 0 ? <p className="text-sm text-gray-400">None yet.</p> :
+          <div className="space-y-2">{list.map(n => { const d = n.answers._drref; return (
+            <button key={n.id} type="button" onClick={() => open(n)} className="w-full text-left bg-white border border-gray-200 hover:border-gray-500 rounded-2xl p-3 flex items-center gap-3">
+              <div className="flex-1"><div className="font-black text-sm">{nm(n)}</div><div className="text-xs text-gray-500">{n.case_ref || "Not yet in care"} · requested {fmt(d.requestedAt)}</div></div>
+              {d.receivedAt ? <span className="text-xs font-black text-green-700">✓ Received</span> : <span className="text-xs font-black text-amber-700">⏳ Waiting</span>}
+            </button>); })}</div>}
+      </>}
+    </div>);
 }

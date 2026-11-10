@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import DocumentScanner from "./DocumentScanner.jsx";
-import SecondNotes from "./SecondNotes.jsx";
+import SecondNotes, { DrRefOnly } from "./SecondNotes.jsx";
 import { NamePlateModal, NamePlatePreview } from "./namePlate.jsx";
 import BackupPanel from "./BackupPanel.jsx";
 // Pacemaker PDF template (base64 encoded)
@@ -1488,6 +1488,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
   const row2=[
     {label:"📋 MY CASES",action:"mycases",show:isMSS||isFD},
     {label:isFD?"📝 2ND NOTES":"📝 ALL 2ND NOTES",action:"secondnotes",show:isMSS||isFD},
+    {label:"📄 DR REF",action:"drref",show:isFD},
     {label:"📈 REPORTS",action:"reports",show:isMSS},
     {label:"✔️ APPROVALS",action:"approvals",show:isMSS},
     {label:"🔐 LOCK CASES",action:"lockview",show:isAdmin},
@@ -3222,7 +3223,7 @@ function JobSheet({isAdmin,c,prep,billable,upd,handleStatus,onPacemaker,onAccept
   async function saveCoDate(){const d=new Date(coEdit);if(isNaN(d))return;if(c.checkedInAt&&d<new Date(c.checkedInAt)){alert("Check out can't be before check in.");return;}
     await upd(c.id,{checkout:{...c.checkout,checkedOutAt:d.toISOString(),checkedOutAtSetBy:"Admin"}});setCoEdit(null);}
   const [note,setNote]=useState(null);const [showPlate,setShowPlate]=useState(false);
-  useEffect(()=>{let live=true;sb(`second_notes?case_id=eq.${c.id}&select=pdf_path,submitted_at,answers&order=submitted_at.desc&limit=1`).then(r=>{if(live&&Array.isArray(r)&&r[0])setNote(r[0]);}).catch(()=>{});return()=>{live=false;};},[c.id]);
+  useEffect(()=>{let live=true;sb(`second_notes?case_id=eq.${c.id}&answers->>_drOnly=is.null&select=pdf_path,submitted_at,answers&order=submitted_at.desc&limit=1`).then(r=>{if(live&&Array.isArray(r)&&r[0])setNote(r[0]);}).catch(()=>{});return()=>{live=false;};},[c.id]);
   const b=billable||{};
   const curCode=JS_PREP_CODES.find(k=>b[k]);
   const curBase=JS_PREP.find(p=>Object.values(p.v).includes(curCode));
@@ -5152,7 +5153,7 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
   const now=new Date();
   // 2nd Notes waiting for MSS: new ones and ones the FD has updated
   const [newNotes,setNewNotes]=useState([]);
-  useEffect(()=>{let live=true;const load=()=>sb("second_notes?select=id,deceased_name,edit_count,accepted_at&accepted_at=is.null&order=submitted_at.desc").then(r=>{if(live)setNewNotes(r||[]);}).catch(()=>{});
+  useEffect(()=>{let live=true;const load=()=>sb("second_notes?select=id,deceased_name,edit_count,accepted_at&accepted_at=is.null&answers->>_drOnly=is.null&order=submitted_at.desc").then(r=>{if(live)setNewNotes(r||[]);}).catch(()=>{});
     load();const t=setInterval(load,60000);return()=>{live=false;clearInterval(t);};},[]);
   const notesUpd=newNotes.filter(n=>n.edit_count>0).length,notesNew=newNotes.length-notesUpd;
   // Dr Refs uploaded by the medical referee (Certa) that staff haven't ticked as seen
@@ -6924,6 +6925,7 @@ export default function App() {
   if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="drref"&&user?.role==="fd") return wrap(<ErrorBoundary><DrRefOnly user={user} cases={liveCases} onBack={()=>setAction(null)} api={{sb,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
   if(action==="secondnotes") return wrap(<ErrorBoundary><SecondNotes user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)} api={{sb,updateCase,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>);
   if(action==="transfers") return wrap(<MyTransfers user={user} cases={liveCases}/>);
