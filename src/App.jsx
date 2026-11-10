@@ -5746,6 +5746,54 @@ function MyPin({user,users}) {
 }
 
 
+// ─── DR REF WEEKLY REPORT (Mon–Sun), to match the doctor's invoices ─────────
+function DrRefWeekReport(){
+  const monday=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;};
+  const [wk,setWk]=useState(()=>monday(new Date()));
+  const [rows,setRows]=useState(null);
+  const end=new Date(wk);end.setDate(end.getDate()+7);
+  const sun=new Date(end);sun.setDate(sun.getDate()-1);
+  const dd=d=>d.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+  const dt=x=>x?new Date(x).toLocaleString("en-AU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"numeric",minute:"2-digit"}):"";
+  useEffect(()=>{setRows(null);
+    sb(`second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>requestedAt=gte.${wk.toISOString()}&answers->_drref->>requestedAt=lt.${end.toISOString()}&limit=1000`)
+      .then(r=>setRows((r||[]).filter(n=>n.answers?._drref?.token).sort((a,b)=>String(a.answers._drref.requestedAt).localeCompare(String(b.answers._drref.requestedAt))))).catch(()=>setRows([]));
+  },[wk.getTime()]);
+  const move=n=>setWk(w=>{const x=new Date(w);x.setDate(x.getDate()+7*n);return x;});
+  const nm=n=>n.answers?.lastName?`${String(n.answers.lastName).toUpperCase()}, ${n.answers.firstName||""}`:(n.deceased_name||"");
+  const doc=d=>d.referee?.name||d.receivedBy||"";
+  const list=rows||[], got=list.filter(n=>n.answers._drref.receivedAt).length;
+  function csv(){
+    const H=["Requested","Deceased","Case Ref","Funeral Director","Requested By","Sent To","Status","Doctor","Received","Signed Online","Queries"];
+    const R=list.map(n=>{const d=n.answers._drref;return[dt(d.requestedAt),nm(n),n.case_ref||"Not yet in care",n.funeral_home_name||"",d.requestedBy||"",d.sentTo||"",d.receivedAt?"Received":d.sentAt?"Waiting":"Not sent",doc(d),dt(d.receivedAt),d.signedOnline?"Yes":"",(d.queries||[]).length||""];});
+    const esc=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+    const text=[[`Dr Ref requests ${dd(wk)} to ${dd(sun)}`],[`Requested: ${list.length}`,`Received: ${got}`],[],H,...R].map(r=>r.map(esc).join(",")).join("\n");
+    const url=URL.createObjectURL(new Blob(["﻿"+text],{type:"text/csv;charset=utf-8;"})),a=document.createElement("a");
+    const f=d=>d.toLocaleDateString("en-AU",{day:"2-digit",month:"2-digit",year:"numeric"}).replace(/\//g,"-");
+    a.href=url;a.download=`MSS_Dr_Ref_Report_${f(wk)}_to_${f(sun)}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }
+  return(<div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <div><div className="text-lg font-black">📄 Dr Ref requests — weekly</div><div className="text-xs text-gray-500">Monday to Sunday, by date requested. Match against the doctor's invoice.</div></div>
+      <button onClick={csv} disabled={!list.length} className="px-4 py-2 rounded-xl bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white font-black text-xs uppercase tracking-wide">⬇ Download CSV</button>
+    </div>
+    <div className="flex items-center gap-2 mb-4">
+      <button onClick={()=>move(-1)} className="px-3 py-2 rounded-xl border-2 border-gray-300 hover:border-gray-700 font-black text-sm">‹</button>
+      <div className="flex-1 text-center font-black text-sm">{dd(wk)} – {dd(sun)}</div>
+      <button onClick={()=>move(1)} className="px-3 py-2 rounded-xl border-2 border-gray-300 hover:border-gray-700 font-black text-sm">›</button>
+      <button onClick={()=>setWk(monday(new Date()))} className="px-3 py-2 rounded-xl border-2 border-gray-300 hover:border-gray-700 font-black text-xs uppercase">This week</button>
+    </div>
+    <div className="flex gap-3 mb-3 text-sm"><span className="font-black">{list.length} requested</span><span className="text-green-700 font-black">{got} received</span>{list.length-got>0&&<span className="text-amber-700 font-black">{list.length-got} waiting</span>}</div>
+    {rows===null?<p className="text-sm text-gray-400">Loading…</p>:!list.length?<p className="text-sm text-gray-400">No Dr Refs requested this week.</p>:
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-[11px] uppercase tracking-wider text-gray-500 border-b">
+      <th className="py-2 pr-3">Requested</th><th className="pr-3">Deceased</th><th className="pr-3">Case</th><th className="pr-3">Funeral director</th><th className="pr-3">Doctor</th><th className="pr-3">Status</th></tr></thead>
+      <tbody>{list.map(n=>{const d=n.answers._drref;return(<tr key={n.id} className="border-b border-gray-100">
+        <td className="py-2 pr-3 whitespace-nowrap">{dt(d.requestedAt)}</td><td className="pr-3 font-bold">{nm(n)}</td><td className="pr-3">{n.case_ref||"—"}</td>
+        <td className="pr-3">{n.funeral_home_name}</td><td className="pr-3">{doc(d)||<span className="text-gray-400">{d.sentTo||"—"}</span>}</td>
+        <td className="pr-3 whitespace-nowrap">{d.receivedAt?<span className="text-green-700 font-black">✓ {dt(d.receivedAt)}</span>:<span className="text-amber-700 font-black">⏳ Waiting</span>}</td></tr>);})}</tbody></table></div>}
+  </div>);
+}
+
 // ─── REPORTS VIEW ─────────────────────────────────────────────────────────────
 function ReportsView({cases}) {
   const [sortBy, setSortBy] = useState("checkoutDate");
@@ -5762,6 +5810,7 @@ function ReportsView({cases}) {
   ];
   const STATUS_FILTERS=["ALL","NOT STARTED","IN PROGRESS","READY"];
   const [statusFilter,setStatusFilter]=useState("ALL");
+  const [showDr,setShowDr]=useState(false);
 
   // ── Weekly Report: Friday 5:01pm to this Friday 5:00pm ─────────────────────
   function getWeeklyWindow() {
@@ -5921,8 +5970,11 @@ function ReportsView({cases}) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             WEEKLY REPORT
           </button>
+          <button onClick={()=>setShowDr(v=>!v)}
+            className={`px-4 py-2 rounded-xl border-2 font-black text-xs uppercase tracking-wide transition ${showDr?"bg-gray-900 text-white border-gray-900":"border-gray-900 text-gray-900 hover:bg-gray-100"}`}>📄 DR REF REPORT</button>
         </div>
       </div>
+      {showDr&&<DrRefWeekReport/>}
 
       {/* Search */}
       <input className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-900 text-base focus:outline-none focus:border-gray-800 transition placeholder-gray-400 mb-4"
