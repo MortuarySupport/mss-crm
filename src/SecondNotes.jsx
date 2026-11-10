@@ -1012,6 +1012,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
   const open = n => { setPick(""); setTimeout(() => { setFiles({}); setSent(""); setErr(""); setFound(n); }, 0); };
   const nm = n => n.answers?.lastName ? `${String(n.answers.lastName).toUpperCase()}, ${n.answers.firstName || ""}` : (n.deceased_name || "—");
   const has = found?.answers?._drref?.token;
+  const pickBtn = on => "text-left px-4 py-3 rounded-xl border-2 font-black text-sm transition " + (on ? "bg-gray-900 text-white border-gray-900" : "bg-white border-gray-200 text-gray-800 hover:border-gray-600");
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       <button onClick={has ? () => { setFound(null); setPick(""); setSent(""); } : onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
@@ -1025,18 +1026,18 @@ export function DrRefOnly({ user, cases, onBack, api }) {
       </> : <>
         {!isFD && <div className={card}>
           <label className={lbl}>Funeral director</label>
-          <select className={inp} value={fhId} onChange={e => setFhId(e.target.value)}>
-            <option value="">Choose the funeral director…</option>
-            {fhList.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {fhList.map(f => <button key={f.id} type="button" onClick={() => setFhId(f.id)} className={pickBtn(fhId === f.id)}>{f.name}</button>)}
+          </div>
         </div>}
         {fhId && <><div className={card}>
           <label className={lbl}>1. Deceased{!isFD && fhName ? " — " + fhName + " clients" : ""}</label>
-          <select className={inp} value={pick} onChange={e => setPick(e.target.value)}>
-            <option value="">Choose…</option>
-            {mine.length > 0 && <optgroup label="In MSS care">{mine.map(x => <option key={x.id} value={x.id}>{String(x.lastName || "").toUpperCase()}, {x.firstName} — {x.caseRef}</option>)}</optgroup>}
-            <option value="none">Not in our care yet — enter details</option>
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {mine.map(x => <button key={x.id} type="button" onClick={() => setPick(x.id)} className={pickBtn(pick === x.id)}>
+              {String(x.lastName || "").toUpperCase()}, {x.firstName}<span className={"block text-xs font-bold " + (pick === x.id ? "text-gray-300" : "text-gray-500")}>{x.caseRef}</span></button>)}
+            <button type="button" onClick={() => setPick("none")} className={pickBtn(pick === "none") + " border-dashed"}>＋ Not in our care yet<span className={"block text-xs font-bold " + (pick === "none" ? "text-gray-300" : "text-gray-500")}>Enter the details</span></button>
+          </div>
+          {mine.length === 0 && <p className="mt-2 text-xs text-gray-500">No clients in MSS care right now.</p>}
           {pick === "none" && <div className="grid grid-cols-2 gap-2 mt-3">
             {[["firstName", "First name(s)", "text"], ["lastName", "Last name", "text"], ["dob", "Date of birth", "date"], ["dod", "Date of death", "date"]].map(([k, l, t]) =>
               <label key={k} className="block"><span className={lbl}>{l}</span><input type={t} className={inp} value={man[k]} onChange={e => setMan(m => ({ ...m, [k]: e.target.value }))} /></label>)}
