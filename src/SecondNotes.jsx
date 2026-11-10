@@ -921,7 +921,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
 // ── 📄 Dr Ref on its own (FD home button). Same request as in the 2nd Note: one record per deceased. ──
 export function DrRefOnly({ user, cases, onBack, api }) {
   const { sb, logActivity, SUPABASE_URL, SUPABASE_KEY, FUNERAL_HOMES, STORAGE_BUCKET } = api;
-  const fhId = user?.funeralHomeId || "", fhName = FUNERAL_HOMES.find(f => f.id === fhId)?.name || "";
+  const isFD = user?.role === "fd";
+  const [fhId, setFhId] = useState(isFD ? user?.funeralHomeId || "" : "");
+  const fhName = FUNERAL_HOMES.find(f => f.id === fhId)?.name || "";
+  const fhList = useMemo(() => [...FUNERAL_HOMES].sort((a, b) => String(a.name).localeCompare(String(b.name))), [FUNERAL_HOMES]);
   const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
   const pubUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p || "").split("/").map(encodeURIComponent).join("/")}`;
   const fmt = x => x ? new Date(x).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
@@ -938,8 +941,8 @@ export function DrRefOnly({ user, cases, onBack, api }) {
   const [sent, setSent] = useState("");
   const c = pick && pick !== "none" ? cases.find(x => x.id === pick) : null;
   const who = c ? { firstName: c.firstName || "", lastName: c.lastName || "", dob: c.dob || "", dod: c.dod || "" } : man;
-  const load = () => sb(`second_notes?select=*&funeral_home_id=eq.${fhId}&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=200`).then(r => setList(r || [])).catch(() => setList([]));
-  useEffect(() => { load(); }, []);
+  const load = () => !fhId ? setList([]) : sb(`second_notes?select=*&funeral_home_id=eq.${fhId}&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=200`).then(r => setList(r || [])).catch(() => setList([]));
+  useEffect(() => { setPick(""); setFound(null); setList(null); load(); }, [fhId]);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [found?.id]);
   async function findRec(caseId, ans) {
     const rows = await sb(`second_notes?select=*&funeral_home_id=eq.${fhId}&limit=500`);
@@ -978,7 +981,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
       for (const dd of DR_DOCS) { const f = files[dd.key], have = caseDocs.find(x => dd.re.test(x.name || ""));
         if (f) docs.push(await upFile(noteId, dd, f)); else if (have) docs.push({ key: dd.key, label: dd.label, path: have.path, name: have.name }); }
       const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, "0")).join("");
-      const _drref = { token, requestedAt: new Date().toISOString(), requestedBy: `${user?.name || ""}${fhName ? " (" + fhName + ")" : ""}`, docs, via: "Dr Ref button" };
+      const _drref = { token, requestedAt: new Date().toISOString(), requestedBy: `${user?.name || ""}${isFD ? (fhName ? " (" + fhName + ")" : "") : " (MSS)"}`, docs, via: "Dr Ref button" };
       if (rec) await sb(`second_notes?id=eq.${rec.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...(rec.answers || {}), _drref } }) });
       else await sb("second_notes", { method: "POST", body: JSON.stringify({
         id: noteId, funeral_home_id: fhId, funeral_home_name: fhName, case_id: c?.id || null, case_ref: c?.caseRef || null,
@@ -1013,15 +1016,22 @@ export function DrRefOnly({ user, cases, onBack, api }) {
     <div className="max-w-2xl mx-auto px-4 py-6">
       <button onClick={has ? () => { setFound(null); setPick(""); setSent(""); } : onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
       <h1 className="text-2xl font-black mb-1">📄 Dr Ref</h1>
-      <p className="text-sm text-gray-500 mb-4">Request a Dr Ref (medical referee) for a cremation without doing a 2nd Note. It's the same request as in the 2nd Note: when you do the 2nd Note later it joins this one, and you only request it once.</p>
+      <p className="text-sm text-gray-500 mb-4">{isFD ? "Request a Dr Ref (medical referee) for a cremation without doing a 2nd Note. It's the same request as in the 2nd Note: when you do the 2nd Note later it joins this one, and you only request it once." : "Request a Dr Ref for a funeral director's client without a 2nd Note. Choose the funeral director to see their clients. When their 2nd Note comes in later it joins this request, so it's only requested once. The funeral director and MSS are emailed when the Dr Ref comes back."}</p>
       {has ? <>
         <div className={card}><div className="font-black">{nm(found)}</div><div className="text-xs text-gray-500">{found.case_ref || "Not yet in MSS care"} · {found.funeral_home_name}</div></div>
         {sent && <p className={"mb-3 text-sm font-bold " + (sent.startsWith("✓") ? "text-green-700" : "text-red-600")}>{sent}</p>}
         <DrRefCard answers={found.answers} setA={() => {}} files={files} setFiles={setFiles} caseDocs={[]} pubUrl={pubUrl} canResend busy={busy} onSaveDocs={saveDocs}
           onResend={async () => { try { await email(found.id); setSent("✓ Dr Ref request emailed to the doctor."); await reload(found.id); } catch (e) { alert("Couldn't email the doctor: " + e.message); } }} />
       </> : <>
-        <div className={card}>
-          <label className={lbl}>1. Deceased</label>
+        {!isFD && <div className={card}>
+          <label className={lbl}>Funeral director</label>
+          <select className={inp} value={fhId} onChange={e => setFhId(e.target.value)}>
+            <option value="">Choose the funeral director…</option>
+            {fhList.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </select>
+        </div>}
+        {fhId && <><div className={card}>
+          <label className={lbl}>1. Deceased{!isFD && fhName ? " — " + fhName + " clients" : ""}</label>
           <select className={inp} value={pick} onChange={e => setPick(e.target.value)}>
             <option value="">Choose…</option>
             {mine.length > 0 && <optgroup label="In MSS care">{mine.map(x => <option key={x.id} value={x.id}>{String(x.lastName || "").toUpperCase()}, {x.firstName} — {x.caseRef}</option>)}</optgroup>}
@@ -1039,13 +1049,14 @@ export function DrRefOnly({ user, cases, onBack, api }) {
           {err && !err.startsWith("Upload") && <p className="text-red-600 text-sm font-bold mb-2">{err}</p>}
           <button type="button" disabled={busy} onClick={request} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black uppercase tracking-wide">{busy ? "Sending…" : "📄 Send Dr Ref request to the doctor"}</button>
         </>}
-        <p className={lbl + " mt-8"}>Your Dr Ref requests</p>
+        <p className={lbl + " mt-8"}>{isFD ? "Your Dr Ref requests" : fhName + " Dr Ref requests"}</p>
         {list === null ? <p className="text-sm text-gray-400">Loading…</p> : list.length === 0 ? <p className="text-sm text-gray-400">None yet.</p> :
           <div className="space-y-2">{list.map(n => { const d = n.answers._drref; return (
             <button key={n.id} type="button" onClick={() => open(n)} className="w-full text-left bg-white border border-gray-200 hover:border-gray-500 rounded-2xl p-3 flex items-center gap-3">
               <div className="flex-1"><div className="font-black text-sm">{nm(n)}</div><div className="text-xs text-gray-500">{n.case_ref || "Not yet in care"} · requested {fmt(d.requestedAt)}</div></div>
               {d.receivedAt ? <span className="text-xs font-black text-green-700">✓ Received</span> : <span className="text-xs font-black text-amber-700">⏳ Waiting</span>}
             </button>); })}</div>}
+      </>}
       </>}
     </div>);
 }

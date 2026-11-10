@@ -4020,7 +4020,7 @@ async function resendDrRefToFD(noteId,fhName,by){
     if(!r.ok)throw new Error(j.error||r.status);alert("✓ Dr Ref sent to "+j.to.join(", "));}catch(e){alert("Couldn't send: "+e.message);}
 }
 // All Dr Ref requests and the Dr Refs uploaded by the doctor, searchable
-function DrRefsView({onBack,user}){
+function DrRefsView({onBack,user,onNew}){
   const [rows,setRows]=useState(null);const [q,setQ]=useState("");const [tab,setTab]=useState("received");
   useEffect(()=>{sb("second_notes?select=id,deceased_name,case_ref,funeral_home_name,answers&answers->_drref->>token=not.is.null&order=submitted_at.desc&limit=1000")
     .then(r=>setRows((r||[]).map(n=>({...n,d:n.answers._drref})).sort((a,b)=>String(b.d.receivedAt||b.d.requestedAt).localeCompare(String(a.d.receivedAt||a.d.requestedAt))))).catch(()=>setRows([]));},[]);
@@ -4032,7 +4032,8 @@ function DrRefsView({onBack,user}){
   const tb=(k,l,n)=><button onClick={()=>setTab(k)} className={"flex-1 py-3 rounded-xl border-2 font-black text-xs uppercase "+(tab===k?"bg-gray-900 text-white border-gray-900":"border-gray-200 text-gray-600 hover:border-gray-400")}>{l} ({n})</button>;
   return(
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <button onClick={onBack} className="mb-4 px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
+      <div className="flex justify-between items-center mb-4 gap-2"><button onClick={onBack} className="px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-sm uppercase">‹ Back</button>
+        {onNew&&<button onClick={onNew} className="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-sm uppercase">＋ New Dr Ref</button>}</div>
       <h1 className="text-2xl font-black mb-1">📄 Dr Refs</h1>
       <p className="text-sm text-gray-500 mb-4">Every Dr Ref requested through Lumière, and the Dr Refs they uploaded. Dr Refs attached by hand to a case are in that case's Documents.</p>
       <div className="flex gap-2 mb-3">{tb("received","Received",rec.length)}{tb("waiting","Awaiting doctor",wait.length)}{tb("all","All",all.length)}</div>
@@ -6916,7 +6917,7 @@ export default function App() {
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
   if(action==="dashboard"&&(isAdmin||user?.role==="mss")) return wrap(<AdminDashboard user={user} isAdmin={isAdmin} cases={liveCases} calendarBookings={calendarBookings} onUpdateCase={handleUpdateCase} onAction={a=>{setAction(a);window.scrollTo({top:0,behavior:"smooth"});}}/>);
-  if(action==="drrefs"&&(isAdmin||user?.role==="mss")) return wrap(<DrRefsView user={user} onBack={()=>setAction(null)}/>);
+  if(action==="drrefs"&&(isAdmin||user?.role==="mss")) return wrap(<DrRefsView user={user} onBack={()=>setAction(null)} onNew={()=>setAction("drref")}/>);
   if(action==="prices"&&isAdmin) return wrap(<PriceListView user={user} onBack={()=>setAction(null)}/>);
   if(action==="pins"&&isAdmin) return wrap(<PinManagement users={users} onPinUpdate={handlePinUpdate}/>);
   if(action==="activitylog"&&isAdmin) return wrap(<ActivityLogView/>);
@@ -6925,7 +6926,7 @@ export default function App() {
   if(action==="vehicles") return wrap(<ErrorBoundary><CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking} defaultTab="VehicleStaff"/></ErrorBoundary>);
   if(action==="mortuary") return wrap(<MortuaryFlow user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="checkout") return wrap(<CheckOutFlow user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
-  if(action==="drref"&&user?.role==="fd") return wrap(<ErrorBoundary><DrRefOnly user={user} cases={liveCases} onBack={()=>setAction(null)} api={{sb,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
+  if(action==="drref"&&(user?.role==="fd"||isAdmin||user?.role==="mss")) return wrap(<ErrorBoundary><DrRefOnly user={user} cases={liveCases} onBack={()=>setAction(user?.role==="fd"?null:"drrefs")} api={{sb,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
   if(action==="secondnotes") return wrap(<ErrorBoundary><SecondNotes user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)} api={{sb,updateCase,logActivity,SUPABASE_URL,SUPABASE_KEY,FUNERAL_HOMES,STORAGE_BUCKET}}/></ErrorBoundary>);
   if(action==="mycases") return wrap(<MyCases user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>);
   if(action==="transfers") return wrap(<MyTransfers user={user} cases={liveCases}/>);
