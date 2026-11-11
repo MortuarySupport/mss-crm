@@ -1047,7 +1047,36 @@ function CheckOutDateEdit({c,onUpdateCase,label="Out: "}){
   if(ed===null)return(<span>{label}<span className="text-gray-800 font-medium">{fmtDTDay(c.checkout.checkedOutAt)}</span> <button type="button" onClick={()=>setEd(toIn(c.checkout.checkedOutAt))} className="ml-1 text-[11px] font-black uppercase text-blue-600 hover:underline">✎ Change</button></span>);
   return(<span className="inline-flex flex-wrap items-center gap-1">{label}<input type="datetime-local" value={ed} max={toIn(new Date())} onChange={e=>setEd(e.target.value)} className="px-2 py-1 rounded border border-gray-300 text-gray-900 text-xs font-bold"/><button type="button" disabled={busy} onClick={save} className="px-2 py-1 rounded bg-green-600 text-white text-[11px] font-black uppercase">{busy?"…":"Save"}</button><button type="button" onClick={()=>setEd(null)} className="px-2 py-1 rounded bg-gray-200 text-[11px] font-black uppercase">Cancel</button></span>);
 }
-function CaseViewCard({c,isAdmin,onSave}) {
+// Admin: move a case to the right funeral director (changes who sees it, emails and billing)
+function ChangeFHButton({c,user,onChanged}){
+  const [open,setOpen]=useState(false),[pick,setPick]=useState(""),[busy,setBusy]=useState(false),[err,setErr]=useState("");
+  const list=[...FUNERAL_HOMES].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  async function go(){
+    const fh=FUNERAL_HOMES.find(f=>f.id===pick);if(!fh)return;
+    setBusy(true);setErr("");
+    try{
+      await updateCase(c.id,{funeral_home_id:fh.id,funeral_home_name:fh.name});
+      logActivity(user,"FUNERAL DIRECTOR CHANGED",`${c.caseRef} ${(c.lastName||"").toUpperCase()}, ${c.firstName}: ${c.funeralHomeName||"—"} → ${fh.name}`,c.caseRef,c.id);
+      onChanged&&onChanged({funeralHomeId:fh.id,funeralHomeName:fh.name});setOpen(false);
+    }catch(e){setErr("Couldn't change it: "+(e.message||e));}
+    setBusy(false);
+  }
+  return(<>
+    <button type="button" onClick={()=>{setPick("");setErr("");setOpen(true);}} className="ml-2 px-2 py-0.5 rounded-lg border border-gray-300 text-[11px] font-black uppercase text-gray-600 hover:border-gray-900">Change</button>
+    {open&&<div style={{position:"fixed",inset:0,zIndex:2147483000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setOpen(false)}>
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
+        <h3 className="text-xl font-black mb-1">Change funeral director</h3>
+        <p className="text-sm text-gray-500 mb-4">{c.caseRef} · {(c.lastName||"").toUpperCase()}, {c.firstName} — currently <b>{c.funeralHomeName||"—"}</b></p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">{list.map(f=><button key={f.id} type="button" disabled={f.id===c.funeralHomeId} onClick={()=>setPick(f.id)} className={"text-left px-3 py-3 rounded-xl border-2 text-sm font-black "+(pick===f.id?"bg-gray-900 text-white border-gray-900":f.id===c.funeralHomeId?"border-gray-100 text-gray-300":"border-gray-200 hover:border-gray-600")}>{f.name}</button>)}</div>
+        <p className="text-xs text-gray-500 mb-3">The case moves to the new funeral director: they'll see it and get its emails, and the old one won't. Recorded in the Activity Log.</p>
+        {err&&<p className="text-sm font-bold text-red-600 mb-3">{err}</p>}
+        <div className="flex gap-3"><button type="button" onClick={()=>setOpen(false)} className="flex-1 py-3 rounded-xl border-2 border-gray-300 font-black uppercase">Cancel</button>
+          <button type="button" disabled={!pick||busy} onClick={go} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black uppercase disabled:opacity-40">{busy?"Saving…":pick?"Move to "+(FUNERAL_HOMES.find(f=>f.id===pick)?.name||""):"Choose one"}</button></div>
+      </div></div>}
+  </>);
+}
+
+function CaseViewCard({c,isAdmin,onSave,user,onFHChanged}) {
   const prep=c.prep||{};
   const prepShorts=(prep.prepOptions||[]).map(p=>PREP_OPTIONS.find(x=>x.label===p)?.short||p).join(", ")||"—";
   const age=calcAge(c.dob,c.dod);
@@ -1076,7 +1105,7 @@ function CaseViewCard({c,isAdmin,onSave}) {
           <div><span className="text-gray-500 text-xs">Disposition: </span>{isAdmin?<InlineEdit isAdmin value={prep.disposition} onSave={v=>savePrep("disposition",v)} options={DISPOSITION_OPTIONS}/>:<span className="font-bold text-gray-900 text-xs">{prep.disposition||"—"}</span>}</div>
           <div><span className="text-gray-500 text-xs">Preparation: </span><span className="font-bold text-gray-900 text-xs">{prepShorts}</span></div>
           <div><span className="text-gray-500 text-xs">Collection: </span>{isAdmin?<InlineEdit isAdmin value={prep.collectionDate} onSave={v=>savePrep("collectionDate",v)} type="date" display={fmtDayLong(prep.collectionDate)}/>:<span className="font-bold text-gray-900 text-xs">{fmtDayLong(prep.collectionDate)||"—"}</span>}</div>
-          <div><span className="text-gray-500 text-xs">Funeral Director: </span>{isAdmin?<InlineEdit isAdmin value={c.funeralHomeName} onSave={v=>save("funeral_home_name",v)}/>:<span className="font-bold text-gray-900 text-xs">{c.funeralHomeName||"—"}</span>}</div>
+          <div><span className="text-gray-500 text-xs">Funeral Director: </span><span className="font-bold text-gray-900 text-xs">{c.funeralHomeName||"—"}</span>{isAdmin&&user&&<ChangeFHButton c={c} user={user} onChanged={onFHChanged}/>}</div>
         </div>
       </div>
     </div>
@@ -3211,7 +3240,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     <div className="w-full px-3 py-4" style={{maxWidth:"100%",boxSizing:"border-box"}}>
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
       {isAdmin&&<div className="mb-3 max-w-xs ml-auto"><AdminDeleteCase c={c} user={user} onDeleted={()=>{onUpdateCase(c.id,{acceptedAt:c.acceptedAt||new Date().toISOString(),status:"deleted",checkedOut:true});setSelCase(null);}}/></div>}
-      <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
+      <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)} user={user} onFHChanged={u=>onUpdateCase(c.id,u)}/></div>
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
       )}
@@ -5695,7 +5724,7 @@ function RecordsView({user,cases,onUpdateCase}) {
                 {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
               </div>
             </div>
-            <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)}/>
+            <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)} user={user} onFHChanged={u=>onUpdateCase(c.id,u)}/>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-gray-500 mt-3">
               <span>In: <span className="text-gray-800 font-medium">{fmtDTDay(c.checkedInAt)}</span></span>
               <span>By: <span className="text-gray-800 font-medium">{c.checkedInBy}</span></span>
