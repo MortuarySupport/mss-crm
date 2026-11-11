@@ -2935,6 +2935,42 @@ ${photoDocs.map(d=>`<div style="margin-bottom:20px;"><div style="font-size:9px;f
 }
 
 
+// ─── ADMIN: DELETE A CASE (e.g. a duplicate check-in) ─────────────────────────
+function AdminDeleteCase({c,user,onDeleted,small}){
+  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState("");
+  if(user?.role!=="admin")return null;
+  async function del(){
+    setBusy(true);setErr("");
+    try{
+      // A 2nd Note linked to this case goes back to "waiting for a case" rather than being lost
+      await sb(`second_notes?case_id=eq.${c.id}`,{method:"PATCH",body:JSON.stringify({case_id:null,case_ref:null,status:"awaiting"})}).catch(()=>{});
+      await sb(`cases?id=eq.${c.id}`,{method:"DELETE"});
+      logActivity(user,"CASE DELETED",`${c.caseRef} ${(c.lastName||"").toUpperCase()}, ${c.firstName} (${c.funeralHomeName||""}) deleted by Admin`,c.caseRef,c.id);
+      setOpen(false);onDeleted&&onDeleted(c);
+    }catch(e){setErr("Couldn't delete: "+(e.message||e));}
+    setBusy(false);
+  }
+  return(<>
+    <button type="button" onClick={e=>{e.stopPropagation();setOpen(true);}} className={small?"shrink-0 px-3 py-3 rounded-xl border-2 border-red-300 text-red-600 font-black text-sm uppercase hover:bg-red-50":"w-full py-3 rounded-xl border-2 border-red-300 text-red-600 font-black text-sm uppercase hover:bg-red-50"} title="Delete case (Admin)">🗑{small?"":" Delete case (Admin)"}</button>
+    {open&&<div onClick={e=>e.stopPropagation()} style={{position:"fixed",inset:0,zIndex:2147483000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 border-4 border-red-500 text-left">
+        <div className="text-3xl text-center mb-2">🗑</div>
+        <h3 className="text-xl font-black text-red-700 text-center mb-3">Delete this case?</h3>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3 text-sm">
+          <div className="font-black text-gray-900">{c.caseRef} · {(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+          <div className="text-gray-700 mt-1">{c.funeralHomeName}{c.checkedInAt?" · Checked in "+fmtDTDay(c.checkedInAt):""}</div>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">This permanently removes the case from Lumière. Use it for duplicates or mistakes only. It's recorded in the Activity Log.</p>
+        {err&&<p className="text-sm font-bold text-red-600 mb-3">{err}</p>}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button type="button" onClick={()=>setOpen(false)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black uppercase">Cancel</button>
+          <button type="button" disabled={busy} onClick={del} className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-black uppercase">{busy?"Deleting…":`Delete ${c.caseRef}`}</button>
+        </div>
+      </div>
+    </div>}
+  </>);
+}
+
 function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const [initCase]=useState(()=>{const x=_openCaseId&&cases.find(k=>k.id===_openCaseId);_openCaseId=null;return x||null;});
   const [selFH,setSelFH]=useState(()=>initCase?(FUNERAL_HOMES.find(f=>f.id===initCase.funeralHomeId)||{id:initCase.funeralHomeId,name:initCase.funeralHomeName}):null);
@@ -3062,7 +3098,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       <h2 className="text-2xl font-black text-gray-900 mb-3">Mortuary</h2>
       {newJobs.length>0&&(<div className="mb-8"><div className="flex items-center gap-3 mb-4"><span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"/><h3 className="text-sm font-black uppercase tracking-widest text-gray-700">New Jobs — {newJobs.length} case{newJobs.length>1?"s":""}</h3>
             <button onClick={async()=>{if(!window.confirm("Accept all "+newJobs.length+" new jobs?")) return;const now=new Date().toISOString();for(const x of newJobs){try{await updateCase(x.id,{accepted_at:now,prep_status:"not-started"});onUpdateCase(x.id,{acceptedAt:now,prepStatus:"not-started"});}catch(e){alert("Error: "+e.message);break;}}}} className="text-xs font-black uppercase tracking-widest text-white bg-green-600 hover:bg-green-700 rounded-lg px-3 py-1.5 transition">✅ ACCEPT ALL</button>
-            <button onClick={()=>{const w=window.open("","_blank");w.document.write("<html><head><title>New Jobs</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}h2{margin-bottom:16px}</style></head><body><h2>New Jobs — "+new Date().toLocaleDateString("en-AU")+"</h2><table><tr><th>Case Ref</th><th>Deceased</th><th>Funeral Director</th><th>Checked In</th></tr>"+newJobs.map(x=>"<tr><td>"+x.caseRef+"</td><td>"+(x.lastName||"").toUpperCase()+", "+x.firstName+"</td><td>"+(x.funeralHomeName||"")+"</td><td>"+(x.checkedInAt?fmtDTDay(x.checkedInAt):"—")+"</td></tr>").join("")+"</table></body></html>");w.document.close();w.print();}} className="text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">🖨 PRINT LIST</button></div><div className="space-y-3">{newJobs.map(x=>(<div key={x.id} className="bg-white border-2 border-green-400 rounded-2xl p-5"><div className="flex items-start justify-between gap-4"><div><div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName}</div><div className="text-sm text-gray-500 mt-0.5">{x.caseRef} · {x.funeralHomeName}</div><div className="text-xs text-gray-400 mt-0.5">Checked in: {x.checkedInAt?fmtDTDay(x.checkedInAt):"—"}</div></div><button onClick={async()=>{try{await updateCase(x.id,{accepted_at:new Date().toISOString(),prep_status:"not-started"});onUpdateCase(x.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}catch(e){alert(e.message);}}} className="shrink-0 px-5 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">ACCEPT</button></div></div>))}</div><div className="border-t-2 border-gray-100 my-6"/></div>)}
+            <button onClick={()=>{const w=window.open("","_blank");w.document.write("<html><head><title>New Jobs</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse}th{background:#111;color:#fff;padding:8px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}h2{margin-bottom:16px}</style></head><body><h2>New Jobs — "+new Date().toLocaleDateString("en-AU")+"</h2><table><tr><th>Case Ref</th><th>Deceased</th><th>Funeral Director</th><th>Checked In</th></tr>"+newJobs.map(x=>"<tr><td>"+x.caseRef+"</td><td>"+(x.lastName||"").toUpperCase()+", "+x.firstName+"</td><td>"+(x.funeralHomeName||"")+"</td><td>"+(x.checkedInAt?fmtDTDay(x.checkedInAt):"—")+"</td></tr>").join("")+"</table></body></html>");w.document.close();w.print();}} className="text-xs font-black uppercase tracking-widest text-gray-500 border border-gray-300 rounded-lg px-3 py-1.5 hover:border-gray-700 transition">🖨 PRINT LIST</button></div><div className="space-y-3">{newJobs.map(x=>(<div key={x.id} className="bg-white border-2 border-green-400 rounded-2xl p-5"><div className="flex items-start justify-between gap-4"><div><div className="text-lg font-black text-gray-900">{(x.lastName||"").toUpperCase()}, {x.firstName}</div><div className="text-sm text-gray-500 mt-0.5">{x.caseRef} · {x.funeralHomeName}</div><div className="text-xs text-gray-400 mt-0.5">Checked in: {x.checkedInAt?fmtDTDay(x.checkedInAt):"—"}</div></div><div className="flex gap-2 shrink-0"><AdminDeleteCase small c={x} user={user} onDeleted={()=>onUpdateCase(x.id,{acceptedAt:new Date().toISOString(),status:"deleted",checkedOut:true})}/><button onClick={async()=>{try{await updateCase(x.id,{accepted_at:new Date().toISOString(),prep_status:"not-started"});onUpdateCase(x.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}catch(e){alert(e.message);}}} className="shrink-0 px-5 py-3 rounded-xl bg-green-600 text-white font-black text-sm uppercase hover:bg-green-700 transition">ACCEPT</button></div></div></div>))}</div><div className="border-t-2 border-gray-100 my-6"/></div>)}
       {changedCases.length>0&&<div className="mb-6">
         <div className="flex items-center gap-2 mb-3"><span className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"/><span className="text-sm font-black uppercase tracking-widest text-orange-600">Changes Made — {changedCases.length}</span></div>
         <div className="space-y-3">
@@ -3174,6 +3210,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     <button onClick={()=>setSelCase(null)} style={{position:"fixed",bottom:"24px",right:"16px",zIndex:9999,background:"#111",color:"#fff",border:"none",borderRadius:"50px",padding:"10px 18px",fontWeight:"900",fontSize:"12px",textTransform:"uppercase",letterSpacing:"1px",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)"}}>⌂ HOME</button>
     <div className="w-full px-3 py-4" style={{maxWidth:"100%",boxSizing:"border-box"}}>
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
+      {isAdmin&&<div className="mb-3 max-w-xs ml-auto"><AdminDeleteCase c={c} user={user} onDeleted={()=>{onUpdateCase(c.id,{acceptedAt:c.acceptedAt||new Date().toISOString(),status:"deleted",checkedOut:true});setSelCase(null);}}/></div>}
       <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)}/></div>
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
