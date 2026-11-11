@@ -64,6 +64,10 @@ function textPath(font, t, sz, x, y) {
   }
   return d;
 }
+// Line 1: tick which parts of the name go on the plate. First name(s) field = first name + any middle names.
+export const nameParts = (first, last) => { const w = String(first || "").trim().split(/\s+/).filter(Boolean); return { first: w[0] || "", middle: w.slice(1).join(" "), last: String(last || "").trim() }; };
+export const plateName = (spec) => { const p = nameParts(spec.firstName, spec.lastName), on = spec.nameParts || { first: true, middle: false, last: true };
+  return [on.first !== false && p.first, on.middle && p.middle, on.last !== false && p.last].filter(Boolean).join(" ").replace(/\s+/g, " "); };
 const titleCase = t => t.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (a, b, c) => b + c.toUpperCase());
 
 export const LINES = [["name", "Name"], ["dates", "Dates"], ["message", "Message"]];
@@ -84,21 +88,26 @@ export function plateLayout(spec, sets) {
     else lines.push({ f, t, sz });
   };
   const sh = spec.show || {};
-  const name = [spec.firstName, spec.lastName].filter(Boolean).join(" ").trim().replace(/\s+/g, " ");
+  const name = plateName(spec);
   if (P.manual) {
     if (name) add(sets.name.reg, name.toUpperCase(), nameSz);
     const age = npAge(spec.dob, spec.dod);
     if (age !== "") add(sets.name.reg, `${age} years`, 7 * k);
   } else {
   if (sh.name && name) add(nameF, sc ? titleCase(name) : name.toUpperCase(), nameSz);
-  const d1 = npDate(spec.dob), d2 = npDate(spec.dod);
-  if (sh.dates && (d1 || d2)) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates));
+  const nameW = Math.max(0, ...lines.map(l => advance(l.f, l.t, l.sz)));
+  // Line 2: born – died dates, or the age ("89 years")
+  const d1 = npDate(spec.dob), d2 = npDate(spec.dod), age = npAge(spec.dob, spec.dod);
+  if (sh.dates) { if (spec.dateMode === "age" && age !== "") add(dF, `${age} years`, smSz(sets.dates)); else if (d1 || d2) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates)); }
+  // Message: words wrap so no line is wider than 3/4 of the name above it
   const msgs = [spec.message, spec.message2].map(x => String(x || "").trim()).filter(Boolean);
   if (sh.message && msgs.length) {
-    const from = lines.length;
-    msgs.forEach(m => add(msgF, m, smSz(sets.message)));
-    const mn = Math.min(...lines.slice(from).map(l => l.sz));
-    lines.slice(from).forEach(l => (l.sz = mn));
+    const sz0 = smSz(sets.message), wrapW = 0.75 * (nameW || max), out = [];
+    msgs.forEach(m => { let cur = "";
+      m.split(/\s+/).forEach(w => { const t = cur ? cur + " " + w : w; if (cur && advance(msgF, t, sz0) > wrapW) { out.push(cur); cur = w; } else cur = t; });
+      if (cur) out.push(cur); });
+    const sz = Math.min(sz0, ...out.map(t => { const w = advance(msgF, t, sz0); return w > wrapW ? (sz0 * wrapW) / w : sz0; }));
+    out.forEach(t => lines.push({ f: msgF, t, sz }));
   }
   }
   let total = lines.reduce((s, l) => s + l.sz, 0) + gap * Math.max(0, lines.length - 1);
@@ -203,17 +212,26 @@ export function NamePlateEditor({ value, onChange, person }) {
       {!manual && <><div>
         <span className={lbl}>Show on the plate</span>
         <div className="flex flex-wrap gap-2">
-          {[["name", "Name"], ["dates", "Dates"], ["message", "Message"]].map(([k, l]) => (
+          {[["name", "Name"], ["dates", "Dates / age"], ["message", "Message"]].map(([k, l]) => (
             <button key={k} type="button" onClick={() => set({ show: { ...v.show, [k]: !v.show?.[k] } })} className={chip(!!v.show?.[k])}>{box(!!v.show?.[k])}{l}</button>
           ))}
         </div>
       </div>
+      {v.show?.name && (() => { const p = nameParts(person?.firstName, person?.lastName), on = v.nameParts || { first: true, middle: false, last: true };
+        const tog = k => set({ nameParts: { ...on, [k]: !(on[k] !== false && (k !== "middle" || on.middle)) } });
+        const opts = [["first", "First name", p.first, on.first !== false], ["middle", "Middle names", p.middle, !!on.middle], ["last", "Last name", p.last, on.last !== false]].filter(o => o[0] !== "middle" || o[2]);
+        return <div><span className={lbl}>Line 1 — name</span><div className="flex flex-wrap gap-2">
+          {opts.map(([k, l, val, is]) => <button key={k} type="button" onClick={() => tog(k)} className={chip(is)}>{box(is)}{l}{val ? <span className="font-bold opacity-70">{val}</span> : null}</button>)}</div></div>; })()}
+      {v.show?.dates && <div><span className={lbl}>Line 2</span><div className="flex flex-wrap gap-2">
+        {[["dates", "Date of birth – date of death"], ["age", `Age${npAge(person?.dob, person?.dod) !== "" ? " (" + npAge(person?.dob, person?.dod) + " years)" : ""}`]].map(([k, l]) => { const is = (v.dateMode || "dates") === k;
+          return <button key={k} type="button" onClick={() => set({ dateMode: k })} className={chip(is)}><span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">{is ? <span className="w-2 h-2 rounded-full bg-current" /> : null}</span>{l}</button>; })}</div>
+        {v.dateMode === "age" && npAge(person?.dob, person?.dod) === "" && <p className="text-xs text-amber-700 mt-1">The age shows once both the date of birth and date of death are filled in.</p>}</div>}
       {v.show?.message && <div>
         <label className={lbl} htmlFor="np-msg">Message line 1</label>
         <input id="np-msg" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message || ""} onChange={e => set({ message: e.target.value })} placeholder="e.g. Forever in our hearts" />
         <label className={lbl + " mt-3 block"} htmlFor="np-msg2">Message line 2 <span className="normal-case font-bold text-gray-400">(optional)</span></label>
         <input id="np-msg2" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message2 || ""} onChange={e => set({ message2: e.target.value })} placeholder="e.g. Loved and remembered always" />
-        <p className="text-xs text-gray-500 mt-1">A long line wraps onto the next line by itself. Check the preview.</p>
+        <p className="text-xs text-gray-500 mt-1">The message wraps onto more lines by itself, no wider than ¾ of the name. Check the preview.</p>
       </div>}</>}
       <div>
         <span className={lbl}>Plate colour</span>
