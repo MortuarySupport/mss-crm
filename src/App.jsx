@@ -1893,22 +1893,27 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
   }
 
   const [dupMatches,setDupMatches]=useState(null);
-  // Same person checked in within the last 30 days? (name + DOB, and same funeral director or pick-up location)
+  // Same person already checked in? Same first + last name (spaces, hyphens, apostrophes ignored) and the same date of birth
+  // OR date of death — still in our care, or checked in within the last 30 days. Any funeral director or pick-up place.
   async function findDuplicates(){
-    const norm=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+    const norm=s=>String(s||"").toLowerCase().replace(/[^a-z]/g,"");
     const since=new Date(Date.now()-30*864e5).toISOString();
     const fhId=isFD?user.funeralHomeId:selFH, from=norm(getTransferDisplay());
+    const ors=[form.dob&&"dob.eq."+form.dob,form.dod&&"dod.eq."+form.dod].filter(Boolean);
+    if(!ors.length)return [];
     let rows=[];
-    try{rows=await sb("cases?select=id,case_ref,first_name,last_name,dob,funeral_home_id,funeral_home_name,transferred_from,checked_in_at,status&checked_in_at=gte."+encodeURIComponent(since)+"&dob=eq."+encodeURIComponent(form.dob));}
-    catch(err){rows=(cases||[]).filter(x=>x.dob===form.dob&&x.checkedInAt>=since).map(x=>({id:x.id,case_ref:x.caseRef,first_name:x.firstName,last_name:x.lastName,funeral_home_id:x.funeralHomeId,funeral_home_name:x.funeralHomeName,transferred_from:x.transferredFrom,checked_in_at:x.checkedInAt,status:x.status}));}
+    try{rows=await sb("cases?select=id,case_ref,first_name,last_name,dob,dod,funeral_home_id,funeral_home_name,transferred_from,checked_in_at,status,checked_out&or=("+encodeURIComponent(ors.join(","))+")&limit=200");}
+    catch(err){rows=(cases||[]).filter(x=>(form.dob&&x.dob===form.dob)||(form.dod&&x.dod===form.dod)).map(x=>({id:x.id,case_ref:x.caseRef,first_name:x.firstName,last_name:x.lastName,dob:x.dob,dod:x.dod,funeral_home_id:x.funeralHomeId,funeral_home_name:x.funeralHomeName,transferred_from:x.transferredFrom,checked_in_at:x.checkedInAt,status:x.status,checked_out:x.checkedOut}));}
     return (rows||[]).filter(r=>norm(r.first_name)===norm(form.firstName)&&norm(r.last_name)===norm(form.lastName))
+      .filter(r=>(!r.checked_out&&["active","part"].includes(r.status))||String(r.checked_in_at||"")>=since)
       .map(r=>({...r,sameFH:!!fhId&&r.funeral_home_id===fhId,sameFrom:!!from&&norm(r.transferred_from)===from}))
-      .filter(r=>(r.sameFH||r.sameFrom)&&r.id!==completing?.id);
+      .filter(r=>r.id!==completing?.id);
   }
   async function submit(force){
     const e=validate();
     if(Object.keys(e).length){setErrors(e);return;}
     if(force!==true){const d=await findDuplicates();if(d.length){setDupMatches(d);return;}}
+    else if(dupMatches?.length) logActivity(user,"DUPLICATE CHECK-IN OVERRIDE",`Checked in ${form.firstName} ${form.lastName} again (Admin override) — already ${dupMatches.map(m=>m.case_ref).join(", ")}`,"","");
     setDupMatches(null);
     setSaving(true);
     const caseRef=completing?completing.caseRef:await genCaseRef();
@@ -2041,14 +2046,14 @@ function CheckInFlow({user,cases,onComplete,onUpdateCase,onBack}) {
           {dupMatches.map(m=>(
             <div key={m.id} className="bg-red-50 border border-red-200 rounded-xl p-3 mb-3 text-sm">
               <div className="font-black text-gray-900">{m.case_ref} · {(m.last_name||"").toUpperCase()}, {m.first_name}</div>
-              <div className="text-gray-700 mt-1">DOB {fmt(m.dob)} · Checked in {fmtDTDay(m.checked_in_at)}</div>
+              <div className="text-gray-700 mt-1">DOB {fmt(m.dob)}{m.dod?" · DOD "+fmt(m.dod):""} · Checked in {fmtDTDay(m.checked_in_at)}{m.checked_out?" · checked out":" · still in our care"}</div>
               <div className="text-gray-700">{m.funeral_home_name}{m.sameFH?" ✓ same funeral director":""}</div>
               <div className="text-gray-700">From: {m.transferred_from||"—"}{m.sameFrom?" ✓ same pick-up location":""}</div>
             </div>))}
-          <p className="text-sm text-gray-600 mb-4 text-center">Same name and date of birth within the last 30 days. Please check before continuing.</p>
+          <p className="text-sm text-gray-600 mb-4 text-center">Same name and the same date of birth or date of death. {user?.role==="admin"?"Only check in again if you're sure this is a different person.":"You can't check this person in again. If it really is a different person, call MSS on 02 8814 5500 — Admin can check them in."}</p>
           <div className="flex flex-col sm:flex-row gap-3">
             <button type="button" onClick={()=>setDupMatches(null)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black uppercase">Cancel — don't check in</button>
-            <button type="button" onClick={()=>submit(true)} className="flex-1 py-3 rounded-xl border-2 border-red-500 text-red-700 font-black uppercase">Check in anyway</button>
+            {user?.role==="admin"&&<button type="button" onClick={()=>submit(true)} className="flex-1 py-3 rounded-xl border-2 border-red-500 text-red-700 font-black uppercase">Admin: check in anyway</button>}
           </div>
         </div>
       </div>}
