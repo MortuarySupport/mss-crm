@@ -76,7 +76,7 @@ export const lineFonts = v => Object.fromEntries(LINES.map(([k]) => [k, (v && v.
 const faceFor = (set, k) => (set.F.script ? set.reg : k === "name" ? set.bold : k === "message" ? set.ital : set.reg);
 export function plateLayout(spec, sets) {
   const P = PLATES[spec.size] || PLATES.large, k = P.ih / 70, m = 5 * k, max = P.iw - 2 * m, maxH = P.ih - 2 * m;
-  const sc = !!sets.name.F.script, nameF = faceFor(sets.name, "name"), dF = faceFor(sets.dates, "dates"), msgF = faceFor(sets.message, "message");
+  const sc = !!sets.name.F.script, nameF = faceFor(sets.name, "name"), dF = faceFor(sets.dates, "dates"), msgF = spec.msgItalic === false ? sets.message.reg : faceFor(sets.message, "message");
   const nameSz = (sc ? 13 : 11) * k, smSz = s => (s.F.script ? 7.5 : 6) * k, gap = 3.2 * k;
   const fit = (f, t, sz) => { const w = advance(f, t, sz); return w > max ? (sz * max) / w : sz; };
   const split = t => { const w = t.split(/\s+/); let bi = 1, bd = 1e9; for (let i = 1; i < w.length; i++) { const d = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length); if (d < bd) { bd = d; bi = i; } } return [w.slice(0, bi).join(" "), w.slice(bi).join(" ")]; };
@@ -92,13 +92,13 @@ export function plateLayout(spec, sets) {
   if (P.manual) {
     if (name) add(sets.name.reg, name.toUpperCase(), nameSz);
     const age = npAge(spec.dob, spec.dod);
-    if (age !== "") add(sets.name.reg, `${age} years`, 7 * k);
+    if (age !== "") add(sets.name.reg, `${age} YEARS`, 7 * k);
   } else {
   if (sh.name && name) add(nameF, sc ? titleCase(name) : name.toUpperCase(), nameSz);
   const nameW = Math.max(0, ...lines.map(l => advance(l.f, l.t, l.sz)));
   // Line 2: born – died dates, or the age ("89 years")
   const d1 = npDate(spec.dob), d2 = npDate(spec.dod), age = npAge(spec.dob, spec.dod);
-  if (sh.dates) { if (spec.dateMode === "age" && age !== "") add(dF, `${age} years`, smSz(sets.dates)); else if (d1 || d2) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates)); }
+  if (sh.dates) { if (spec.dateMode === "age" && age !== "") add(dF, `${age} YEARS`, smSz(sets.dates) * 1.4); else if (d1 || d2) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates)); }
   // Message: words wrap so no line is wider than 3/4 of the name above it
   const msgs = [spec.message, spec.message2].map(x => String(x || "").trim()).filter(Boolean);
   if (sh.message && msgs.length) {
@@ -223,7 +223,7 @@ export function NamePlateEditor({ value, onChange, person }) {
         return <div><span className={lbl}>Line 1 — name</span><div className="flex flex-wrap gap-2">
           {opts.map(([k, l, val, is]) => <button key={k} type="button" onClick={() => tog(k)} className={chip(is)}>{box(is)}{l}{val ? <span className="font-bold opacity-70">{val}</span> : null}</button>)}</div></div>; })()}
       {v.show?.dates && <div><span className={lbl}>Line 2</span><div className="flex flex-wrap gap-2">
-        {[["dates", "Date of birth – date of death"], ["age", `Age${npAge(person?.dob, person?.dod) !== "" ? " (" + npAge(person?.dob, person?.dod) + " years)" : ""}`]].map(([k, l]) => { const is = (v.dateMode || "dates") === k;
+        {[["dates", "Date of birth – date of death"], ["age", `Age${npAge(person?.dob, person?.dod) !== "" ? " (" + npAge(person?.dob, person?.dod) + " YEARS)" : ""}`]].map(([k, l]) => { const is = (v.dateMode || "dates") === k;
           return <button key={k} type="button" onClick={() => set({ dateMode: k })} className={chip(is)}><span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">{is ? <span className="w-2 h-2 rounded-full bg-current" /> : null}</span>{l}</button>; })}</div>
         {v.dateMode === "age" && npAge(person?.dob, person?.dod) === "" && <p className="text-xs text-amber-700 mt-1">The age shows once both the date of birth and date of death are filled in.</p>}</div>}
       {v.show?.message && <div>
@@ -232,6 +232,10 @@ export function NamePlateEditor({ value, onChange, person }) {
         <label className={lbl + " mt-3 block"} htmlFor="np-msg2">Message line 2 <span className="normal-case font-bold text-gray-400">(optional)</span></label>
         <input id="np-msg2" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message2 || ""} onChange={e => set({ message2: e.target.value })} placeholder="e.g. Loved and remembered always" />
         <p className="text-xs text-gray-500 mt-1">The message wraps onto more lines by itself, no wider than ¾ of the name. Check the preview.</p>
+        {!(NP_FONTS.find(f => f.id === lineFonts(v).message) || {}).script && <div className="flex flex-wrap gap-2 mt-3">
+          {[[true, "Italic"], [false, "Not italic"]].map(([it, l]) => { const is = (v.msgItalic !== false) === it;
+            return <button key={l} type="button" onClick={() => set({ msgItalic: it })} className={chip(is)}><span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">{is ? <span className="w-2 h-2 rounded-full bg-current" /> : null}</span><span className={it ? "italic" : ""}>{l}</span></button>; })}
+        </div>}
       </div>}</>}
       <div>
         <span className={lbl}>Plate colour</span>
@@ -239,7 +243,7 @@ export function NamePlateEditor({ value, onChange, person }) {
           {Object.entries(FINISHES).map(([k, f]) => <button key={k} type="button" onClick={() => set({ finish: k, size: f.size || (v.size === "europag" ? "large" : v.size || "large") })} className={chip((v.finish || "silver") === k)}><span className={"w-4 h-4 rounded-full border border-black/20 " + (k === "gold" ? "bg-gradient-to-br from-yellow-200 to-amber-500" : k === "brass" ? "bg-gradient-to-br from-amber-100 to-yellow-700" : "bg-gradient-to-br from-gray-100 to-gray-400")} />{f.label}</button>)}
         </div>
       </div>
-      {manual && <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 text-sm text-amber-900"><b>Europag Brass — hand etched</b> on the manual machine (not xTool). Times New Roman, the name and age only{npAge(person?.dob, person?.dod) !== "" ? ` (${npAge(person?.dob, person?.dod)} years)` : ""}.</div>}
+      {manual && <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 text-sm text-amber-900"><b>Europag Brass — hand etched</b> on the manual machine (not xTool). Times New Roman, the name and age only{npAge(person?.dob, person?.dod) !== "" ? ` (${npAge(person?.dob, person?.dod)} YEARS)` : ""}.</div>}
       {!manual && <><div>
         <span className={lbl}>Plate size</span>
         <div className="flex flex-wrap gap-2">
