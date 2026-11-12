@@ -3037,6 +3037,19 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
   const byFH={};
   cases.filter(c=>c.status==="active").forEach(c=>{if(!byFH[c.funeralHomeId])byFH[c.funeralHomeId]=[];byFH[c.funeralHomeId].push(c);});
   const toAccounts=cases.filter(c=>c.checkedOut&&c.checkout?.checkedOutAt&&!c.prep?.jobSheetSentAt&&!c.invoicedAt).sort((a,b)=>new Date(a.checkout.checkedOutAt)-new Date(b.checkout.checkedOutAt));
+  // Tick several (or all) checked-out cases and send them to accounts in one go
+  const [accSel,setAccSel]=useState({}),[accBusy,setAccBusy]=useState(""),[accMsg,setAccMsg]=useState("");
+  const accTicked=toAccounts.filter(x=>accSel[x.id]),allTicked=toAccounts.length>0&&accTicked.length===toAccounts.length;
+  async function sendTicked(){
+    if(!accTicked.length||accBusy)return;setAccMsg("");let ok=0;const bad=[];
+    for(let i=0;i<accTicked.length;i++){const x=accTicked[i];setAccBusy(`Sending ${i+1} of ${accTicked.length}…`);
+      try{const prep=x.prep||{};const r=await sendJobSheet(x,prep,x.billable||{},x.checkout?.checkedOutBy||"");
+        if(r.status==="sent"){const np={...prep,jobSheetSentAt:new Date().toISOString(),jobSheetSentBy:user?.name||""};await updateCase(x.id,{prep:np});onUpdateCase(x.id,{prep:np});ok++;}
+        else bad.push(x.caseRef);}catch(e){bad.push(x.caseRef);}}
+    setAccBusy("");setAccSel({});
+    if(ok)logActivity(user,"SENT TO ACCOUNTS",`${ok} job sheet${ok>1?"s":""} sent to accounts together`,"","");
+    setAccMsg(`✓ ${ok} sent to accounts${bad.length?` · not sent: ${bad.join(", ")} — try those one at a time`:""}`);
+  }
 
   function describeChanges(updates,existingCase){
     const labels={
@@ -3179,9 +3192,16 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
       </div>}
       {toAccounts.length>0&&<div className="mb-6">
         <div className="text-sm font-black uppercase tracking-widest text-gray-900 mb-3">📧 Checked Out — Send to Accounts · {toAccounts.length}</div>
+        {toAccounts.length>1&&<div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 mb-3 flex flex-col sm:flex-row sm:items-center gap-3">
+          <label className="flex items-center gap-3 cursor-pointer font-black text-sm uppercase tracking-wide flex-1">
+            <input type="checkbox" checked={allTicked} onChange={e=>setAccSel(e.target.checked?Object.fromEntries(toAccounts.map(x=>[x.id,true])):{})} className="w-6 h-6 accent-gray-900"/>Tick all ({toAccounts.length})</label>
+          <button type="button" onClick={sendTicked} disabled={!accTicked.length||!!accBusy} className="px-5 py-3 rounded-xl bg-gray-900 text-white font-black text-sm uppercase hover:bg-gray-700 disabled:opacity-40">{accBusy||`📧 Send ${accTicked.length?accTicked.length+" ":""}to Accounts`}</button>
+        </div>}
+        {accMsg&&<p className={"text-sm font-bold mb-3 "+(accMsg.includes("not sent")?"text-amber-700":"text-green-700")}>{accMsg}</p>}
         <div className="space-y-2">{toAccounts.map(x=>(
-          <div key={x.id} className="bg-white border-2 border-gray-900 rounded-2xl p-4 flex items-center justify-between gap-3">
-            <button type="button" onClick={()=>{setSelFH(FUNERAL_HOMES.find(f=>f.id===x.funeralHomeId)||{id:x.funeralHomeId,name:x.funeralHomeName});setSelCase(x);}} className="text-left min-w-0">
+          <div key={x.id} className={"bg-white border-2 rounded-2xl p-4 flex items-center justify-between gap-3 "+(accSel[x.id]?"border-green-600":"border-gray-900")}>
+            {toAccounts.length>1&&<input type="checkbox" checked={!!accSel[x.id]} onChange={e=>setAccSel(o=>({...o,[x.id]:e.target.checked}))} className="w-6 h-6 shrink-0 accent-gray-900" aria-label={"Tick "+x.caseRef}/>}
+            <button type="button" onClick={()=>{setSelFH(FUNERAL_HOMES.find(f=>f.id===x.funeralHomeId)||{id:x.funeralHomeId,name:x.funeralHomeName});setSelCase(x);}} className="text-left min-w-0 flex-1">
               <div className="text-lg font-black text-gray-900 underline">{(x.lastName||"").toUpperCase()}, {x.firstName}</div>
               <div className="text-sm text-gray-500">{x.caseRef} · {x.funeralHomeName} · Checked out {fmtDTDay(x.checkout.checkedOutAt)}</div>
             </button>
