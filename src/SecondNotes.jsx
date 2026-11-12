@@ -324,12 +324,23 @@ const card = "bg-white rounded-2xl border border-gray-200 p-4 mb-3";
 export const REFEREE_FORM = "/forms/Dr_Morgans_Medical_Referee_Permit.pdf";
 export async function makeRefereeDoc(noteId, a, st) {
   try {
-    const { PDFDocument } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
+    // NSW form (May 2025) with Dr Morgans' details and signature already on it. Lumière adds the deceased's details and the date.
+    const { PDFDocument, StandardFonts, rgb } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
     const pdf = await PDFDocument.load(await (await fetch(REFEREE_FORM)).arrayBuffer());
+    const pg = pdf.getPages()[0], H = await pdf.embedFont(StandardFonts.Helvetica), ink = rgb(0.05, 0.1, 0.35);
+    const F = 595.32 / 910, X = px => px * F, Y = py => 841.92 - py * F;
+    const clean = t => String(t ?? "").replace(/[^\x20-\x7E -ÿ–—‘’]/g, "").trim();
+    const fit = (t, size, maxW) => { t = clean(t); while (t && H.widthOfTextAtSize(t, size) > maxW) t = t.slice(0, -1); return t; };
+    const put = (t, x, y, maxPx, size = 10) => { const v = fit(t, size, maxPx * F); if (v) pg.drawText(v, { x: X(x), y: Y(y), size, font: H, color: ink }); };
     const name = [a.firstName, String(a.lastName || "").toUpperCase()].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
-    try { pdf.getForm().getTextField("Text Field 55").setText(name); } catch (e) {}
-    try { pdf.getForm().getTextField("Text Field 54").setText(String(a._drAddr || "").trim()); } catch (e) {}
-    try { pdf.getForm().getTextField("Text Field 66").setText(new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })); } catch (e) {}
+    const dob = /^\d{4}-\d{2}-\d{2}$/.test(a.dob || "") ? a.dob.split("-").reverse().join("/") : "";
+    put(name, 212, 534, 620); put(a._drAddr, 260, 564, 575); put(dob, 241, 594, 160);
+    put(new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" }), 716, 1114, 120);
+    // Written direction about the method of cremation: ring Yes or No, and the direction itself in the box
+    if (a._drDir === "Yes" || a._drDir === "No") pg.drawEllipse({ x: X(a._drDir === "Yes" ? 107 : 181), y: Y(643), xScale: a._drDir === "Yes" ? 14 : 12, yScale: 7, borderColor: ink, borderWidth: 1 });
+    if (a._drDir === "Yes" && a._drDirText) { const words = clean(a._drDirText).split(/\s+/); let line = "", row = 0; const maxW = 740 * F;
+      for (const w of words) { const t = line ? line + " " + w : w; if (H.widthOfTextAtSize(t, 10) > maxW && line) { if (row < 6) pg.drawText(line, { x: X(80), y: Y(716 + row * 20), size: 10, font: H, color: ink }); row++; line = w; } else line = t; }
+      if (line && row < 6) pg.drawText(line, { x: X(80), y: Y(716 + row * 20), size: 10, font: H, color: ink }); }
     const bytes = await pdf.save();
     const path = `drref/${noteId}/referee_permit_${Date.now()}.pdf`;
     const r = await fetch(`${st.SUPABASE_URL}/storage/v1/object/${st.STORAGE_BUCKET}/${path}`, { method: "POST", headers: { apikey: st.SUPABASE_KEY, Authorization: `Bearer ${st.SUPABASE_KEY}`, "Content-Type": "application/pdf", "x-upsert": "true" }, body: new Blob([bytes], { type: "application/pdf" }) });
@@ -396,6 +407,9 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
           </div>); })}
         <label className="block text-sm font-bold">Last address of deceased *
           <input value={answers._drAddr || ""} onChange={e => setA("_drAddr", e.target.value)} placeholder="As on the Application for Cremation — goes on the Cremation Permit" className={"mt-1 w-full px-3 py-2.5 border-2 rounded-xl font-normal " + (error && !String(answers._drAddr || "").trim() ? "border-red-400" : "border-gray-200")} /></label>
+        <div className="text-sm font-bold">Did the deceased leave a written direction about the method of cremation? *
+          <div className="flex gap-2 mt-1">{["Yes", "No"].map(v => <button key={v} type="button" onClick={() => setA("_drDir", v)} className={"px-4 py-2 rounded-xl border-2 text-sm font-black " + (answers._drDir === v ? "bg-gray-900 text-white border-gray-900" : error && !answers._drDir ? "border-red-400 text-gray-600" : "border-gray-300 text-gray-600")}>{v}</button>)}</div>
+          {answers._drDir === "Yes" && <textarea value={answers._drDirText || ""} onChange={e => setA("_drDirText", e.target.value)} placeholder="The direction/s (as on the Application for Cremation)" className="mt-2 w-full h-20 px-3 py-2 border-2 border-gray-200 rounded-xl font-normal" />}</div>
         {error && <p className="text-red-600 text-xs font-bold">{error}</p>}
       </div>}
     </div>);
@@ -430,7 +444,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const pubUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p || "").split("/").map(encodeURIComponent).join("/")}`;
   function drMissing(a) {
     if (!a._drreq || a._drref?.token || !isCremation(a)) return [];
-    return [...DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label), ...(String(a._drAddr || "").trim() ? [] : ["last address of the deceased"])];
+    return [...DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label), ...(String(a._drAddr || "").trim() ? [] : ["last address of the deceased"]), ...(a._drDir ? [] : ["written direction (Yes / No)"]), ...(a._drDir === "Yes" && !String(a._drDirText || "").trim() ? ["the written direction"] : [])];
   }
   // Uploads the Dr Ref documents and records the request on the 2nd Note (emailed to the doctor once the note is saved)
   async function prepDrRef(noteId, base) {
@@ -993,7 +1007,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
     setErr("");
     if (!pick) return setErr("Choose the deceased.");
     if (!who.firstName.trim() || !who.lastName.trim()) return setErr("Enter the deceased's first and last name.");
-    const miss = [...DR_DOCS.filter(dd => dd.req && !files[dd.key] && !caseDocs.find(x => dd.re.test(x.name || ""))).map(dd => dd.label), ...(String(pa._drAddr || "").trim() ? [] : ["last address of the deceased"])];
+    const miss = [...DR_DOCS.filter(dd => dd.req && !files[dd.key] && !caseDocs.find(x => dd.re.test(x.name || ""))).map(dd => dd.label), ...(String(pa._drAddr || "").trim() ? [] : ["last address of the deceased"]), ...(pa._drDir ? [] : ["written direction (Yes / No)"]), ...(pa._drDir === "Yes" && !String(pa._drDirText || "").trim() ? ["the written direction"] : [])];
     if (miss.length) return setErr("Still needed: " + miss.join(", "));
     setBusy(true);
     try {
