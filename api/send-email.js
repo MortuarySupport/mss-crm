@@ -6,6 +6,8 @@
 const FD_EMAILS = ["info@sydneyfunerals.com","karin@funeralsbydesign.com.au","sydney@thelasttime.com.au","carmel.pisto@blessedfunerals.com.au","debbie@serenityfamilyfunerals.com.au","desi@divinefamilyfunerals.com.au","funeral.directors1@outlook.com","hansolfuneralservices@gmail.com","info@amazingfunerals.com.au","info@dbff.com.au","info@farewells.com.au","info@globalfunerals.com.au","info@goldcoastfuneraldirector.com.au","info@highlandfunerals.com.au","info@overtherainbowfunerals.com.au","kate@tomorrowfunerals.com.au","kellie@kelliehartfunerals.com.au","nicky@yourfuneraldirector.com.au","pamela@divinefamilyfunerals.com.au","peter@sydneyfunerals.com","tony.sprem@blessedfunerals.com.au"];
 const ALLOWED = { test: a => /@mortuarysupport\.com\.au$/i.test(a) || FD_EMAILS.includes(a.toLowerCase()) };
 
+import { textToHtml } from "./_emailHtml.js";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
   const key = process.env.RESEND_API_KEY, from = process.env.EMAIL_FROM;
@@ -20,7 +22,7 @@ export default async function handler(req, res) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: list, reply_to: "info@mortuarysupport.com.au", subject, text, attachments: att }),
+    body: JSON.stringify({ from, to: list, reply_to: "info@mortuarysupport.com.au", subject, text, html: textToHtml(text, subject), attachments: att }),
   });
   if (!r.ok) return res.status(502).json({ error: "Send failed", detail: (await r.text()).slice(0, 300) });
   return res.status(200).json({ ok: true });
