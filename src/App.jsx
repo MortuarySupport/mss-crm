@@ -2990,6 +2990,44 @@ function ResendCheckInButton({c,user}){
   </div>);
 }
 
+// ─── ADMIN: undo a check out made by mistake (the deceased goes back into our care) ───
+function AdminUndoCheckout({c,user,onUpdateCase,small,onDone}){
+  const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState("");
+  if(user?.role!=="admin"||!c.checkedOut)return null;
+  const locked=c.status==="locked";
+  async function go(){
+    setBusy(true);setErr("");
+    try{
+      const prev=c.checkout||{};
+      await updateCase(c.id,{checked_out:false,checkout_data:null,status:"active"});
+      onUpdateCase(c.id,{checkedOut:false,checkout:null,status:"active"});
+      logActivity(user,"CHECK OUT UNDONE",`${c.caseRef} ${(c.lastName||"").toUpperCase()}, ${c.firstName} checked back in by Admin (was checked out ${prev.checkedOutAt?fmtDTDay(prev.checkedOutAt):"—"}${prev.signedName?" to "+prev.signedName:""})`,c.caseRef,c.id);
+      setOpen(false);onDone&&onDone();
+    }catch(e){setErr("Couldn't undo: "+(e.message||e));}
+    setBusy(false);
+  }
+  return(<>
+    <button type="button" onClick={e=>{e.stopPropagation();setErr("");setOpen(true);}} className={small?"text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase":"w-full py-3 rounded-xl border-2 border-orange-400 text-orange-700 font-black text-sm uppercase hover:bg-orange-50"}>↩ Undo check out{small?"":" (Admin)"}</button>
+    {open&&<div onClick={e=>e.stopPropagation()} style={{position:"fixed",inset:0,zIndex:2147483000,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 border-4 border-orange-400 text-left">
+        <div className="text-3xl text-center mb-2">↩</div>
+        <h3 className="text-xl font-black text-orange-700 text-center mb-3">Check {c.firstName} back in?</h3>
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-3 text-sm">
+          <div className="font-black text-gray-900">{c.caseRef} · {(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+          <div className="text-gray-700 mt-1">{c.funeralHomeName} · Checked out {c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"—"}{c.checkout?.signedName?" · collected by "+c.checkout.signedName:""}</div>
+        </div>
+        {locked?<p className="text-sm font-bold text-red-600 mb-4">This case is locked. Unlock it in Records first, then undo the check out.</p>
+          :<p className="text-sm text-gray-600 mb-4">Use this if the check out was a mistake. The case goes back to <b>in our care</b> and the check-out details are cleared. It's recorded in the Activity Log. No email is sent.</p>}
+        {err&&<p className="text-sm font-bold text-red-600 mb-3">{err}</p>}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button type="button" onClick={()=>setOpen(false)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black uppercase">Cancel</button>
+          {!locked&&<button type="button" disabled={busy} onClick={go} className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-black uppercase">{busy?"Saving…":"Check back in"}</button>}
+        </div>
+      </div>
+    </div>}
+  </>);
+}
+
 // ─── ADMIN: DELETE A CASE (e.g. a duplicate check-in) ─────────────────────────
 function AdminDeleteCase({c,user,onDeleted,small}){
   const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState("");
@@ -3285,7 +3323,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     <button onClick={()=>setSelCase(null)} style={{position:"fixed",bottom:"24px",right:"16px",zIndex:9999,background:"#111",color:"#fff",border:"none",borderRadius:"50px",padding:"10px 18px",fontWeight:"900",fontSize:"12px",textTransform:"uppercase",letterSpacing:"1px",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)"}}>⌂ HOME</button>
     <div className="w-full px-3 py-4" style={{maxWidth:"100%",boxSizing:"border-box"}}>
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
-      {(isAdmin||user?.role==="mss")&&<div className="mb-3 flex flex-col sm:flex-row gap-2 sm:justify-end"><div className="sm:w-80"><ResendCheckInButton c={c} user={user}/></div>      {isAdmin&&<div className="sm:w-64"><AdminDeleteCase c={c} user={user} onDeleted={()=>{onUpdateCase(c.id,{acceptedAt:c.acceptedAt||new Date().toISOString(),status:"deleted",checkedOut:true});setSelCase(null);}}/></div>}</div>}
+      {(isAdmin||user?.role==="mss")&&<div className="mb-3 flex flex-col sm:flex-row gap-2 sm:justify-end"><div className="sm:w-80"><ResendCheckInButton c={c} user={user}/></div>{isAdmin&&c.checkedOut&&<div className="sm:w-64"><AdminUndoCheckout c={c} user={user} onUpdateCase={onUpdateCase} onDone={()=>setSelCase({...c,checkedOut:false,checkout:null,status:"active"})}/></div>}      {isAdmin&&<div className="sm:w-64"><AdminDeleteCase c={c} user={user} onDeleted={()=>{onUpdateCase(c.id,{acceptedAt:c.acceptedAt||new Date().toISOString(),status:"deleted",checkedOut:true});setSelCase(null);}}/></div>}</div>}
       <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)} user={user} onFHChanged={u=>onUpdateCase(c.id,u)}/></div>
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
@@ -5767,7 +5805,7 @@ function RecordsView({user,cases,onUpdateCase}) {
                 {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO APPROVE</button>}
                 {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-3 py-1.5 hover:bg-gray-700 transition font-black uppercase">LOCK</button>}
                 {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-3 py-1.5 hover:bg-red-600 transition font-black uppercase">UNLOCK</button>}
-                {isAdmin&&c.checkedOut&&<button onClick={()=>undoCheckout(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-3 py-1.5 hover:bg-orange-600 transition font-black uppercase">UNDO CHECK OUT</button>}
+                {isAdmin&&c.checkedOut&&<AdminUndoCheckout small c={c} user={user} onUpdateCase={onUpdateCase}/>}
               </div>
             </div>
             <CaseViewCard c={c} isAdmin={isAdmin} onSave={updates=>adminSaveCase(c,updates)} user={user} onFHChanged={u=>onUpdateCase(c.id,u)}/>
