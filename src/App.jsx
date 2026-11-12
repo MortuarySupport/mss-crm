@@ -2964,6 +2964,32 @@ ${photoDocs.map(d=>`<div style="margin-bottom:20px;"><div style="font-size:9px;f
 }
 
 
+// ─── STAFF/ADMIN: resend the check-in notification (same email as at check-in, with the documents) ───
+function ResendCheckInButton({c,user}){
+  const [st,setSt]=useState("");
+  if(!["admin","mss"].includes(user?.role))return null;
+  async function go(){
+    if(st==="sending")return;setSt("sending");
+    let docs=[];try{docs=(await listDocuments(c.id)).filter(d=>d.name&&!d.name.endsWith("/"));}catch(e){}
+    const nice=n=>n.replace(/^\d+_/,"").replace(/\.[^.]+$/,"").replace(/_/g," ");
+    const DOCN={Coroners_BO:"Coroner's BO",MCCD:"MCCD",CRA:"CRA",VOD:"VOD",LE:"Life Extinct (LE)",BO:"BO",OTHER:"Other document",PHOTO:"Photo",Other:"Other document"};
+    const docTitle=n=>{const rest=n.replace(/^\d+_/,"");const k=Object.keys(DOCN).find(k=>rest.startsWith(k+"_")||rest===k);return k?DOCN[k]:nice(n);};
+    const links=docs.length?`\n\nDOCUMENTS RECEIVED AT CHECK-IN\n`+docs.map(d=>`${docTitle(d.name)} – click here to download:\n\n${encodeURI(getDocumentUrl(c.id+"/"+d.name))}`).join("\n\n"):"";
+    let text=buildCheckInEmail(c);text=text.includes(MSS_FOOTER)?text.replace(MSS_FOOTER,links+MSS_FOOTER):text+links;
+    const fhContacts=c.funeralHomeId==="OTHER"?[]:getFHContacts(c.funeralHomeId);
+    const to=[MORTUARY_EMAIL,...fhContacts].join(",");
+    const att=docs.map(d=>({filename:nice(d.name)+((d.name.match(/\.[a-z0-9]+$/i)||[".pdf"])[0]),path:encodeURI(getDocumentUrl(c.id+"/"+d.name))}));
+    if(await sendAppEmail(to,`T/L ${c.firstName} ${c.lastName} has been checked into MSS`,text,att)){
+      logActivity(user,"CHECK-IN EMAIL RESENT",`Check-in notification resent for ${c.firstName} ${c.lastName} to ${to}`,c.caseRef,c.id);setSt("sent");}
+    else setSt("failed");
+  }
+  return(<div>
+    <button type="button" onClick={go} disabled={st==="sending"} className="w-full py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-black text-sm uppercase hover:bg-gray-100 disabled:opacity-60">{st==="sending"?"Sending…":"📧 Resend check-in notification"}</button>
+    {st==="sent"&&<p className="text-xs font-bold text-green-700 mt-1 text-center">✓ Sent to the funeral director and the mortuary</p>}
+    {st==="failed"&&<p className="text-xs font-bold text-red-600 mt-1 text-center">Couldn't send — check the funeral director's email, or try again.</p>}
+  </div>);
+}
+
 // ─── ADMIN: DELETE A CASE (e.g. a duplicate check-in) ─────────────────────────
 function AdminDeleteCase({c,user,onDeleted,small}){
   const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState("");
@@ -3239,7 +3265,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
     <button onClick={()=>setSelCase(null)} style={{position:"fixed",bottom:"24px",right:"16px",zIndex:9999,background:"#111",color:"#fff",border:"none",borderRadius:"50px",padding:"10px 18px",fontWeight:"900",fontSize:"12px",textTransform:"uppercase",letterSpacing:"1px",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)"}}>⌂ HOME</button>
     <div className="w-full px-3 py-4" style={{maxWidth:"100%",boxSizing:"border-box"}}>
       <BackBtn onClick={()=>setSelCase(null)} label={`Back to ${selFH.name}`}/>
-      {isAdmin&&<div className="mb-3 max-w-xs ml-auto"><AdminDeleteCase c={c} user={user} onDeleted={()=>{onUpdateCase(c.id,{acceptedAt:c.acceptedAt||new Date().toISOString(),status:"deleted",checkedOut:true});setSelCase(null);}}/></div>}
+      {(isAdmin||user?.role==="mss")&&<div className="mb-3 flex flex-col sm:flex-row gap-2 sm:justify-end"><div className="sm:w-80"><ResendCheckInButton c={c} user={user}/></div>      {isAdmin&&<div className="sm:w-64"><AdminDeleteCase c={c} user={user} onDeleted={()=>{onUpdateCase(c.id,{acceptedAt:c.acceptedAt||new Date().toISOString(),status:"deleted",checkedOut:true});setSelCase(null);}}/></div>}</div>}
       <div className="mb-4"><CaseViewCard c={{...c,prep}} isAdmin={isAdmin} onSave={updates=>upd(c.id,updates)} user={user} onFHChanged={u=>onUpdateCase(c.id,u)}/></div>
       {!c.acceptedAt&&(
         <button onClick={async()=>{await upd(c.id,{acceptedAt:new Date().toISOString(),prepStatus:"not-started"});}} className="w-full py-4 rounded-2xl bg-green-600 text-white font-black text-base uppercase tracking-wide mb-4 hover:bg-green-700 transition">✓ ACCEPT JOB</button>
