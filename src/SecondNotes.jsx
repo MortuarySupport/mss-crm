@@ -319,6 +319,25 @@ const lbl = "block text-xs font-black uppercase text-gray-500 tracking-widest mb
 const card = "bg-white rounded-2xl border border-gray-200 p-4 mb-3";
 
 
+// The medical referee's own Cremation Permit (Dr Geoff Morgans), with the deceased's name filled in, attached to every Dr Ref request.
+// The deceased's last address (entered by the FD when requesting) and the date it's sent to him are filled in too.
+export const REFEREE_FORM = "/forms/Dr_Morgans_Medical_Referee_Permit.pdf";
+export async function makeRefereeDoc(noteId, a, st) {
+  try {
+    const { PDFDocument } = await import("https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js");
+    const pdf = await PDFDocument.load(await (await fetch(REFEREE_FORM)).arrayBuffer());
+    const name = [a.firstName, String(a.lastName || "").toUpperCase()].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    try { pdf.getForm().getTextField("Text Field 55").setText(name); } catch (e) {}
+    try { pdf.getForm().getTextField("Text Field 54").setText(String(a._drAddr || "").trim()); } catch (e) {}
+    try { pdf.getForm().getTextField("Text Field 66").setText(new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" })); } catch (e) {}
+    const bytes = await pdf.save();
+    const path = `drref/${noteId}/referee_permit_${Date.now()}.pdf`;
+    const r = await fetch(`${st.SUPABASE_URL}/storage/v1/object/${st.STORAGE_BUCKET}/${path}`, { method: "POST", headers: { apikey: st.SUPABASE_KEY, Authorization: `Bearer ${st.SUPABASE_KEY}`, "Content-Type": "application/pdf", "x-upsert": "true" }, body: new Blob([bytes], { type: "application/pdf" }) });
+    if (r.ok) return { key: "permit", label: "Medical Referee's Cremation Permit", path, name: `Cremation Permit – ${name}.pdf` };
+  } catch (e) { console.warn("Referee permit not attached:", e); }
+  return null;
+}
+
 // ── Dr Ref (medical referee) request to the doctor, shown on cremations ──
 const DR_DOCS = [
   { key: "mccd", label: "MCCD", req: true, re: /mccd/i },
@@ -375,6 +394,8 @@ function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, on
               <input type="file" accept="application/pdf,image/*" className="hidden" onChange={e => { const x = e.target.files[0]; if (x) setFiles(v => ({ ...v, [dd.key]: x })); }} /></label>
             {f && <button type="button" onClick={() => setFiles(v => { const n = { ...v }; delete n[dd.key]; return n; })} className="text-xs underline text-gray-500">Remove</button>}
           </div>); })}
+        <label className="block text-sm font-bold">Last address of deceased *
+          <input value={answers._drAddr || ""} onChange={e => setA("_drAddr", e.target.value)} placeholder="As on the Application for Cremation — goes on the Cremation Permit" className={"mt-1 w-full px-3 py-2.5 border-2 rounded-xl font-normal " + (error && !String(answers._drAddr || "").trim() ? "border-red-400" : "border-gray-200")} /></label>
         {error && <p className="text-red-600 text-xs font-bold">{error}</p>}
       </div>}
     </div>);
@@ -409,7 +430,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   const pubUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p || "").split("/").map(encodeURIComponent).join("/")}`;
   function drMissing(a) {
     if (!a._drreq || a._drref?.token || !isCremation(a)) return [];
-    return DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label);
+    return [...DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label), ...(String(a._drAddr || "").trim() ? [] : ["last address of the deceased"])];
   }
   // Uploads the Dr Ref documents and records the request on the 2nd Note (emailed to the doctor once the note is saved)
   async function prepDrRef(noteId, base) {
@@ -421,6 +442,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       if (f) docs.push(await uploadDrFile(noteId, dd, f));
       else if (have) docs.push({ key: dd.key, label: dd.label, path: have.path, name: have.name });
     }
+    { const rp = await makeRefereeDoc(noteId, a, { SUPABASE_URL, SUPABASE_KEY, STORAGE_BUCKET }); if (rp) docs.push(rp); }
     const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, "0")).join("");
     a._drref = { token, requestedAt: new Date().toISOString(), requestedBy: `${user?.name || ""}${fhName ? " (" + fhName + ")" : ""}`, docs };
     drSend.current = noteId; setDrFiles({});
@@ -606,7 +628,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     const errs = {};
     if (!caseId) errs._case = "Choose the case, or 'Not in our care yet'";
     form.sections.filter(s => !(s.na && answers["_na_" + s.id])).flatMap(s => s.fields).forEach(f => { if (f.required && isEmpty(answers[f.id])) errs[f.id] = "Required"; });
-    const drm = drMissing(answers); if (drm.length) errs._drref = "Upload for the Dr Ref: " + drm.join(", ");
+    const drm = drMissing(answers); if (drm.length) errs._drref = "Still needed for the Dr Ref: " + drm.join(", ");
     setErrors(errs);
     if (Object.keys(errs).length) {
       const names = Object.keys(errs).map(k => k === "_case" ? "Case" : k === "_drref" ? errs._drref : allFields(form).find(f => f.id === k)?.label || k);
@@ -935,6 +957,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
   const [man, setMan] = useState({ firstName: "", lastName: "", dob: "", dod: "" });
   const [found, setFound] = useState(null);        // the record for this deceased (2nd Note or Dr Ref only)
   const [files, setFiles] = useState({});
+  const [pa, setPa] = useState({});
   const [caseDocs, setCaseDocs] = useState([]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -948,7 +971,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
     const rows = await sb(`second_notes?select=*&funeral_home_id=eq.${fhId}&limit=500`);
     return rows.find(n => (caseId && n.case_id === caseId) || (normName(n.deceased_name) && normName(n.deceased_name) === normName([ans.firstName, ans.lastName].filter(Boolean).join(" ")))) || null;
   }
-  useEffect(() => { setFiles({}); setErr(""); setSent(""); setFound(null);
+  useEffect(() => { setFiles({}); setPa({}); setErr(""); setSent(""); setFound(null);
     if (!c) { setCaseDocs([]); return; }
     findRec(c.id, who).then(setFound).catch(() => {});
     fetch(`${SUPABASE_URL}/storage/v1/object/list/${STORAGE_BUCKET}`, { method: "POST", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ prefix: `${c.id}/`, limit: 100, sortBy: { column: "created_at", order: "desc" } }) })
@@ -970,8 +993,8 @@ export function DrRefOnly({ user, cases, onBack, api }) {
     setErr("");
     if (!pick) return setErr("Choose the deceased.");
     if (!who.firstName.trim() || !who.lastName.trim()) return setErr("Enter the deceased's first and last name.");
-    const miss = DR_DOCS.filter(dd => dd.req && !files[dd.key] && !caseDocs.find(x => dd.re.test(x.name || ""))).map(dd => dd.label);
-    if (miss.length) return setErr("Upload: " + miss.join(", "));
+    const miss = [...DR_DOCS.filter(dd => dd.req && !files[dd.key] && !caseDocs.find(x => dd.re.test(x.name || ""))).map(dd => dd.label), ...(String(pa._drAddr || "").trim() ? [] : ["last address of the deceased"])];
+    if (miss.length) return setErr("Still needed: " + miss.join(", "));
     setBusy(true);
     try {
       const rec = await findRec(c?.id, who);
@@ -980,6 +1003,7 @@ export function DrRefOnly({ user, cases, onBack, api }) {
       const docs = [];
       for (const dd of DR_DOCS) { const f = files[dd.key], have = caseDocs.find(x => dd.re.test(x.name || ""));
         if (f) docs.push(await upFile(noteId, dd, f)); else if (have) docs.push({ key: dd.key, label: dd.label, path: have.path, name: have.name }); }
+      { const rp = await makeRefereeDoc(noteId, { ...who, ...pa }, { SUPABASE_URL, SUPABASE_KEY, STORAGE_BUCKET }); if (rp) docs.push(rp); }
       const token = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => b.toString(16).padStart(2, "0")).join("");
       const _drref = { token, requestedAt: new Date().toISOString(), requestedBy: `${user?.name || ""}${isFD ? (fhName ? " (" + fhName + ")" : "") : " (MSS)"}`, docs, via: "Dr Ref button" };
       if (rec) await sb(`second_notes?id=eq.${rec.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...(rec.answers || {}), _drref } }) });
@@ -1056,8 +1080,8 @@ export function DrRefOnly({ user, cases, onBack, api }) {
         </div>
         {pick && <>
           <p className={lbl + " mt-2"}>2. Documents</p>
-          <DrRefCard answers={{}} setA={() => {}} files={files} setFiles={setFiles} caseDocs={caseDocs} error={err.startsWith("Upload") ? err : ""} pubUrl={pubUrl} standalone />
-          {err && !err.startsWith("Upload") && <p className="text-red-600 text-sm font-bold mb-2">{err}</p>}
+          <DrRefCard answers={pa} setA={(k, v) => setPa(o => ({ ...o, [k]: v }))} files={files} setFiles={setFiles} caseDocs={caseDocs} error={err.startsWith("Still needed") ? err : ""} pubUrl={pubUrl} standalone />
+          {err && !err.startsWith("Still needed") && <p className="text-red-600 text-sm font-bold mb-2">{err}</p>}
           <button type="button" disabled={busy} onClick={request} className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-black uppercase tracking-wide">{busy ? "Sending…" : "📄 Send Dr Ref request to the doctor"}</button>
         </>}
         <p className={lbl + " mt-8"}>{isFD ? "Your Dr Ref requests" : fhName + " Dr Ref requests"}</p>
