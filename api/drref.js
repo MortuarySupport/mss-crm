@@ -2,6 +2,7 @@
 //   POST {action:"request", noteId}           -> emails Certa the request (once per note)
 //   GET  ?t=TOKEN                              -> details + documents for the upload page
 //   POST {action:"complete", t, path, filename, doctor, note} -> files the Dr Ref and tells the FD + MSS
+import { textToHtml, wrapHtml } from "./_emailHtml.js";
 import FUNERAL_HOMES from "./_funeralHomes.js";
 const SUPABASE_URL = "https://qhazwfbhbelpcfwczjdb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoYXp3ZmJoYmVscGNmd2N6amRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4ODQ1MTEsImV4cCI6MjA5NjQ2MDUxMX0.2xg7Kj56r7n_x2nZxbttqZU6Rly6ZSSnpuequpyihBo";
@@ -23,6 +24,8 @@ const title = a => `${String(a.lastName || "").toUpperCase()}, ${a.firstName || 
 async function send(msg) {
   const key = process.env.RESEND_API_KEY, from = process.env.EMAIL_FROM;
   if (!key || !from) throw new Error("Email not set up");
+  // Same branded layout as all other Lumière emails
+  msg = { ...msg, html: msg.html ? wrapHtml(msg.html, msg.subject) : textToHtml(msg.text, msg.subject) };
   const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, reply_to: INFO, ...msg }) });
   if (!r.ok) throw new Error("Email failed: " + (await r.text()).slice(0, 200));
 }

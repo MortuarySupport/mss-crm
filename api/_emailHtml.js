@@ -47,12 +47,17 @@ export function textToHtml(text, subject) {
     out.push(`<p style="${FONT}margin:0 0 12px;font-size:14px;line-height:1.55;color:#111827">${esc(l)}</p>`);
   }
   flush();
+  return wrapHtml(out.join("\n"), subject);
+}
+
+// The branded email frame (logo header, white card, MSS footer) around any email body
+export function wrapHtml(body, subject) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(subject || "")}</title></head>
 <body style="margin:0;padding:0;background:#f3f4f6">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
 <tr><td style="padding:22px 28px 16px;border-bottom:3px solid #111111"><img src="${SITE}/email-logo.png" width="220" alt="Mortuary Support | Lumière" style="display:block;border:0;width:220px;height:auto"></td></tr>
-<tr><td style="padding:22px 28px 8px">${out.join("\n")}</td></tr>
+<tr><td style="padding:22px 28px 8px">${body}</td></tr>
 <tr><td style="${FONT}padding:16px 28px 22px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;line-height:1.5">Mortuary Support Services · 02 8814 5500 · <a href="mailto:info@mortuarysupport.com.au" style="color:#6b7280">info@mortuarysupport.com.au</a><br>Reply to this email to reach the MSS team.</td></tr>
 </table></td></tr></table></body></html>`;
 }
