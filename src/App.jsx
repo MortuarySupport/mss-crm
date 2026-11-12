@@ -2994,14 +2994,16 @@ function ResendCheckInButton({c,user}){
 function AdminUndoCheckout({c,user,onUpdateCase,small,onDone}){
   const [open,setOpen]=useState(false),[busy,setBusy]=useState(false),[err,setErr]=useState("");
   if(user?.role!=="admin"||!c.checkedOut)return null;
-  const locked=c.status==="locked";
+  const locked=c.status==="locked", sentAcc=c.prep?.jobSheetSentAt;
   async function go(){
     setBusy(true);setErr("");
     try{
       const prev=c.checkout||{};
-      await updateCase(c.id,{checked_out:false,checkout_data:null,status:"active"});
-      onUpdateCase(c.id,{checkedOut:false,checkout:null,status:"active"});
-      logActivity(user,"CHECK OUT UNDONE",`${c.caseRef} ${(c.lastName||"").toUpperCase()}, ${c.firstName} checked back in by Admin (was checked out ${prev.checkedOutAt?fmtDTDay(prev.checkedOutAt):"—"}${prev.signedName?" to "+prev.signedName:""})`,c.caseRef,c.id);
+      // Also clears "sent to accounts", so it can be sent again when they're checked out for real
+      const np={...(c.prep||{})};delete np.jobSheetSentAt;delete np.jobSheetSentBy;
+      await updateCase(c.id,{checked_out:false,checkout_data:null,status:"active",prep:np});
+      onUpdateCase(c.id,{checkedOut:false,checkout:null,status:"active",prep:np});
+      logActivity(user,"CHECK OUT UNDONE",`${c.caseRef} ${(c.lastName||"").toUpperCase()}, ${c.firstName} checked back in by Admin (was checked out ${prev.checkedOutAt?fmtDTDay(prev.checkedOutAt):"—"}${prev.signedName?" to "+prev.signedName:""}${sentAcc?"; job sheet had been sent to accounts "+fmtDTDay(sentAcc):""}${locked?"; case was locked":""})`,c.caseRef,c.id);
       setOpen(false);onDone&&onDone();
     }catch(e){setErr("Couldn't undo: "+(e.message||e));}
     setBusy(false);
@@ -3016,12 +3018,13 @@ function AdminUndoCheckout({c,user,onUpdateCase,small,onDone}){
           <div className="font-black text-gray-900">{c.caseRef} · {(c.lastName||"").toUpperCase()}, {c.firstName}</div>
           <div className="text-gray-700 mt-1">{c.funeralHomeName} · Checked out {c.checkout?.checkedOutAt?fmtDTDay(c.checkout.checkedOutAt):"—"}{c.checkout?.signedName?" · collected by "+c.checkout.signedName:""}</div>
         </div>
-        {locked?<p className="text-sm font-bold text-red-600 mb-4">This case is locked. Unlock it in Records first, then undo the check out.</p>
-          :<p className="text-sm text-gray-600 mb-4">Use this if the check out was a mistake. The case goes back to <b>in our care</b> and the check-out details are cleared. It's recorded in the Activity Log. No email is sent.</p>}
+        <p className="text-sm text-gray-600 mb-3">Use this if the check out was a mistake. The case goes back to <b>in our care</b> and the check-out details are cleared. It's recorded in the Activity Log. No email is sent.</p>
+        {sentAcc&&<p className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">The Job Sheet was already sent to accounts on {fmtDTDay(sentAcc)}. Let accounts know to hold the invoice. It can be sent again after the real check out.</p>}
+        {locked&&<p className="text-sm font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">This case is locked. Checking back in unlocks it.</p>}
         {err&&<p className="text-sm font-bold text-red-600 mb-3">{err}</p>}
         <div className="flex flex-col sm:flex-row gap-3">
           <button type="button" onClick={()=>setOpen(false)} className="flex-1 py-3 rounded-xl bg-gray-900 text-white font-black uppercase">Cancel</button>
-          {!locked&&<button type="button" disabled={busy} onClick={go} className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-black uppercase">{busy?"Saving…":"Check back in"}</button>}
+          {<button type="button" disabled={busy} onClick={go} className="flex-1 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-black uppercase">{busy?"Saving…":"Check back in"}</button>}
         </div>
       </div>
     </div>}
@@ -4104,6 +4107,7 @@ function MyCases({user,cases,onUpdateCase}) {
              {isAdmin&&c.status==="approved"&&<button onClick={()=>undoApprove(c.id)} className="text-xs bg-orange-500 text-white rounded-lg px-2 py-1 font-black uppercase">UNDO</button>}
              {isAdmin&&c.checkedOut&&(c.status==="pending-lock"||c.status==="approved")&&<button onClick={()=>lockCase(c.id)} className="text-xs bg-gray-900 text-white rounded-lg px-2 py-1 font-black uppercase">LOCK</button>}
              {isAdmin&&c.status==="locked"&&<button onClick={()=>unlockCase(c.id)} className="text-xs bg-red-500 text-white rounded-lg px-2 py-1 font-black uppercase">UNLOCK</button>}
+             {isAdmin&&c.checkedOut&&<AdminUndoCheckout small c={c} user={user} onUpdateCase={onUpdateCase}/>}
            </div>
            <DocumentSection caseId={c.id} filesDeletedAt={c.filesDeletedAt} backupFolder={c.backupFolder} funeralHomeName={c.funeralHomeName} lastName={c.lastName} dod={c.dod}/>
          </div>
