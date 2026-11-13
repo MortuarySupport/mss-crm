@@ -26,6 +26,17 @@ export default function DrRefPage({ token }) {
     setFile(f);
   }
 
+  // One tap: the pre-filled, signed Cremation Permit we sent is correct → it becomes the Dr Ref
+  async function approve() {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/drref", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", t: token, approved: true, doctor: doctor.trim() || info.referee, note }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Something went wrong. Please try again.");
+      setDone({ ...j, doctor: doctor.trim() || info.referee });
+    } catch (e) { alert(e.message); }
+    setBusy(false);
+  }
   async function send() {
     if (!file) { alert("Please choose your Dr Ref file."); return; }
     if (!doctor.trim()) { alert("Please type your name."); return; }
@@ -49,7 +60,7 @@ export default function DrRefPage({ token }) {
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center gap-3">
         <div className="bg-gray-900 text-white font-black text-xs px-3 py-2 rounded-lg">LUMIÈRE</div>
-        <div><div className="text-[11px] font-black tracking-[0.3em]">MORTUARY SUPPORT</div><div className="text-[9px] tracking-[0.4em] text-gray-500">DR REF UPLOAD</div></div>
+        <div><div className="text-[11px] font-black tracking-[0.3em]">MORTUARY SUPPORT</div><div className="text-[9px] tracking-[0.4em] text-gray-500">DR REF</div></div>
       </div>
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">{body}</div>
     </div>);
@@ -57,7 +68,7 @@ export default function DrRefPage({ token }) {
 
   if (err) return shell(<><div className={card + " text-center py-10"}><div className="text-4xl">🔒</div><div className="text-xl font-black mt-2">{err}</div><p className="text-sm text-gray-600 mt-2">Please use the link in your latest request email.</p></div>{help}</>);
   if (!info) return shell(<p className="text-center text-gray-500 py-10">Loading…</p>);
-  if (done) return shell(<><div className={card + " text-center py-10"}><div className="w-16 h-16 rounded-full bg-green-600 text-white text-4xl leading-[64px] mx-auto">✓</div><div className="text-2xl font-black mt-4">Dr Ref received — thank you</div><div className="text-gray-600 mt-2">{done.name}{done.caseRef ? " · " + done.caseRef : ""}</div><p className="text-sm text-gray-600 mt-4">Uploaded by {done.doctor} on {done.at}.<br />The funeral director and Mortuary Support have been notified.<br />You can close this page.</p></div>{help}</>);
+  if (done) return shell(<><div className={card + " text-center py-10"}><div className="w-16 h-16 rounded-full bg-green-600 text-white text-4xl leading-[64px] mx-auto">✓</div><div className="text-2xl font-black mt-4">{done.approved ? "Approved — thank you" : "Dr Ref received — thank you"}</div><div className="text-gray-600 mt-2">{done.name}{done.caseRef ? " · " + done.caseRef : ""}</div><p className="text-sm text-gray-600 mt-4">{done.approved ? "Approved" : "Uploaded"} by {done.doctor} on {done.at}.<br />The funeral director and Mortuary Support have been notified.<br />You can close this page.</p></div>{help}</>);
   if (info.received) return shell(<><div className={card + " text-center py-10"}><div className="text-4xl">🔒</div><div className="text-xl font-black mt-2">This link has already been used</div><p className="text-sm text-gray-600 mt-2">A Dr Ref for {info.name} was uploaded on {info.receivedAt}.<br />Need to send a corrected one? Call Mortuary Support on 02 8814 5500 or email info@mortuarysupport.com.au.</p></div></>);
 
   return shell(<>
@@ -75,8 +86,15 @@ export default function DrRefPage({ token }) {
           <a href={d.url} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-xs uppercase">View</a>
         </div>))}</div>
     </div>
+    {info.permit && <div className={card + " border-2 border-green-600"}>
+      <div className={lbl + " mb-2"}>2. Approve</div>
+      <p className="text-sm text-gray-700 mb-3">Your <b>Medical Referee's Cremation Permit</b> is filled in for {info.name}. If the documents are correct, tap Approve. The funeral director and Mortuary Support are emailed the permit straight away.</p>
+      <input value={note} onChange={e => setNote(e.target.value)} placeholder="Note to MSS (optional)" className="w-full border-2 border-gray-200 focus:border-gray-900 rounded-xl px-3 py-2.5 outline-none mb-3" />
+      <button type="button" disabled={busy} onClick={approve} className="w-full py-5 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-lg font-black uppercase tracking-wide">{busy ? "Approving…" : "✓ Approve"}</button>
+      <p className="text-xs text-gray-500 mt-2 text-center">Something not right? Reply to the request email or call MSS on 02 8814 5500.</p>
+    </div>}
     <div className={card}>
-      <div className={lbl + " mb-3"}>2. Upload your Dr Ref</div>
+      <div className={lbl + " mb-3"}>{info.permit ? "Or upload your own Dr Ref instead" : "2. Upload your Dr Ref"}</div>
       {file
         ? <div className="border-2 border-green-600 bg-green-50 rounded-xl p-4 flex items-center gap-3"><div className="text-3xl">📄</div><div className="flex-1 min-w-0"><b className="break-all">{file.name}</b><div className="text-xs text-gray-600">{(file.size / 1024 / 1024).toFixed(1)} MB</div></div><label className="text-xs font-extrabold text-gray-500 underline cursor-pointer">Change file<input type="file" accept="application/pdf,image/*" className="hidden" onChange={e => pick(e.target.files[0])} /></label></div>
         : <label onDragOver={e => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)} onDrop={e => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files[0]); }}

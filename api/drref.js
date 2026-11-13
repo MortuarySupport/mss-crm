@@ -44,6 +44,7 @@ export default async function handler(req, res) {
         name: title(a), dob: longDate(a.dob), dod: longDate(a.dod), caseRef: n.case_ref || "", fh: n.funeral_home_name || "",
         requestedAt: d.requestedAt ? when(d.requestedAt) : "", received: !!d.receivedAt, receivedAt: d.receivedAt ? when(d.receivedAt) : "",
         uploadDir: `drref/${n.id}`, docs: (d.docs || []).map(x => ({ label: x.label, url: pub(x.path) })),
+        permit: (d.docs || []).some(x => x.key === "permit"), referee: DRREF_NAME, approved: d.receivedVia === "approved",
       });
     }
     if (req.method !== "POST") return res.status(405).end();
@@ -64,10 +65,10 @@ export default async function handler(req, res) {
       const rows = [["Deceased", `<b>${esc(nameOf(a))}</b>`], ["Date of birth", longDate(a.dob)], ["Date of death", longDate(a.dod)], ["Case number", esc(n.case_ref || "Not yet in MSS care")], ["Funeral director", esc(n.funeral_home_name + (fh.phone ? " · " + fh.phone : ""))], ["Requested by", esc(d.requestedBy || "")]];
       const html = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#111827"><p>Dear Doctor,</p><p>A Dr Ref (medical referee's certificate) is requested for the cremation of:</p>
 <table style="border-collapse:collapse;margin-bottom:14px">${rows.map(([k, v]) => `<tr><td style="padding:3px 18px 3px 0;color:#6b7280">${k}</td><td>${v}</td></tr>`).join("")}</table>
-${updated ? "<p><b>This is an updated request: the documents have changed since our earlier email. Please use these ones.</b></p>" : ""}<p>${attach.length ? "Attached: " + attach.map(x => esc(x.label)).join(", ") + "." : ""}${big.length ? ` <b>Too large to attach:</b> ${big.map(x => esc(x.label)).join(", ")}. Open ${big.length > 1 ? "them" : "it"} with the Upload Dr Ref button below.` : ""} When your Dr Ref is complete, please upload it using the button below — it goes straight into the deceased's file.</p>
-<p style="margin:22px 0"><a href="${link}" style="background:#111827;color:#fff;text-decoration:none;font-weight:800;padding:14px 22px;border-radius:10px;display:inline-block">⬆ UPLOAD DR REF</a></p>
+${updated ? "<p><b>This is an updated request: the documents have changed since our earlier email. Please use these ones.</b></p>" : ""}<p>${attach.length ? "Attached: " + attach.map(x => esc(x.label)).join(", ") + "." : ""}${big.length ? ` <b>Too large to attach:</b> ${big.map(x => esc(x.label)).join(", ")}. Open ${big.length > 1 ? "them" : "it"} with the Upload Dr Ref button below.` : ""} ${d.docs.some(x => x.key === "permit") ? "Your Medical Referee's Cremation Permit is attached, filled in for this deceased. Please review the documents and, if everything is correct, tap <b>Review &amp; approve</b> below and then <b>Approve</b>. If you'd rather send your own Dr Ref, you can upload it on the same page." : "When your Dr Ref is complete, please upload it using the button below — it goes straight into the deceased's file."}</p>
+<p style="margin:22px 0"><a href="${link}" style="background:#111827;color:#fff;text-decoration:none;font-weight:800;padding:14px 22px;border-radius:10px;display:inline-block">${d.docs.some(x => x.key === "permit") ? "✓ REVIEW &amp; APPROVE" : "⬆ UPLOAD DR REF"}</a></p>
 <p style="font-size:12px;color:#6b7280">This link is only for this deceased; please don't forward it. Questions: reply to this email or call MSS on 02 8814 5500.<br>${link}</p><p>The Team at Mortuary Support | Lumière</p></div>`;
-      const text = `Dear Doctor,\n\nA Dr Ref is requested for the cremation of ${nameOf(a)} (born ${longDate(a.dob)}, died ${longDate(a.dod)}), case ${n.case_ref || "not yet in MSS care"}, funeral director ${n.funeral_home_name}.\n\n${updated ? "UPDATED REQUEST: the documents have changed since our earlier email.\n\n" : ""}Documents attached: ${attach.map(x => x.label).join(", ") || "none"}.${big.length ? " Too large to attach (open from the link): " + big.map(x => x.label).join(", ") + "." : ""}\n\nUpload your Dr Ref here (this deceased only): ${link}\n\nQuestions: reply to this email or call MSS on 02 8814 5500.\n\nThe Team at Mortuary Support | Lumière`;
+      const text = `Dear Doctor,\n\nA Dr Ref is requested for the cremation of ${nameOf(a)} (born ${longDate(a.dob)}, died ${longDate(a.dod)}), case ${n.case_ref || "not yet in MSS care"}, funeral director ${n.funeral_home_name}.\n\n${updated ? "UPDATED REQUEST: the documents have changed since our earlier email.\n\n" : ""}Documents attached: ${attach.map(x => x.label).join(", ") || "none"}.${big.length ? " Too large to attach (open from the link): " + big.map(x => x.label).join(", ") + "." : ""}\n\n${d.docs.some(x => x.key === "permit") ? "Your Cremation Permit is attached, filled in. Review and approve it here (this deceased only)" : "Upload your Dr Ref here (this deceased only)"}: ${link}\n\nQuestions: reply to this email or call MSS on 02 8814 5500.\n\nThe Team at Mortuary Support | Lumière`;
       await send({ to: [DRREF_TO], cc: [INFO], subject: `${updated ? "UPDATED " : ""}Dr Ref request – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, html, text, attachments: attach.map(x => ({ filename: `${x.label} – ${a.lastName || "deceased"}.${(x.path.split(".").pop() || "pdf")}`, path: pub(x.path) })) });
       const answers = { ...a, _drref: { ...d, sentAt: new Date().toISOString(), sentTo: DRREF_TO } };
       await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) });
@@ -81,20 +82,25 @@ ${updated ? "<p><b>This is an updated request: the documents have changed since 
       if (!n) return res.status(404).json({ error: "This link is not valid." });
       const a = n.answers || {}, d = a._drref || {};
       if (d.receivedAt) return res.status(409).json({ error: "This link has already been used." });
-      const path = String(b.path || ""), doctor = String(b.doctor || "").trim().slice(0, 120), note = String(b.note || "").trim().slice(0, 500);
+      // Approve = the pre-filled Cremation Permit we sent is correct; it becomes the Dr Ref. Otherwise the doctor uploaded his own.
+      const approved = !!b.approved, permitDoc = (d.docs || []).find(x => x.key === "permit");
+      if (approved && !permitDoc) return res.status(400).json({ error: "There's no permit to approve. Please upload your Dr Ref instead." });
+      const path = approved ? permitDoc.path : String(b.path || ""), doctor = (String(b.doctor || "").trim() || (approved ? DRREF_NAME : "")).slice(0, 120), note = String(b.note || "").trim().slice(0, 500);
       if (!path.startsWith(`drref/${n.id}/`) || path.includes("..")) return res.status(400).json({ error: "Upload not found." });
       if (!doctor) return res.status(400).json({ error: "Please type your name." });
       const head = await fetch(pub(path), { method: "HEAD" });
       if (!head.ok) return res.status(400).json({ error: "The file didn't upload. Please try again." });
       const now = new Date().toISOString();
-      const answers = { ...a, _drref: { ...d, receivedAt: now, receivedBy: doctor, receivedNote: note, receivedPath: path, receivedName: String(b.filename || "Dr Ref").slice(0, 150) } };
+      const answers = { ...a, _drref: { ...d, receivedAt: now, receivedBy: doctor, receivedNote: note, receivedPath: path, receivedName: approved ? "Medical Referee's Cremation Permit (approved)" : String(b.filename || "Dr Ref").slice(0, 150), receivedVia: approved ? "approved" : "upload" } };
       await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers }) });
       if (n.case_id) await fetch(`${SUPABASE_URL}/storage/v1/object/copy`, { method: "POST", headers: H, body: JSON.stringify({ bucketId: BUCKET, sourceKey: path, destinationKey: `${n.case_id}/${Date.now()}_DR_REF.${path.split(".").pop()}` }) }).catch(() => {});
       const fh = FUNERAL_HOMES.find(f => f.id === n.funeral_home_id) || {};
       const to = [...new Set([INFO, ...(fh.contacts || [])])];
-      const text = `Hi ${n.funeral_home_name} Team,\n\nThe Dr Ref for ${nameOf(a)}${n.case_ref ? " (" + n.case_ref + ")" : ""} has been received from ${DRREF_NAME}.\n\nUploaded by: ${doctor} on ${when(now)}${note ? "\nNote: " + note : ""}\n\nThe Dr Ref is attached${n.case_id ? " and saved to the case documents in Lumière" : ""}.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\n${INFO}`;
-      await send({ to, subject: `Dr Ref received – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: [{ filename: `Dr Ref – ${a.lastName || "deceased"}.${path.split(".").pop()}`, path: pub(path) }] }).catch(() => {});
-      return res.status(200).json({ ok: true, name: title(a), caseRef: n.case_ref || "", at: when(now) });
+      const text = approved
+        ? `Hi ${n.funeral_home_name} Team,\n\nThe Dr Ref for ${nameOf(a)}${n.case_ref ? " (" + n.case_ref + ")" : ""} has been APPROVED by ${doctor}.\n\nApproved: ${when(now)}${note ? "\nNote: " + note : ""}\n\nThe Medical Referee's Cremation Permit is attached${n.case_id ? " and saved to the case documents in Lumière" : ""}.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\nEmail: ${INFO}`
+        : `Hi ${n.funeral_home_name} Team,\n\nThe Dr Ref for ${nameOf(a)}${n.case_ref ? " (" + n.case_ref + ")" : ""} has been received from ${DRREF_NAME}.\n\nUploaded by: ${doctor} on ${when(now)}${note ? "\nNote: " + note : ""}\n\nThe Dr Ref is attached${n.case_id ? " and saved to the case documents in Lumière" : ""}.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\n${INFO}`;
+      await send({ to, subject: `Dr Ref ${approved ? "approved" : "received"} – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: [{ filename: `${approved ? "Cremation Permit" : "Dr Ref"} – ${a.lastName || "deceased"}.${path.split(".").pop()}`, path: pub(path) }] }).catch(() => {});
+      return res.status(200).json({ ok: true, approved, name: title(a), caseRef: n.case_ref || "", at: when(now) });
     }
     if (b.action === "resend") {
       const n = await noteBy(`id=eq.${encodeURIComponent(b.noteId || "")}`);
