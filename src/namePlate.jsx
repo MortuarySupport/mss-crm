@@ -276,8 +276,9 @@ export function NamePlateModal({ c, plate, person: personIn, onClose, onDownload
   const spec = { ...v, ...person };
   const [sets] = useFontSets(spec);
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start sm:items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl p-5 my-4" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/50 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }} onClick={onClose}>
+      <div className="min-h-full flex items-start justify-center p-3">
+      <div className="bg-white rounded-2xl w-full max-w-2xl p-5 my-4 sm:my-8" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 mb-4">
           <div><div className="text-xs font-black uppercase tracking-widest text-gray-500">Name Plate · {c.caseRef}</div>
             <div className="text-lg font-black">{(c.lastName || "").toUpperCase()}, {c.firstName}</div>
@@ -296,6 +297,7 @@ export function NamePlateModal({ c, plate, person: personIn, onClose, onDownload
         </div></>}
         <button type="button" onClick={onClose} className="w-full mt-2 py-3 rounded-xl border-2 border-gray-200 font-black uppercase text-sm text-gray-600 hover:border-gray-900">Done</button>
         {!(PLATES[v.size] || {}).manual && <p className="text-xs text-gray-500 mt-3"><b>Download for xTool</b> is the text only — nothing else gets lasered. In xTool, use File → Import, centre it on the plate and engrave. The outline file is only for checking the layout on screen: don't send it to the laser.</p>}
+      </div>
       </div>
     </div>
   );

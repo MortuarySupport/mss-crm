@@ -3598,6 +3598,7 @@ async function sendAppEmail(to,subject,text,attachments){
 function NamePlatesView({user,cases,onUpdateCase,onBack}){
   const inCare=cases.filter(c=>c.status==="active").sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""));
   const [plates,setPlates]=useState({});const [open,setOpen]=useState(null);const [tab,setTab]=useState("todo");const [q,setQ]=useState("");
+  const [pick,setPick]=useState(null); // "+ New Name Plate": choose the funeral director, then the deceased
   const idKey=inCare.map(c=>c.id).join(",");
   useEffect(()=>{if(!idKey)return;let live=true;
     sb(`second_notes?select=case_id,answers,submitted_at&case_id=in.(${inCare.map(c=>`"${c.id}"`).join(",")})&order=submitted_at.desc`).then(r=>{if(!live||!Array.isArray(r))return;const m={};r.forEach(n=>{if(!(n.case_id in m))m[n.case_id]=n.answers?._plate||null;});inCare.forEach(c=>{if(!(c.id in m))m[c.id]=null;});setPlates(m);}).catch(()=>{});
@@ -3620,6 +3621,28 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
       <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK TO HOME</button>
       <h2 className="text-xl font-black text-gray-900 mb-1">🪧 Name Plates</h2>
       <p className="text-sm text-gray-500 mb-4">Every deceased in our care. Open one to check the plate and download it for xTool. A case leaves the in-care lists once the body is checked out; <b>Completed</b> keeps the final version of every plate.</p>
+      <button type="button" onClick={()=>setPick({fh:null})} className="w-full mb-4 py-3.5 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-wide">+ New Name Plate</button>
+      {pick&&(()=>{const fhs=[...new Map(inCare.map(c=>[c.funeralHomeId,{id:c.funeralHomeId,name:c.funeralHomeName||"Other"}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+        const mine=pick.fh?inCare.filter(c=>c.funeralHomeId===pick.fh.id):[];
+        return(<div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-3 overflow-y-auto" onClick={()=>setPick(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl p-5 my-6" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4"><div className="text-lg font-black">{pick.fh?pick.fh.name:"+ New Name Plate"}</div>
+              <button type="button" onClick={()=>pick.fh?setPick({fh:null}):setPick(null)} className="px-3 py-1.5 rounded-lg border-2 border-gray-300 text-sm font-black">{pick.fh?"‹ Back":"✕"}</button></div>
+            {!pick.fh?<>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">1. Funeral director</p>
+              {fhs.length===0&&<p className="text-sm text-gray-400 py-6 text-center">No deceased in our care.</p>}
+              <div className="grid sm:grid-cols-2 gap-2">{fhs.map(f=>{const n=inCare.filter(c=>c.funeralHomeId===f.id).length;return(
+                <button key={f.id} type="button" onClick={()=>setPick({fh:f})} className="text-left px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-gray-900 font-black text-sm">{f.name}<span className="block text-xs font-bold text-gray-500">{n} in our care</span></button>);})}</div>
+            </>:<>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2">2. Deceased</p>
+              <div className="space-y-2">{mine.map(c=>(
+                <button key={c.id} type="button" onClick={()=>{setPick(null);setOpen({c,plate:rec(c).plate||plates[c.id]||null});}} className="w-full text-left px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-gray-900 flex items-center gap-3">
+                  <div className="flex-1"><div className="font-black">{(c.lastName||"").toUpperCase()}, {c.firstName}</div><div className="text-xs text-gray-500">{c.caseRef}</div></div>
+                  <span className={"text-[10px] font-black uppercase px-2 py-1 rounded-full "+(done(c)?"bg-green-100 text-green-800":"bg-red-50 text-red-700")}>{done(c)?(rec(c).none?"No plate needed":"Downloaded"):"Not done"}</span>
+                </button>))}</div>
+            </>}
+          </div>
+        </div>);})()}
       <div className="flex flex-wrap gap-2 mb-4">{tabBtn("todo","To do",todo.length)}{tabBtn("done","Downloaded / Done",dl.length)}{tabBtn("all","All in care",inCare.length)}{tabBtn("completed","✓ Completed",completed.length)}</div>
       {tab!=="completed"&&<>
         {list.length===0&&<p className="text-center text-sm text-gray-400 py-10">{tab==="todo"?"All name plates are done.":"Nothing here."}</p>}
