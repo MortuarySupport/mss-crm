@@ -136,7 +136,7 @@ export function downloadPlate(spec, sets, guide) {
   const name = ([spec.lastName, spec.firstName].filter(Boolean).join("_") || "NamePlate").replace(/[^A-Za-z0-9_]/g, "_");
   const blob = new Blob([plateSvg(spec, sets, { guide })], { type: "image/svg+xml" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-  a.download = `NamePlate_${name}_${(PLATES[spec.size] || PLATES.large).label}${guide ? "" : "_text-only"}.svg`;
+  a.download = `NamePlate_${name}_${(PLATES[spec.size] || PLATES.large).label}${guide ? "_with-outline-LINING-UP-ONLY" : ""}.svg`;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
@@ -291,11 +291,11 @@ export function NamePlateModal({ c, plate, person: personIn, onClose, onDownload
         <p className="text-xs text-gray-500 mt-2">Europag Brass is etched on the manual machine, not the xTool. Print the PDF at 100% (actual size) and follow the wording.</p>
         </> : <>
         <div className="grid sm:grid-cols-2 gap-2 mt-5">
-          <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, true); onDownloaded && onDownloaded(v, person); }} className="py-4 rounded-xl bg-gray-900 text-white font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-700">⬇ Download for xTool</button>
-          <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, false); onDownloaded && onDownloaded(v, person); }} className="py-4 rounded-xl border-2 border-gray-900 font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-50">⬇ Text only</button>
+          <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, false); onDownloaded && onDownloaded(v, person); }} className="py-4 rounded-xl bg-gray-900 text-white font-black uppercase text-sm disabled:opacity-40 hover:bg-gray-700">⬇ Download for xTool</button>
+          <button type="button" disabled={!sets} onClick={() => { downloadPlate(spec, sets, true); }} className="py-4 rounded-xl border-2 border-gray-300 text-gray-600 font-black uppercase text-xs disabled:opacity-40 hover:border-gray-900">With plate outline (lining up only)</button>
         </div></>}
         <button type="button" onClick={onClose} className="w-full mt-2 py-3 rounded-xl border-2 border-gray-200 font-black uppercase text-sm text-gray-600 hover:border-gray-900">Done</button>
-        {!(PLATES[v.size] || {}).manual && <p className="text-xs text-gray-500 mt-3">In xTool Studio: open the SVG. The red plate outline is only there to line it up — set it to <b>not output</b> (or use <b>Text only</b>). Engrave the black text.</p>}
+        {!(PLATES[v.size] || {}).manual && <p className="text-xs text-gray-500 mt-3"><b>Download for xTool</b> is the text only — nothing else gets lasered. In xTool, use File → Import, centre it on the plate and engrave. The outline file is only for checking the layout on screen: don't send it to the laser.</p>}
       </div>
     </div>
   );
