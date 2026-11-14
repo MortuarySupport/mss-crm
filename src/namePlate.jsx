@@ -99,10 +99,10 @@ export function plateLayout(spec, sets) {
   // Line 2: born – died dates, or the age ("89 years")
   const d1 = npDate(spec.dob), d2 = npDate(spec.dod), age = npAge(spec.dob, spec.dod);
   if (sh.dates) { if (spec.dateMode === "age" && age !== "") add(dF, `${age} YEARS`, smSz(sets.dates) * 1.4); else if (d1 || d2) add(dF, d1 && d2 ? `${d1} – ${d2}` : d1 || d2, smSz(sets.dates)); }
-  // Message: words wrap so no line is wider than 3/4 of the name above it
+  // Message: words wrap onto the next line only when they reach the edge of the plate's engraving area
   const msgs = [spec.message, spec.message2].map(x => String(x || "").trim()).filter(Boolean);
   if (sh.message && msgs.length) {
-    const sz0 = smSz(sets.message), wrapW = 0.75 * (nameW || max), out = [];
+    const sz0 = smSz(sets.message), wrapW = max, out = [];
     msgs.forEach(m => { let cur = "";
       m.split(/\s+/).forEach(w => { const t = cur ? cur + " " + w : w; if (cur && advance(msgF, t, sz0) > wrapW) { out.push(cur); cur = w; } else cur = t; });
       if (cur) out.push(cur); });
@@ -231,7 +231,7 @@ export function NamePlateEditor({ value, onChange, person }) {
         <input id="np-msg" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message || ""} onChange={e => set({ message: e.target.value })} placeholder="e.g. Forever in our hearts" />
         <label className={lbl + " mt-3 block"} htmlFor="np-msg2">Message line 2 <span className="normal-case font-bold text-gray-400">(optional)</span></label>
         <input id="np-msg2" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message2 || ""} onChange={e => set({ message2: e.target.value })} placeholder="e.g. Loved and remembered always" />
-        <p className="text-xs text-gray-500 mt-1">The message wraps onto more lines by itself, no wider than ¾ of the name. Check the preview.</p>
+        <p className="text-xs text-gray-500 mt-1">A long message wraps onto the next line by itself when it reaches the edge of the plate. Check the preview.</p>
         {!(NP_FONTS.find(f => f.id === lineFonts(v).message) || {}).script && <div className="flex flex-wrap gap-2 mt-3">
           {[[true, "Italic"], [false, "Not italic"]].map(([it, l]) => { const is = (v.msgItalic !== false) === it;
             return <button key={l} type="button" onClick={() => set({ msgItalic: it })} className={chip(is)}><span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">{is ? <span className="w-2 h-2 rounded-full bg-current" /> : null}</span><span className={it ? "italic" : ""}>{l}</span></button>; })}
