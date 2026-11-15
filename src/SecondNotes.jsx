@@ -334,13 +334,21 @@ export async function makeRefereeDoc(noteId, a, st) {
     const put = (t, x, y, maxPx, size = 10) => { const v = fit(t, size, maxPx * F); if (v) pg.drawText(v, { x: X(x), y: Y(y), size, font: H, color: ink }); };
     const name = [a.firstName, String(a.lastName || "").toUpperCase()].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
     const dob = /^\d{4}-\d{2}-\d{2}$/.test(a.dob || "") ? a.dob.split("-").reverse().join("/") : "";
-    put(name, 212, 534, 620); put(a._drAddr, 260, 564, 575); put(dob, 241, 594, 160);
-    put(new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" }), 716, 1114, 120);
+    // Each answer goes in its own one-line box on the form; a long one shrinks to fit rather than running into the next line
+    const form = pdf.getForm();
+    const setBox = (id, v) => { try { const f = form.getTextField(id), t = clean(v); if (!t) return; const w = f.acroField.getWidgets()[0].getRectangle().width - 4;
+      f.setFontSize(Math.max(6, Math.min(10, (10 * w) / Math.max(1, H.widthOfTextAtSize(t, 10))))); f.setText(t); return true; } catch (e) { return false; } };
+    const today = new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
+    if (!setBox("deceased_name", name)) put(name, 212, 534, 620);
+    if (!setBox("deceased_address", a._drAddr)) put(a._drAddr, 260, 564, 575);
+    if (!setBox("deceased_dob", dob)) put(dob, 241, 594, 160);
+    if (!setBox("date", today)) put(today, 716, 1114, 120);
     // Written direction about the method of cremation: ring Yes or No, and the direction itself in the box
     if (a._drDir === "Yes" || a._drDir === "No") pg.drawEllipse({ x: X(a._drDir === "Yes" ? 107 : 181), y: Y(643), xScale: a._drDir === "Yes" ? 14 : 12, yScale: 7, borderColor: ink, borderWidth: 1 });
-    if (a._drDir === "Yes" && a._drDirText) { const words = clean(a._drDirText).split(/\s+/); let line = "", row = 0; const maxW = 740 * F;
+    if (a._drDir === "Yes" && a._drDirText && (() => { try { const f = form.getTextField("direction"); f.setFontSize(10); f.setText(clean(a._drDirText)); return false; } catch (e) { return true; } })()) { const words = clean(a._drDirText).split(/\s+/); let line = "", row = 0; const maxW = 740 * F;
       for (const w of words) { const t = line ? line + " " + w : w; if (H.widthOfTextAtSize(t, 10) > maxW && line) { if (row < 6) pg.drawText(line, { x: X(80), y: Y(716 + row * 20), size: 10, font: H, color: ink }); row++; line = w; } else line = t; }
       if (line && row < 6) pg.drawText(line, { x: X(80), y: Y(716 + row * 20), size: 10, font: H, color: ink }); }
+    try { form.updateFieldAppearances(H); } catch (e) {}
     const bytes = await pdf.save();
     const path = `drref/${noteId}/referee_permit_${Date.now()}.pdf`;
     const r = await fetch(`${st.SUPABASE_URL}/storage/v1/object/${st.STORAGE_BUCKET}/${path}`, { method: "POST", headers: { apikey: st.SUPABASE_KEY, Authorization: `Bearer ${st.SUPABASE_KEY}`, "Content-Type": "application/pdf", "x-upsert": "true" }, body: new Blob([bytes], { type: "application/pdf" }) });
