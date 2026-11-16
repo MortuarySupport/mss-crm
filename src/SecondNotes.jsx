@@ -517,6 +517,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
   }
 
   const form = FORMS[fhId];
+  // Some funeral homes don't need certain sections for a cremation (e.g. Burial Requirements)
+  const cremHide = sec => isCremation(answers) && (form?.hideOnCremation || []).includes(sec.title);
+  useEffect(() => { if (!form) return; const ids = form.sections.filter(cremHide).flatMap(sc => sc.fields.map(f => f.id)).filter(id => !isEmpty(answers[id]));
+    if (ids.length) setAnswers(a => { const n = { ...a }; ids.forEach(id => delete n[id]); return n; }); }, [answers.disposition, form]);
   const fhName = FUNERAL_HOMES.find(f => f.id === fhId)?.name || "";
   const formFHs = FUNERAL_HOMES.filter(f => FORMS[f.id]);
   const inCare = useMemo(() => cases.filter(c => c.status === "active" && !c.checkedOut), [cases]);
@@ -923,7 +927,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
           <option value="none">Not in our care yet</option>
         </select>
       </div>
-      {form.sections.filter(sec => !answers._nsna || nsnaShowAll || nsnaKeep(sec)).map(sec => { const na = !!(sec.na && answers["_na_" + sec.id]); return (
+      {form.sections.filter(sec => !cremHide(sec) && (!answers._nsna || nsnaShowAll || nsnaKeep(sec))).map(sec => { const na = !!(sec.na && answers["_na_" + sec.id]); return (
         <div key={sec.title} className={card}>
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-sm font-black uppercase tracking-wide">{sec.title}</p>

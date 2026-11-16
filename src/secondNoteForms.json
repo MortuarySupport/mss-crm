@@ -4314,6 +4314,7 @@
   "template": "/forms/FH13_2nd_note.pdf",
   "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
   "sectionTitles": {"Name Plate & Fittings": "Fittings"},
+  "hideOnCremation": ["Burial Requirements"],
   "fileTag": "SFC"
  },
  "FH09": {
@@ -4321,6 +4322,7 @@
   "template": "/forms/FH09_2nd_note.pdf",
   "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
   "sectionTitles": {"Name Plate & Fittings": "Fittings"},
+  "hideOnCremation": ["Burial Requirements"],
   "fileTag": "HIGHLAND",
   "fieldOverrides": {
    "hearse": {
@@ -4413,6 +4415,7 @@
   "template": "/forms/FH18_2nd_note.pdf",
   "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
   "sectionTitles": {"Name Plate & Fittings": "Fittings"},
+  "hideOnCremation": ["Burial Requirements"],
   "fileTag": "GOLDCOAST"
  },
  "FH11": {
@@ -4420,6 +4423,7 @@
   "template": "/forms/FH11_2nd_note.pdf",
   "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
   "sectionTitles": {"Name Plate & Fittings": "Fittings"},
+  "hideOnCremation": ["Burial Requirements"],
   "fileTag": "OTR"
  },
  "FH05": {
@@ -4590,6 +4594,7 @@
   "template": "/forms/FH06_2nd_note.pdf",
   "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
   "sectionTitles": {"Name Plate & Fittings": "Fittings"},
+  "hideOnCremation": ["Burial Requirements"],
   "fileTag": "FBD",
   "fieldOverrides": {
    "hearse": {
