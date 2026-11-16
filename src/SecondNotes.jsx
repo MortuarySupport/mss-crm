@@ -9,11 +9,16 @@ function resolveForms(raw) {
     if (id.startsWith("_")) continue;
     if (!f.extends) { out[id] = f; continue; }
     const base = JSON.parse(JSON.stringify(raw[f.extends]));
-    const { extends: _x, fieldOverrides = {}, rowOverrides = {}, nsnaOverrides = {}, ...own } = f;
+    const { extends: _x, fieldOverrides = {}, rowOverrides = {}, nsnaOverrides = {}, removeFields = [], sectionTitles = {}, ...own } = f;
     const form = { ...base, ...own };
     if (form.nsna) form.nsna = { ...form.nsna, set: { ...form.nsna.set, ...nsnaOverrides } };
     form.sections.forEach(s => s.fields.forEach(fl => Object.assign(fl, fieldOverrides[fl.id] || {})));
     (form.rows || []).forEach((r, i) => Object.assign(r, rowOverrides[i] || {}));
+    // Fields this funeral home doesn't use (e.g. the old name plate questions, now done by the Name Plate card)
+    if (removeFields.length) {
+      form.sections = form.sections.map(s => ({ ...s, title: sectionTitles[s.title] || s.title, fields: s.fields.filter(fl => !removeFields.includes(fl.id)) })).filter(s => s.fields.length);
+      if (form.nsna?.set) removeFields.forEach(k => delete form.nsna.set[k]);
+    }
     out[id] = form;
   }
   return out;
@@ -277,6 +282,11 @@ function mergeIntoJobCard(caseData, form, answers, meta, prev) {
       const kept = Array.isArray(prep[f.job]) ? prep[f.job].join(", ") : String(prep[f.job]);
       conflicts.push(`${f.label}: 2nd Note says "${display(f, answers[f.id], answers)}", Job Card kept "${kept}"`);
     }
+  }
+  // Forms without the old name plate colour question: the Name Plate card's colour goes on the Job Card
+  if (answers._plate && !allFields(form).some(f => f.job === "coffinPlateColour")) {
+    const lab = p => p ? ({ silver: "Silver", gold: "Gold", brass: "Europag Brass" }[p.finish || "silver"] || "") : "";
+    if (isEmpty(prep.coffinPlateColour) || prep.coffinPlateColour === lab(prev?._plate)) prep.coffinPlateColour = lab(answers._plate);
   }
   // Only the 2nd Note's Comments go into Job Card comments. An edit replaces its previous comment.
   const note = String(answers.comments || "").trim();

@@ -4312,11 +4312,15 @@
  "FH13": {
   "extends": "_FUNERAL_ADVICE",
   "template": "/forms/FH13_2nd_note.pdf",
+  "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
+  "sectionTitles": {"Name Plate & Fittings": "Fittings"},
   "fileTag": "SFC"
  },
  "FH09": {
   "extends": "_FUNERAL_ADVICE",
   "template": "/forms/FH09_2nd_note.pdf",
+  "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
+  "sectionTitles": {"Name Plate & Fittings": "Fittings"},
   "fileTag": "HIGHLAND",
   "fieldOverrides": {
    "hearse": {
@@ -4407,11 +4411,15 @@
  "FH18": {
   "extends": "_FUNERAL_ADVICE",
   "template": "/forms/FH18_2nd_note.pdf",
+  "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
+  "sectionTitles": {"Name Plate & Fittings": "Fittings"},
   "fileTag": "GOLDCOAST"
  },
  "FH11": {
   "extends": "_FUNERAL_ADVICE",
   "template": "/forms/FH11_2nd_note.pdf",
+  "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
+  "sectionTitles": {"Name Plate & Fittings": "Fittings"},
   "fileTag": "OTR"
  },
  "FH05": {
@@ -4580,6 +4588,8 @@
  "FH06": {
   "extends": "_FUNERAL_ADVICE",
   "template": "/forms/FH06_2nd_note.pdf",
+  "removeFields": ["plateStyle", "plateQty", "plateColour", "plateSupplier"],
+  "sectionTitles": {"Name Plate & Fittings": "Fittings"},
   "fileTag": "FBD",
   "fieldOverrides": {
    "hearse": {
