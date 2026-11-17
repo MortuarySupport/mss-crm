@@ -1540,10 +1540,10 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         </div>
         :!isAdmin&&isMSS
         ?(()=>{const staffRow=(items,width)=>(<div className="flex gap-3 mb-3 mx-auto" style={{maxWidth:width||"100%"}}>
-            {items.map(([a,l,x])=>(<button key={a} onClick={()=>onAction(a)} className={s.btnLg.replace("text-sm","text-[11px] sm:text-sm")+" flex-1 min-w-0 px-1 break-words "+(x||"")}>{l}</button>))}</div>);
+            {items.map(([a,l,x])=>(<button key={a} onClick={()=>a==="lock"?onToggleLock():onAction(a)} className={s.btnLg.replace("text-sm","text-[11px] sm:text-sm")+" flex-1 min-w-0 px-1 break-words "+(x||"")}>{l}</button>))}</div>);
           return <>
             {staffRow([["dashboard","📊 DASHBOARD","bg-green-600 hover:bg-green-700"],["mortuary","🏥 MORTUARY","bg-red-600 hover:bg-red-700"],["secondnotes","📝 ALL 2ND NOTES"],["calendar","📆 CALENDAR"]])}
-            {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"],["drrefs","📄 DR REFS"]])}
+            {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"],["drrefs","📄 DR REFS"],["lock",lockOpen?"🔒 LOCKED · NO TIME OUT":"🔓 LOCK",lockOpen?"bg-green-600 text-white border-green-600 hover:bg-green-700":""]])}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
             <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction} onUpdateCase={onUpdateCase}/></div>
@@ -7073,10 +7073,10 @@ export default function App() {
   useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
   function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);setLockOpen(false);}
 
-  // Auto-logout after 5 minutes of inactivity (Admin can switch this off with the LOCK button until they log out)
+  // Auto-logout after 5 minutes of inactivity (Admin and MSS staff can switch this off with the LOCK button until they log out)
   useEffect(()=>{
     if(!user) return;
-    if(lockOpen&&user.role==="admin") return;
+    if(lockOpen&&(user.role==="admin"||user.role==="mss")) return;
     let timer;
     function reset(){
       clearTimeout(timer);
