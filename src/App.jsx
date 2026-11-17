@@ -1090,7 +1090,7 @@ function CaseViewCard({c,isAdmin,onSave,user,onFHChanged}) {
       <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
         <div style={{width:"100%",minWidth:0}}>
           <div className="font-black text-gray-900 mb-1" style={{fontSize:"clamp(14px,4vw,22px)",wordBreak:"break-all",overflowWrap:"anywhere"}}>
-            {isAdmin?<><InlineEdit isAdmin value={c.lastName?.toUpperCase()} onSave={v=>save("last_name",v)}/>, <InlineEdit isAdmin value={c.firstName} onSave={v=>save("first_name",v)}/></>
+            {isAdmin?<><InlineEdit isAdmin value={c.lastName} display={c.lastName?.toUpperCase()} onSave={v=>{v=String(v||"").trim();if(v&&v!==c.lastName)save("lastName",v);}}/>, <InlineEdit isAdmin value={c.firstName} onSave={v=>{v=String(v||"").trim();if(v&&v!==c.firstName)save("firstName",v);}}/></>
               :<>{(c.lastName||"").toUpperCase()}, {c.firstName}</>}
             {" — "}<span className="font-bold text-gray-500">{sexShort(c.sex)}</span>
           </div>
@@ -3093,7 +3093,7 @@ function MortuaryFlow({user,cases,onUpdateCase,onBack}) {
 
   function describeChanges(updates,existingCase){
     const labels={
-      prep:"Preparation details",last_name:"Last name",first_name:"First name",
+      prep:"Preparation details",last_name:"Last name",first_name:"First name",lastName:"Last name",firstName:"First name",
       dob:"Date of birth",dod:"Date of death",sex:"Sex",paperwork:"Paperwork",
       funeral_home_name:"Funeral director",billable:"Services & items",
       statusItems:"Checklist",
