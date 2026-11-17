@@ -1530,7 +1530,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         <button onClick={()=>onAction("dashboard")} className={s.btnLg}>📊 DASHBOARD</button>
         <button onClick={()=>onAction("mastercalendar")} className={s.btnLg}>📅 MASTER CAL</button>
         <button onClick={()=>onAction("vehicles")} className={s.btnLg}>🚗 VEHICLE & STAFF</button>
-        <button onClick={onToggleLock} className={s.btnLg+(lockOpen?" bg-green-600 text-white border-green-600 hover:bg-green-700":"")}>{lockOpen?"🔓 LOCKED":"🔒 LOCK"}</button>
+        <button onClick={onToggleLock} title={lockOpen?"You won't be logged out for inactivity. Tap to turn the time out back on.":"Stop the 5-minute time out until you log out"} className={s.btnLg+(lockOpen?" bg-green-600 text-white border-green-600 hover:bg-green-700":"")}>{lockOpen?"🔒 LOCKED · NO TIME OUT":"🔓 LOCK"}</button>
       </div>}
 
 
@@ -7071,11 +7071,12 @@ export default function App() {
   function handleLogin(u){setUser(u);setTab("home");setAction(null);window.scrollTo({top:0,behavior:"instant"});refreshCaseViewers();if(!window._mssViewersTimer)window._mssViewersTimer=setInterval(()=>{if(!document.hidden)refreshCaseViewers();},10000);
     if(!window.google){const s=document.createElement("script");s.src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBm4OXgCFjqu9iRekbLQPloDg9WTE_Kd3o&libraries=places";document.head.appendChild(s);}}
   useEffect(()=>{function sendHeight(){window.parent.postMessage({height:document.body.scrollHeight},"*");} sendHeight();const o=new ResizeObserver(sendHeight);o.observe(document.body);return()=>o.disconnect();},[]);
-  function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);}
+  function handleLogout(){if(user)logActivity(user,"LOGOUT","User signed out");setUser(null);setTab("home");setAction(null);setLockOpen(false);}
 
-  // Auto-logout after 2 minutes of inactivity
+  // Auto-logout after 5 minutes of inactivity (Admin can switch this off with the LOCK button until they log out)
   useEffect(()=>{
     if(!user) return;
+    if(lockOpen&&user.role==="admin") return;
     let timer;
     function reset(){
       clearTimeout(timer);
@@ -7091,7 +7092,7 @@ export default function App() {
       clearTimeout(timer);
       events.forEach(e=>window.removeEventListener(e,reset));
     };
-  },[user]);
+  },[user,lockOpen]);
   function handleComplete(r){setCases(prev=>[r,...prev]);window.scrollTo({top:0,behavior:"smooth"});}
   function handleUpdateCase(id,updates){setCases(prev=>prev.map(c=>c.id===id?{...c,...updates}:c));}
   function handlePinUpdate(uid,pin){setUsers(prev=>prev.map(u=>u.id===uid?{...u,pin}:u));}
@@ -7185,7 +7186,7 @@ export default function App() {
 
   return wrap(
     <main>
-      {tab==="home"&&<HomeScreen user={user} cases={cases} onAction={a=>setAction(a)} onUpdateCase={handleUpdateCase}/>}
+      {tab==="home"&&<HomeScreen user={user} cases={cases} onAction={a=>setAction(a)} onUpdateCase={handleUpdateCase} lockOpen={lockOpen} onToggleLock={()=>setLockOpen(v=>!v)}/>}
       {tab==="records"&&(isMSS||isAdmin)&&<RecordsView user={user} cases={liveCases} onUpdateCase={handleUpdateCase}/>}
       {tab==="reports"&&(isMSS||isAdmin)&&<ReportsView cases={liveCases}/>}
       {tab==="calendar"&&(isMSS||isAdmin||isFD)&&<CalendarView user={user} cases={liveCases} calendarBookings={calendarBookings} onAddBooking={handleAddBooking} onUpdateBooking={handleUpdateBooking} onDeleteBooking={handleDeleteBooking} vehicleBookings={vehicleBookings} onAddVehicleBooking={handleAddVehicleBooking} onUpdateVehicleBooking={handleUpdateVehicleBooking} onDeleteVehicleBooking={handleDeleteVehicleBooking}/>}
