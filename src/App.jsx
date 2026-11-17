@@ -4208,6 +4208,22 @@ function DrRefsView({onBack,user,onNew}){
     .then(r=>setRows((r||[]).map(n=>({...n,d:n.answers._drref})).sort((a,b)=>String(b.d.receivedAt||b.d.requestedAt).localeCompare(String(a.d.receivedAt||a.d.requestedAt))))).catch(()=>setRows([]));},[]);
   const url=p=>`${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p||"").split("/").map(encodeURIComponent).join("/")}`;
   const when=x=>x?new Date(x).toLocaleString("en-AU",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"}):"";
+  // Delete a Dr Ref that's still waiting. A Dr Ref-only request is deleted; one inside a 2nd Note is taken off that note (the 2nd Note stays). The doctor's link stops working.
+  const [del,setDel]=useState(null);
+  async function delWaiting(n){
+    const nm=n.answers?.lastName?`${String(n.answers.lastName).toUpperCase()}, ${n.answers.firstName||""}`:(n.deceased_name||"this Dr Ref");
+    if(!window.confirm(`Delete the Dr Ref request for ${nm}?\n\nThe doctor's link will stop working.${n.answers?._drOnly?"":" The 2nd Note itself is kept."}`))return;
+    setDel(n.id);
+    try{
+      const cur=(await sb(`second_notes?select=answers&id=eq.${n.id}`))?.[0]?.answers||{};
+      if(cur._drref?.receivedAt){alert("The doctor has already sent this Dr Ref back, so it can't be deleted.");setDel(null);return;}
+      if(cur._drOnly) await sb(`second_notes?id=eq.${n.id}`,{method:"DELETE"});
+      else{const a={...cur};delete a._drref;delete a._drreq;await sb(`second_notes?id=eq.${n.id}`,{method:"PATCH",body:JSON.stringify({answers:a})});}
+      logActivity(user,"DR REF REQUEST DELETED",`${nm}${n.funeral_home_name?" · "+n.funeral_home_name:""}`,n.case_ref||"","");
+      setRows(r=>(r||[]).filter(x=>x.id!==n.id));
+    }catch(e){alert("Couldn't delete: "+e.message);}
+    setDel(null);
+  }
   const all=rows||[];const rec=all.filter(n=>n.d.receivedAt),wait=all.filter(n=>!n.d.receivedAt);
   const words=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const list=(tab==="received"?rec:tab==="waiting"?wait:all).filter(n=>{const hay=[n.deceased_name,n.answers?.firstName,n.answers?.lastName,n.case_ref,n.funeral_home_name,n.d.receivedBy].join(" ").toLowerCase();return words.every(w=>hay.includes(w));});
@@ -4233,6 +4249,7 @@ function DrRefsView({onBack,user,onNew}){
           </div>
           {n.d.receivedAt&&<div className="flex flex-col gap-2"><a href={url(n.d.receivedPath)} target="_blank" rel="noreferrer" className="px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-black text-xs uppercase text-center">📄 View Dr Ref</a>
             <button onClick={()=>resendDrRefToFD(n.id,n.funeral_home_name,user?.name)} className="px-4 py-2 rounded-xl border-2 border-gray-900 font-black text-xs uppercase">✉ Resend to FD</button></div>}
+          {!n.d.receivedAt&&<button disabled={del===n.id} onClick={()=>delWaiting(n)} className="px-4 py-2.5 rounded-xl border-2 border-red-300 text-red-700 hover:bg-red-50 font-black text-xs uppercase disabled:opacity-50">{del===n.id?"Deleting…":"🗑 Delete"}</button>}
         </div>))}</div>}
     </div>);
 }
