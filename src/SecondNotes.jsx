@@ -375,6 +375,8 @@ const DR_DOCS = [
   { key: "pace", label: "Pacemaker / device removal form", req: false, re: /pacemaker|device removal/i },
 ];
 const isCremation = a => /cremat/i.test(String(a.disposition || ""));
+// Coroner's cases (BO received at check-in) don't need a Dr Ref
+export const hasBO = c => { const p = c?.paperwork; const l = Array.isArray(p) ? p : String(p || "").split(/[,;]+/); return l.some(x => /^\s*(coroners\s*)?bo\s*$/i.test(String(x))); };
 const BIG = 15 * 1024 * 1024;
 const mb = f => (f.size / 1024 / 1024).toFixed(1) + " MB";
 function DrRefCard({ answers, setA, files, setFiles, caseDocs, error, pubUrl, onResend, canResend, onSaveDocs, busy, standalone }) {
@@ -460,13 +462,14 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     fetch(`${SUPABASE_URL}/storage/v1/object/list/${STORAGE_BUCKET}`, { method: "POST", headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify({ prefix: `${caseId}/`, limit: 100, sortBy: { column: "created_at", order: "desc" } }) })
       .then(r => r.json()).then(l => setCaseDocs((Array.isArray(l) ? l : []).filter(f => f.name && !f.name.endsWith("/")).map(f => ({ name: f.name.replace(/^\d+_/, "").replace(/_/g, " "), path: `${caseId}/${f.name}` })))).catch(() => setCaseDocs([])); }, [caseId]);
   const pubUrl = p => `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${String(p || "").split("/").map(encodeURIComponent).join("/")}`;
+  const isBOCase = () => hasBO(cases.find(x => x.id === caseId));
   function drMissing(a) {
-    if (!a._drreq || a._drref?.token || !isCremation(a)) return [];
+    if (!a._drreq || a._drref?.token || !isCremation(a) || isBOCase()) return [];
     return [...DR_DOCS.filter(dd => dd.req && !drFiles[dd.key] && !caseDocs.find(c => dd.re.test(c.name || ""))).map(dd => dd.label), ...(String(a._drAddr || "").trim() ? [] : ["last address of the deceased"]), ...(a._drDir ? [] : ["written direction (Yes / No)"]), ...(a._drDir === "Yes" && !String(a._drDirText || "").trim() ? ["the written direction"] : [])];
   }
   // Uploads the Dr Ref documents and records the request on the 2nd Note (emailed to the doctor once the note is saved)
   async function prepDrRef(noteId, base) {
-    const a = { ...(base || answers) }; const want = a._drreq && isCremation(a) && !a._drref?.token; delete a._drreq;
+    const a = { ...(base || answers) }; const want = a._drreq && isCremation(a) && !a._drref?.token && !isBOCase(); delete a._drreq;
     if (!want) return a;
     const docs = [];
     for (const dd of DR_DOCS) {
@@ -588,7 +591,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     const c = cases.find(x => x.id === id);
     if (c) {
       const age = calcAge(c.dob, c.dod);
-      setAnswers(a => ({ ...a, firstName: c.firstName || "", lastName: c.lastName || "", dod: c.dod || "", dob: c.dob || "", age }));
+      setAnswers(a => ({ ...a, firstName: c.firstName || "", lastName: c.lastName || "", dod: c.dod || "", dob: c.dob || "", age, ...(hasBO(c) ? { drRef: "No", _drreq: false } : {}) }));
       // A Dr Ref requested on its own (📄 Dr Ref button) shows here and joins this 2nd Note when it's submitted
       if (!editing) sb(`second_notes?select=answers&case_id=eq.${id}&answers->>_drOnly=eq.true&limit=1`).then(r => { const d = r?.[0]?.answers?._drref; if (d?.token) setAnswers(a => ({ ...a, _drref: d, _drreq: false })); }).catch(() => {});
     }
@@ -598,6 +601,7 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       const n = { ...a, _nsna: on };
       if (on) {
         Object.assign(n, form.nsna.set);
+        if (isBOCase()) { n.drRef = "No"; n._drreq = false; }
         form.sections.forEach(s => { if (s.na) delete n["_na_" + s.id]; });
       }
       return n;
@@ -958,7 +962,8 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
         <p className="text-sm font-black uppercase tracking-wide mb-3">Name Plate</p>
         <NamePlateEditor value={answers._plate||defaultPlate(answers)} onChange={val=>setA("_plate",val)} person={answers}/>
       </div>
-      {(isCremation(answers) || answers._drref?.token) && <DrRefCard answers={answers} setA={setA} files={drFiles} setFiles={setDrFiles} caseDocs={caseDocs} error={errors._drref} pubUrl={pubUrl}
+      {isCremation(answers) && isBOCase() && !answers._drref?.token && <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-4 mb-4"><p className="text-sm font-black uppercase tracking-wide mb-1">Dr Ref (medical referee)</p><p className="text-sm text-gray-600">Not needed: this is a coroner's case (BO received at check-in).</p></div>}
+      {(isCremation(answers) && !isBOCase() || answers._drref?.token) && <DrRefCard answers={answers} setA={setA} files={drFiles} setFiles={setDrFiles} caseDocs={caseDocs} error={errors._drref} pubUrl={pubUrl}
         canResend={!!editing} onSaveDocs={saveDrDocs} busy={drBusy} onResend={async () => { if (await sendDrRef(editing.id)) { const r = await sb(`second_notes?select=answers&id=eq.${editing.id}`); if (r?.[0]) setAnswers(a => ({ ...a, _drref: r[0].answers._drref })); loadNotes(); } }}/>}
       <button disabled={busy} onClick={submit} className={btn + " w-full bg-gray-900 text-white border-gray-900 disabled:opacity-50"}>{busy ? "Submitting…" : editing ? "Submit changes" : "Submit 2nd Note"}</button>
     </div>
@@ -1103,7 +1108,9 @@ export function DrRefOnly({ user, cases, onBack, api }) {
         {fhId && <><div className={card}>
           <label className={lbl}>1. Deceased{!isFD && fhName ? " — " + fhName + " clients" : ""}</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {mine.map(x => <button key={x.id} type="button" onClick={() => setPick(x.id)} className={pickBtn(pick === x.id)}>
+            {mine.map(x => hasBO(x)
+              ? <div key={x.id} className="px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-left font-black text-sm text-gray-400">{String(x.lastName || "").toUpperCase()}, {x.firstName}<span className="block text-xs font-bold">{x.caseRef} · Coroner's case (BO): no Dr Ref needed</span></div>
+              : <button key={x.id} type="button" onClick={() => setPick(x.id)} className={pickBtn(pick === x.id)}>
               {String(x.lastName || "").toUpperCase()}, {x.firstName}<span className={"block text-xs font-bold " + (pick === x.id ? "text-gray-300" : "text-gray-500")}>{x.caseRef}</span></button>)}
             <button type="button" onClick={() => setPick("none")} className={pickBtn(pick === "none") + " border-dashed"}>＋ Not in our care yet<span className={"block text-xs font-bold " + (pick === "none" ? "text-gray-300" : "text-gray-500")}>Enter the details</span></button>
           </div>
