@@ -1520,7 +1520,6 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
     {label:"📄 DR REF",action:"drref",show:isFD},
     {label:"📈 REPORTS",action:"reports",show:isMSS},
     {label:"✔️ APPROVALS",action:"approvals",show:isMSS},
-    {label:"🔐 LOCK CASES",action:"lockview",show:isAdmin},
   ].filter(b=>b.show);
   const transfers=[{label:"MY TRANSFERS",action:"transfers",show:isTransfer}].filter(b=>b.show);
   return (
