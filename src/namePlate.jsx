@@ -29,7 +29,7 @@ export const FINISHES = {
 };
 
 const cache = {};
-const loadGlyphs = n => (cache[n] = cache[n] || fetch(`/fonts/np-${n}.json`).then(r => { if (!r.ok) throw new Error("font " + n); return r.json(); }).catch(e => { delete cache[n]; throw e; }));
+const loadGlyphs = n => (cache[n] = cache[n] || fetch(`/fonts/np-${n}.json`).then(r => { if (!r.ok) throw new Error("font " + n); return r.json(); }).then(j => ((j._n = n), j)).catch(e => { delete cache[n]; throw e; }));
 export async function loadFontSet(id) {
   const F = NP_FONTS.find(f => f.id === id) || NP_FONTS[0];
   const [reg, bold, ital] = await Promise.all([F.reg, F.bold || F.reg, F.ital || F.reg].map(loadGlyphs));
@@ -37,7 +37,79 @@ export async function loadFontSet(id) {
 }
 
 const glyph = (font, ch) => font.g[ch] || font.g["?"] || [font.upm * 0.5, ""];
+
+// ── Any language ─────────────────────────────────────────────────────────
+// Our engraving fonts cover English and Western European letters. A line with any other letters
+// (Chinese, Arabic, Greek, Vietnamese, Hindi, Korean…) is drawn by the browser, which handles every
+// script, right-to-left and joined writing, then traced into shapes so the xTool file is still pure outlines.
+const covers = (font, t) => { for (const ch of t) if (ch !== " " && !font.g[ch]) return false; return true; };
+const CSS_FACE = { times: '"Times New Roman",Times,"Liberation Serif","Noto Serif",serif', century: '"Century Schoolbook","New Century Schoolbook","Noto Serif",serif', bookman: '"Bookman Old Style","URW Bookman","Noto Serif",serif', helvetica: 'Helvetica,Arial,"Liberation Sans","Noto Sans",sans-serif' };
+const cssOf = font => { const n = font._n || "", fam = n.split("-")[0], known = !!CSS_FACE[fam];
+  return `${/italic/.test(n) || !known ? "italic " : ""}${/bold/.test(n) ? "700 " : "400 "}${R_PX}px ${known ? CSS_FACE[fam] : CSS_FACE.times}`; };
+const R_PX = 200; let _ctx = null;
+const ctx2d = () => _ctx || (_ctx = (typeof document !== "undefined" ? document.createElement("canvas") : null)?.getContext("2d", { willReadFrequently: true }) || null);
+const mCache = new Map(), tCache = new Map();
+function measureAny(font, t) { const k = cssOf(font) + "|" + t; if (!mCache.has(k)) { const c = ctx2d(); if (!c) return 0; c.font = cssOf(font); mCache.set(k, c.measureText(t).width); } return mCache.get(k); }
+// Trace the browser's drawing of the text: marching squares on the anti-aliased image, then simplify.
+function traceAny(font, t) {
+  const css = cssOf(font), key = css + "|" + t; if (tCache.has(key)) return tCache.get(key);
+  const c0 = ctx2d(); if (!c0) return "";
+  c0.font = css; const m = c0.measureText(t), pad = Math.ceil(R_PX * 0.35);
+  const asc = Math.ceil(Math.max(m.actualBoundingBoxAscent || R_PX, R_PX)), desc = Math.ceil(Math.max(m.actualBoundingBoxDescent || 0, R_PX * 0.35));
+  const left = Math.ceil(Math.max(0, m.actualBoundingBoxLeft || 0)), W = Math.ceil(Math.max(m.width, m.actualBoundingBoxRight || 0)) + left + pad * 2, H = asc + desc + pad * 2;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const c = cv.getContext("2d", { willReadFrequently: true });
+  const bx = pad + left, by = pad + asc;
+  c.font = css; c.textAlign = "left"; c.textBaseline = "alphabetic"; c.fillStyle = "#000"; c.fillText(t, bx, by);
+  const px = c.getImageData(0, 0, W, H).data, A = (x, y) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : px[(y * W + x) * 4 + 3] / 255);
+  // Edge points: h:x,y = between (x,y)-(x+1,y); v:x,y = between (x,y)-(x,y+1). Pixel centres are the samples.
+  const pts = new Map(), segs = [];
+  const P = (kind, x, y, a0, a1) => { const k = kind + x + "," + y; if (!pts.has(k)) { const f = Math.abs(a1 - a0) < 1e-6 ? 0.5 : (0.5 - a0) / (a1 - a0); pts.set(k, kind === "h" ? [x + f, y] : [x, y + f]); } return k; };
+  for (let y = -1; y < H; y++) for (let x = -1; x < W; x++) {
+    const tl = A(x, y), tr = A(x + 1, y), br = A(x + 1, y + 1), bl = A(x, y + 1);
+    const ci = (tl > 0.5 ? 8 : 0) | (tr > 0.5 ? 4 : 0) | (br > 0.5 ? 2 : 0) | (bl > 0.5 ? 1 : 0);
+    if (ci === 0 || ci === 15) continue;
+    const T = () => P("h", x, y, tl, tr), R = () => P("v", x + 1, y, tr, br), B = () => P("h", x, y + 1, bl, br), L = () => P("v", x, y, tl, bl);
+    const mid = (tl + tr + br + bl) / 4 > 0.5;
+    switch (ci) {
+      case 1: case 14: segs.push([L(), B()]); break;
+      case 2: case 13: segs.push([B(), R()]); break;
+      case 3: case 12: segs.push([L(), R()]); break;
+      case 4: case 11: segs.push([T(), R()]); break;
+      case 6: case 9: segs.push([T(), B()]); break;
+      case 7: case 8: segs.push([L(), T()]); break;
+      case 5: if (mid) segs.push([L(), T()], [B(), R()]); else segs.push([L(), B()], [T(), R()]); break;
+      case 10: if (mid) segs.push([T(), R()], [L(), B()]); else segs.push([L(), T()], [B(), R()]); break;
+    }
+  }
+  const at = new Map(); segs.forEach((sg, i) => sg.forEach(k => { const l = at.get(k); l ? l.push(i) : at.set(k, [i]); }));
+  const used = new Uint8Array(segs.length), loops = [];
+  for (let i = 0; i < segs.length; i++) { if (used[i]) continue; used[i] = 1; const loop = [segs[i][0]]; let cur = segs[i][1];
+    for (let n = 0; n < 1e6 && cur !== loop[0]; n++) { loop.push(cur); const nx = (at.get(cur) || []).find(j => !used[j]); if (nx === undefined) break; used[nx] = 1; cur = segs[nx][0] === cur ? segs[nx][1] : segs[nx][0]; }
+    if (loop.length > 2) loops.push(loop.map(k => pts.get(k))); }
+  // Simplify each closed loop (Ramer–Douglas–Peucker), then make every loop keep the ink on the same side
+  const rdp = (p, e) => { if (p.length < 3) return p; let mi = 0, md = 0; const [a, b] = [p[0], p[p.length - 1]], dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy || 1e-9;
+    for (let i = 1; i < p.length - 1; i++) { const d = Math.abs(dy * p[i][0] - dx * p[i][1] + b[0] * a[1] - b[1] * a[0]) / Math.sqrt(L2); if (d > md) { md = d; mi = i; } }
+    return md > e ? [...rdp(p.slice(0, mi + 1), e).slice(0, -1), ...rdp(p.slice(mi), e)] : [a, b]; };
+  const s = 1 / R_PX, polys = [];
+  loops.forEach(lp => { let far = 0, fd = -1; lp.forEach((q, i) => { const dd = (q[0] - lp[0][0]) ** 2 + (q[1] - lp[0][1]) ** 2; if (dd > fd) { fd = dd; far = i; } });
+    const q = [...rdp(lp.slice(0, far + 1), 0.3).slice(0, -1), ...rdp([...lp.slice(far), lp[0]], 0.3).slice(0, -1)]; if (q.length >= 3) polys.push(q); });
+  // Outlines wind one way and holes (inside a, o, 口…) the other, so the fill is always right
+  const inPoly = (pt, q) => { let r = false; for (let i = 0, j = q.length - 1; i < q.length; j = i++) { const a = q[i], b = q[j]; if ((a[1] > pt[1]) !== (b[1] > pt[1]) && pt[0] < ((b[0] - a[0]) * (pt[1] - a[1])) / (b[1] - a[1]) + a[0]) r = !r; } return r; };
+  let d = "";
+  polys.forEach((q, i) => { let depth = 0; polys.forEach((o, j) => { if (j !== i && inPoly(q[0], o)) depth++; });
+    let area = 0; for (let k = 0; k < q.length; k++) { const a = q[k], b = q[(k + 1) % q.length]; area += a[0] * b[1] - b[0] * a[1]; }
+    const pts2 = (area > 0) === (depth % 2 === 0) ? q : [...q].reverse();
+    d += "M" + pts2.map(([x, y]) => `${((x - bx) * s).toFixed(4)} ${((y - by) * s).toFixed(4)}`).join("L") + "Z"; });
+  tCache.set(key, d); if (tCache.size > 300) tCache.delete(tCache.keys().next().value);
+  return d;
+}
+// Any-language path for one line, in plate millimetres (size sz, baseline at x,y)
+function anyPath(font, t, sz, x, y) {
+  const d = traceAny(font, t); if (!d) return "";
+  return d.replace(/(-?\d*\.?\d+) (-?\d*\.?\d+)/g, (_, a, b) => `${(x + +a * sz).toFixed(3)} ${(y + +b * sz).toFixed(3)}`);
+}
 function advance(font, t, sz) {
+  if (!covers(font, t)) return (measureAny(font, t) / R_PX) * sz;
   let w = 0;
   for (let j = 0; j < t.length; j++) { w += glyph(font, t[j])[0]; if (j < t.length - 1) w += font.k[t[j] + t[j + 1]] || 0; }
   return (w * sz) / font.upm;
@@ -56,6 +128,7 @@ function bake(d, s, ox, oy) {
   return out;
 }
 function textPath(font, t, sz, x, y) {
+  if (!covers(font, t)) return anyPath(font, t, sz, x, y);
   const s = sz / font.upm; let cx = 0, d = "";
   for (let j = 0; j < t.length; j++) {
     const g = glyph(font, t[j]);
@@ -68,6 +141,8 @@ function textPath(font, t, sz, x, y) {
 export const nameParts = (first, last) => { const w = String(first || "").trim().split(/\s+/).filter(Boolean); return { first: w[0] || "", middle: w.slice(1).join(" "), last: String(last || "").trim() }; };
 export const plateName = (spec) => { const p = nameParts(spec.firstName, spec.lastName), on = spec.nameParts || { first: true, middle: false, last: true };
   return [on.first !== false && p.first, on.middle && p.middle, on.last !== false && p.last].filter(Boolean).join(" ").replace(/\s+/g, " "); };
+// Capitals in any language (Greek capitals drop their accents, as is the custom)
+const upper = t => t.toUpperCase().normalize("NFD").replace(/([\u0391-\u03A9])[\u0300\u0301\u0313\u0314\u0342\u0345]+/g, "$1").normalize("NFC");
 const titleCase = t => t.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (a, b, c) => b + c.toUpperCase());
 
 export const LINES = [["name", "Name"], ["dates", "Dates"], ["message", "Message"]];
@@ -90,11 +165,11 @@ export function plateLayout(spec, sets) {
   const sh = spec.show || {};
   const name = plateName(spec);
   if (P.manual) {
-    if (name) add(sets.name.reg, name.toUpperCase(), nameSz);
+    if (name) add(sets.name.reg, upper(name), nameSz);
     const age = npAge(spec.dob, spec.dod);
     if (age !== "") add(sets.name.reg, `${age} YEARS`, 7 * k);
   } else {
-  if (sh.name && name) add(nameF, sc ? titleCase(name) : name.toUpperCase(), nameSz);
+  if (sh.name && name) add(nameF, sc ? titleCase(name) : upper(name), nameSz);
   const nameW = Math.max(0, ...lines.map(l => advance(l.f, l.t, l.sz)));
   // Line 2: born – died dates, or the age ("89 years")
   const d1 = npDate(spec.dob), d2 = npDate(spec.dod), age = npAge(spec.dob, spec.dod);
@@ -133,7 +208,7 @@ export function plateSvg(spec, sets, { preview = false, guide = true, photo = fa
 }
 
 export function downloadPlate(spec, sets, guide) {
-  const name = ([spec.lastName, spec.firstName].filter(Boolean).join("_") || "NamePlate").replace(/[^A-Za-z0-9_]/g, "_");
+  const name = ([spec.lastName, spec.firstName].filter(Boolean).join("_") || "NamePlate").replace(/[^\p{L}\p{N}_]/gu, "_");
   const blob = new Blob([plateSvg(spec, sets, { guide })], { type: "image/svg+xml" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
   a.download = `NamePlate_${name}_${(PLATES[spec.size] || PLATES.large).label}${guide ? "_with-outline-LINING-UP-ONLY" : ""}.svg`;
@@ -161,7 +236,7 @@ export async function downloadEtchPdf(spec, sets, c) {
   lines.forEach((l, i) => txt(`Line ${i + 1}:  ${l.t}`, 15, ly + 7 + i * 7, { size: 12 }));
   txt(`Prepared ${new Date().toLocaleString("en-AU")}`, 15, 285, { grey: true, size: 8 });
   const bytes = await doc.save(), blob = new Blob([bytes], { type: "application/pdf" });
-  const name = ([spec.lastName, spec.firstName].filter(Boolean).join("_") || "NamePlate").replace(/[^A-Za-z0-9_]/g, "_");
+  const name = ([spec.lastName, spec.firstName].filter(Boolean).join("_") || "NamePlate").replace(/[^\p{L}\p{N}_]/gu, "_");
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `NamePlate_${name}_Europag_HandEtch.pdf`;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
