@@ -25,7 +25,7 @@ function resolveForms(raw) {
 }
 const FORMS = resolveForms(RAW_FORMS);
 import TimeButtons from "./TimeButtons.jsx";
-import { NamePlateEditor, defaultPlate } from "./namePlate.jsx";
+import { NamePlateEditor, defaultPlate, plateNameProblem } from "./namePlate.jsx";
 
 // ─── 2ND NOTES ────────────────────────────────────────────────────────────────
 // Each funeral home has its own form in secondNoteForms.json (fields, PDF
@@ -669,9 +669,10 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
     if (!caseId) errs._case = "Choose the case, or 'Not in our care yet'";
     form.sections.filter(s => !(s.na && answers["_na_" + s.id])).flatMap(s => s.fields).forEach(f => { if (f.required && isEmpty(answers[f.id])) errs[f.id] = "Required"; });
     const drm = drMissing(answers); if (drm.length) errs._drref = "Still needed for the Dr Ref: " + drm.join(", ");
+    const npp = plateNameProblem(answers._plate || defaultPlate(answers), answers); if (npp) errs._plate = npp;
     setErrors(errs);
     if (Object.keys(errs).length) {
-      const names = Object.keys(errs).map(k => k === "_case" ? "Case" : k === "_drref" ? errs._drref : allFields(form).find(f => f.id === k)?.label || k);
+      const names = Object.keys(errs).map(k => k === "_case" ? "Case" : k === "_drref" ? errs._drref : k === "_plate" ? errs._plate : allFields(form).find(f => f.id === k)?.label || k);
       alert("Please complete: " + names.join(", ")); return;
     }
     setBusy(true);

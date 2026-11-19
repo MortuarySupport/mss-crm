@@ -141,6 +141,11 @@ function textPath(font, t, sz, x, y) {
 export const nameParts = (first, last) => { const w = String(first || "").trim().split(/\s+/).filter(Boolean); return { first: w[0] || "", middle: w.slice(1).join(" "), last: String(last || "").trim() }; };
 export const plateName = (spec) => { const p = nameParts(spec.firstName, spec.lastName), on = spec.nameParts || { first: true, middle: false, last: true };
   return [on.first !== false && p.first, on.middle && p.middle, on.last !== false && p.last].filter(Boolean).join(" ").replace(/\s+/g, " "); };
+// The name line must always be in English; the native-language name goes on its own line under it
+export const isEnglish = t => !/[^\p{Script=Latin}\p{N}\s'’\-.,()&]/u.test(String(t || ""));
+export const plateNameProblem = (plate, person) => { if (!plate?.show?.name) return "";
+  const n = plateName({ ...plate, firstName: person?.firstName, lastName: person?.lastName });
+  return n && !isEnglish(n) ? "Name Plate: the first line must be the name in English. Put the name in the native language in the 'Name in native language' box." : ""; };
 // Capitals in any language (Greek capitals drop their accents, as is the custom)
 const upper = t => t.toUpperCase().normalize("NFD").replace(/([\u0391-\u03A9])[\u0300\u0301\u0313\u0314\u0342\u0345]+/g, "$1").normalize("NFC");
 const titleCase = t => t.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (a, b, c) => b + c.toUpperCase());
@@ -170,6 +175,9 @@ export function plateLayout(spec, sets) {
     if (age !== "") add(sets.name.reg, `${age} YEARS`, 7 * k);
   } else {
   if (sh.name && name) add(nameF, sc ? titleCase(name) : upper(name), nameSz);
+  // Line 2: the name in the native language (any script), under the English name
+  const native = String(spec.nativeName || "").trim();
+  if (sh.name && native) add(nameF, native, nameSz * 0.85);
   const nameW = Math.max(0, ...lines.map(l => advance(l.f, l.t, l.sz)));
   // Line 2: born – died dates, or the age ("89 years")
   const d1 = npDate(spec.dob), d2 = npDate(spec.dod), age = npAge(spec.dob, spec.dod);
@@ -295,14 +303,19 @@ export function NamePlateEditor({ value, onChange, person }) {
       {v.show?.name && (() => { const p = nameParts(person?.firstName, person?.lastName), on = v.nameParts || { first: true, middle: false, last: true };
         const tog = k => set({ nameParts: { ...on, [k]: !(on[k] !== false && (k !== "middle" || on.middle)) } });
         const opts = [["first", "First name", p.first, on.first !== false], ["middle", "Middle names", p.middle, !!on.middle], ["last", "Last name", p.last, on.last !== false]].filter(o => o[0] !== "middle" || o[2]);
-        return <div><span className={lbl}>Line 1 — name</span><div className="flex flex-wrap gap-2">
-          {opts.map(([k, l, val, is]) => <button key={k} type="button" onClick={() => tog(k)} className={chip(is)}>{box(is)}{l}{val ? <span className="font-bold opacity-70">{val}</span> : null}</button>)}</div></div>; })()}
-      {v.show?.dates && <div><span className={lbl}>Line 2</span><div className="flex flex-wrap gap-2">
+        const prob = plateNameProblem(v, person);
+        return <div><span className={lbl}>Line 1 — name in English</span><div className="flex flex-wrap gap-2">
+          {opts.map(([k, l, val, is]) => <button key={k} type="button" onClick={() => tog(k)} className={chip(is)}>{box(is)}{l}{val ? <span className="font-bold opacity-70">{val}</span> : null}</button>)}</div>
+          {prob && <p className="text-sm text-red-700 font-bold mt-2">⚠ The name must be in English on the first line. Type the deceased's name in English above, and the name in their own language below.</p>}
+          <label className={lbl + " mt-3 block"} htmlFor="np-native">Line 2 — name in native language <span className="normal-case font-bold text-gray-400">(optional, any language)</span></label>
+          <input id="np-native" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={60} value={v.nativeName || ""} onChange={e => set({ nativeName: e.target.value })} placeholder="e.g. 王小明 · محمد عبد الله · Γιώργος Παπαδόπουλος" />
+          <p className="text-xs text-gray-500 mt-1">Goes under the English name. Copy and paste it if you can't type it.</p></div>; })()}
+      {v.show?.dates && <div><span className={lbl}>Dates (in English)</span><div className="flex flex-wrap gap-2">
         {[["dates", "Date of birth – date of death"], ["age", `Age${npAge(person?.dob, person?.dod) !== "" ? " (" + npAge(person?.dob, person?.dod) + " YEARS)" : ""}`]].map(([k, l]) => { const is = (v.dateMode || "dates") === k;
           return <button key={k} type="button" onClick={() => set({ dateMode: k })} className={chip(is)}><span className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">{is ? <span className="w-2 h-2 rounded-full bg-current" /> : null}</span>{l}</button>; })}</div>
         {v.dateMode === "age" && npAge(person?.dob, person?.dod) === "" && <p className="text-xs text-amber-700 mt-1">The age shows once both the date of birth and date of death are filled in.</p>}</div>}
       {v.show?.message && <div>
-        <label className={lbl} htmlFor="np-msg">Message line 1</label>
+        <label className={lbl} htmlFor="np-msg">Message line 1 <span className="normal-case font-bold text-gray-400">(any language)</span></label>
         <input id="np-msg" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message || ""} onChange={e => set({ message: e.target.value })} placeholder="e.g. Forever in our hearts" />
         <label className={lbl + " mt-3 block"} htmlFor="np-msg2">Message line 2 <span className="normal-case font-bold text-gray-400">(optional)</span></label>
         <input id="np-msg2" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900" maxLength={80} value={v.message2 || ""} onChange={e => set({ message2: e.target.value })} placeholder="e.g. Loved and remembered always" />
