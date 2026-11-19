@@ -44,7 +44,7 @@ export function textToHtml(text, subject) {
       continue;
     }
     flush();
-    out.push(`<p style="${FONT}margin:0 0 12px;font-size:14px;line-height:1.55;color:#111827">${esc(l)}</p>`);
+    out.push(`<p style="${FONT}margin:0 0 12px;font-size:14px;line-height:1.55;color:#111827">${esc(l).replace(/\[\[(.+?)\]\]/g, '<strong style="text-decoration:underline">$1</strong>')}</p>`);
   }
   flush();
   return wrapHtml(out.join("\n"), subject);

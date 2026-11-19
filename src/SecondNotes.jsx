@@ -331,6 +331,48 @@ const card = "bg-white rounded-2xl border border-gray-200 p-4 mb-3";
 
 // The medical referee's own Cremation Permit (Dr Geoff Morgans), with the deceased's name filled in, attached to every Dr Ref request.
 // The deceased's last address (entered by the FD when requesting) and the date it's sent to him are filled in too.
+// ── Emails to the funeral director ─────────────────────────────────────────
+const SYD = "Australia/Sydney";
+const sydDay = iso => new Date(iso).toLocaleDateString("en-CA", { timeZone: SYD });
+const dayBefore = ymd => { const d = new Date(ymd + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+const ord = d => d + ((d % 100 >= 11 && d % 100 <= 13) ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[d % 10] || "th"));
+const longDay = ymd => { const x = new Date(String(ymd).slice(0, 10) + "T12:00:00"); return isNaN(x) ? String(ymd || "") : `${x.toLocaleDateString("en-AU", { weekday: "long" })} ${ord(x.getDate())} ${x.toLocaleDateString("en-AU", { month: "long" })} ${x.getFullYear()}`; };
+const longDT = iso => `${longDay(sydDay(iso))}, ${new Date(iso).toLocaleTimeString("en-AU", { timeZone: SYD, hour: "numeric", minute: "2-digit" }).toLowerCase()}`;
+const dmy = v => { const m = String(v || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : (v || "—"); };
+const EMAIL_FOOTER = `\n\nAny questions please don't hesitate to contact us.\n\nThe Team at Mortuary Support | Lumière\nPhone: 02 8814 5500\nEmail: info@mortuarysupport.com.au`;
+// 2nd Note accepted: original, UPDATED, or a late one (after 5pm the day before check out, or on the day)
+export function noteAcceptedEmail(note, { fh, c, acceptedBy, form }) {
+  const a = note.answers || {}, v = (note.edit_count || 0) + 1, upd = v > 1;
+  const name = [a.firstName, a.lastName].filter(Boolean).join(" ") || note.deceased_name || "the deceased";
+  const rec = (upd ? note.edited_at : null) || note.submitted_at || new Date().toISOString();
+  const jf = k => (form ? allFields(form).find(f => f.job === k)?.id : null);
+  const colDate = String(c?.prep?.collectionDate || (jf("collectionDate") && a[jf("collectionDate")]) || "").slice(0, 10);
+  const colTime = c?.prep?.collectionTime || (jf("collectionTime") && a[jf("collectionTime")]) || "";
+  const hr = +new Date(rec).toLocaleString("en-AU", { timeZone: SYD, hour: "numeric", hour12: false }) % 24;
+  const late = !/^\d{4}-\d{2}-\d{2}$/.test(colDate) ? "" : sydDay(rec) === colDate ? "today" : (sydDay(rec) === dayBefore(colDate) && hr >= 17) ? "tomorrow" : "";
+  const what = upd ? "updates" : "instructions";
+  const subject = `${upd ? "UPDATED – " : ""}T/L ${name} – 2nd Note received${upd ? ` (Vers#${v})` : ""}${late ? ` – check out ${late}` : ""}`;
+  const open = upd ? `We have received your [[UPDATED 2nd Note]] for ${name}${late ? "." : " and it has been accepted by the MSS team. Your changes are now on our job sheet."}`
+    : `Thank you for your instructions for ${name}. This email is to confirm we have received your 2nd Note${late ? "." : " and it has been accepted by the MSS team."}`;
+  const note2 = late === "tomorrow" ? `\n\nPLEASE NOTE\nYour ${upd ? "update" : "2nd Note"} arrived after 5pm and the check out is scheduled for tomorrow. Given the check out day is tomorrow, it may be best to call the MSS team on 02 8814 5500 after 8am (M–F) tomorrow morning to make sure your ${what} can be actioned in time.`
+    : late === "today" ? `\n\nPLEASE NOTE\nThe check out is scheduled for today. Please call the MSS team on 02 8814 5500 straight away to make sure your ${what} can be actioned in time.` : "";
+  const text = `Hi ${fh?.name || note.funeral_home_name || ""} Team,\n\n${open}${note2}\n\nDECEASED DETAILS\nName: ${name}\nDOB: ${dmy(a.dob)} | DOD: ${dmy(a.dod)}\nCase Reference: ${note.case_ref || c?.caseRef || "Not in our care yet"}\n\n2ND NOTE\nVersion: ${upd ? `Vers#${v} (updated)` : "Original"}\nReceived: ${longDT(rec)}\nAccepted by: ${acceptedBy || "MSS"} (MSS)${colDate ? `\nCollection: ${longDay(colDate)}${colTime ? ", " + colTime : ""}` : ""}\n\n${upd ? (late ? "The updated 2nd Note is attached." : "The updated 2nd Note is attached. Please use this version from now on.") : "A copy of the 2nd Note is attached for your records."}${EMAIL_FOOTER}`;
+  return { subject, text, late };
+}
+// The FD's own 2nd Note instructions to check against when the deceased is ready (preparation, dressing, fittings, coffin…)
+export function noteCheckLines(fhId, answers) {
+  const form = FORMS[fhId]; if (!form || !answers) return [];
+  const want = /prep|appear|cloth|dress|jewel|fitting|coffin|casket|plate|effect|presentation|make ?up|cosmetic|care|special|instruction|comment/i;
+  const out = [];
+  form.sections.filter(s => want.test(s.title) && !answers["_na_" + s.id]).forEach(s => s.fields.forEach(f => {
+    if (f.id.startsWith("_") || f.type === "signature" || f.type === "file") return;
+    let v = answers[f.id]; if (v == null || v === "" || v === false || (Array.isArray(v) && !v.length)) return;
+    if (Array.isArray(v)) v = v.join(", "); else if (v === true) v = "Yes"; else if (typeof v === "object") return;
+    out.push(`${String(f.label || f.id).replace(/[:*]+\s*$/, "")}: ${String(v).replace(/\s*\n\s*/g, " ")}`);
+  }));
+  return out;
+}
+
 export const REFEREE_FORM = "/forms/Dr_Morgans_Medical_Referee_Permit.pdf";
 export async function makeRefereeDoc(noteId, a, st) {
   try {
@@ -778,6 +820,16 @@ export default function SecondNotes({ user, cases, onUpdateCase, onBack, api }) 
       setNotes(ns => ns.map(n => n.id === note.id ? { ...n, ...upd } : n));
       logActivity(user, "2ND NOTE ACCEPTED", `${note.funeral_home_name} 2nd Note for ${note.deceased_name}`, note.case_ref || "", note.case_id || "");
       printPdf(note.pdf_path, win);
+      // Let the funeral director know (MSS copied in), with the 2nd Note attached
+      const fh = FUNERAL_HOMES.find(f => f.id === note.funeral_home_id);
+      if (fh?.contacts?.length) {
+        const c = note.case_id ? cases.find(x => x.id === note.case_id) : null;
+        const m = noteAcceptedEmail({ ...note, ...upd }, { fh, c, acceptedBy: user?.name, form: FORMS[note.funeral_home_id] });
+        const nm = String(note.deceased_name || "2nd_Note").replace(/[^\p{L}\p{N}]+/gu, "_");
+        const ok = await fetch("/api/send-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: [...fh.contacts, "info@mortuarysupport.com.au"], subject: m.subject, text: m.text, attachments: note.pdf_path ? [{ filename: `2nd_Note_${nm}.pdf`, path: pubUrl(note.pdf_path) }] : [] }) }).then(r => r.ok).catch(() => false);
+        if (ok) logActivity(user, "2ND NOTE EMAIL SENT", `${m.subject} → ${fh.name}`, note.case_ref || "", note.case_id || "");
+        else alert("Accepted, but the email to the funeral director couldn't be sent. Please let them know.");
+      }
     } catch (e) { win?.close(); alert("Error: " + e.message + (String(e.message).includes("accepted") ? "\n\nRun the 2nd Notes accept SQL in Supabase." : "")); }
     setBusy(false);
   }

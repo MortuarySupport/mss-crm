@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: list, reply_to: "info@mortuarysupport.com.au", subject, text, html: textToHtml(text, subject), attachments: att }),
+    body: JSON.stringify({ from, to: list, reply_to: "info@mortuarysupport.com.au", subject, text: text.replace(/\[\[(.+?)\]\]/g, "$1"), html: textToHtml(text, subject), attachments: att }),
   });
   if (!r.ok) return res.status(502).json({ error: "Send failed", detail: (await r.text()).slice(0, 300) });
   return res.status(200).json({ ok: true });
