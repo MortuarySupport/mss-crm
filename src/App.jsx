@@ -4770,8 +4770,7 @@ ASHES DETAILS
 ${lines}
 
 RECEIVED
-Received: ${fmtDayLong(dateIso)}
-Location: ${loc}
+${dateIso?`Received: ${fmtDayLong(dateIso)}\n`:""}Location: ${loc}
 
 Please collect them at your earliest convenience, or call the MSS team on 02 8814 5500 to arrange a time. The person collecting will need to sign for the ashes, and anyone who isn't a funeral director will need to show photo ID.${MSS_FOOTER}`};
 }
@@ -4847,6 +4846,23 @@ function AshesRegister({user,cases,onBack}){
   function draw(e){e.preventDefault();if(!drawingRef.current||!canvasRef.current)return;const ctx=canvasRef.current.getContext("2d");const pos=getPos(e,canvasRef.current);ctx.lineTo(pos.x,pos.y);ctx.strokeStyle="#111";ctx.lineWidth=2;ctx.lineCap="round";ctx.stroke();}
   function endDraw(){drawingRef.current=false;if(canvasRef.current){const data=canvasRef.current.toDataURL();savedImageRef.current=data;setSigData(data);setHasSig(true);}setDrawing(false);}
   function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}savedImageRef.current=null;setSigData(null);setHasSig(false);}
+
+  // Resend the "ashes ready for collection" email for ashes still in storage
+  const[resending,setResending]=useState("");
+  async function resendAshes(recs,key){
+    const fh=FUNERAL_HOMES.find(f=>f.name===recs[0]?.funeral_home);
+    const contacts=fh&&fh.id!=="OTHER"?fh.contacts||[]:[];
+    if(!contacts.length){alert(`There's no email address on file for ${recs[0]?.funeral_home||"this funeral home"}. Please let them know directly.`);return;}
+    const people=recs.map(r=>{const c=cases.find(x=>x.id===r.case_id);const [ln,fn]=String(r.deceased_name||"").split(",").map(x=>x.trim());
+      return {firstName:c?.firstName||fn||"",lastName:c?.lastName||(ln?ln.charAt(0)+ln.slice(1).toLowerCase():""),caseRef:r.case_ref};});
+    if(!window.confirm(`Resend the "ashes ready for collection" email to ${fh.name} for:\n\n${people.map(x=>`${x.firstName} ${x.lastName}`).join("\n")}`))return;
+    setResending(key);
+    const m=buildAshesEmail(fh.name,people,recs[0].location||"Baulkham Hills",recs.length===1?recs[0].checked_in_at:"");
+    const subj=m.subject.replace(/^/,"Reminder: ");
+    if(await sendAppEmail([MORTUARY_EMAIL,...contacts].join(","),subj,m.text)){logActivity(user,"ASHES EMAIL RESENT",`${subj} → ${fh.name}`,recs.map(r=>r.case_ref).join(", "),"");alert(`✓ Emailed ${fh.name}.`);}
+    else alert("The email couldn't be sent. Please try again or let them know directly.");
+    setResending("");
+  }
 
   async function handleCheckIn(){
     if(!manualEntry&&selCases.length===0){alert("Please select at least one case.");return;}
@@ -5077,7 +5093,8 @@ function AshesRegister({user,cases,onBack}){
           sorted.forEach(r=>{if(!byFH[r.funeral_home])byFH[r.funeral_home]=[];byFH[r.funeral_home].push(r);});
           return Object.entries(byFH).sort(([a],[b])=>a.localeCompare(b)).map(([fh,records])=>(
             <div key={fh} className="mb-4">
-              <div className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2 px-1">{fh}</div>
+              <div className="flex items-center justify-between gap-2 mb-2 px-1"><div className="text-xs font-black uppercase tracking-widest text-gray-400">{fh}</div>
+                {records.length>1&&<button type="button" disabled={!!resending} onClick={()=>resendAshes(records,"fh:"+fh)} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 hover:bg-gray-50 disabled:opacity-50">{resending==="fh:"+fh?"Sending…":`✉ Resend all ${records.length} to FD`}</button>}</div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {records.map(r=>(
                   <div key={r.id} className="bg-white border-2 border-green-300 rounded-xl p-3 text-center">
@@ -5085,6 +5102,7 @@ function AshesRegister({user,cases,onBack}){
                     <div className="text-xs text-gray-400 mt-1">{r.case_ref}{(r.dob||r.dod)?" · "+(r.dob?fmt(r.dob):"—")+" – "+(r.dod?fmt(r.dod):"—"):""}</div>
                     <div className={`text-xs font-black mt-1 ${r.location==="Darlinghurst"?"text-purple-700":"text-green-600"}`}>{r.location||"Baulkham Hills"}</div>
                     <div className="text-xs text-gray-400 mt-1">{r.checked_in_at}</div>
+                    <button type="button" disabled={!!resending} onClick={()=>resendAshes([r],r.id)} className="mt-2 w-full text-xs font-black uppercase px-2 py-1.5 rounded-lg border-2 border-gray-300 hover:border-gray-900 disabled:opacity-50">{resending===r.id?"Sending…":"✉ Resend to FD"}</button>
                   </div>
                 ))}
               </div>
