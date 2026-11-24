@@ -4756,6 +4756,26 @@ function VehicleLog({user,onBack}){
 }
 
 // ─── ASHES REGISTER ───────────────────────────────────────────────────────────
+// Ashes arrived: email the funeral director (MSS copied in) to come and collect
+function buildAshesEmail(fhName, recs, loc, dateIso){
+  const one=recs.length===1, nm=r=>`${r.firstName} ${r.lastName}`.trim();
+  const lines=recs.map(r=>`Name: ${nm(r)}\nCase Reference: ${r.caseRef&&r.caseRef!=="MANUAL"?r.caseRef:"—"}`).join("\n\n");
+  return {
+    subject: one?`T/L ${nm(recs[0])} – ashes ready for collection`:`Ashes ready for collection – ${recs.length} deceased`,
+    text:`Hi ${fhName||""} Team,
+
+This is to let you know that the ashes of ${one?nm(recs[0]):"the following deceased"} have arrived at Mortuary Support Services and are ready for collection.
+
+ASHES DETAILS
+${lines}
+
+RECEIVED
+Received: ${fmtDayLong(dateIso)}
+Location: ${loc}
+
+Please collect them at your earliest convenience, or call the MSS team on 02 8814 5500 to arrange a time. The person collecting will need to sign for the ashes, and anyone who isn't a funeral director will need to show photo ID.${MSS_FOOTER}`};
+}
+
 function AshesRegister({user,cases,onBack}){
   const[view,setView]=useState("list"); // list | checkin | checkout
   const[ashesRecords,setAshesRecords]=useState([]);
@@ -4835,6 +4855,7 @@ function AshesRegister({user,cases,onBack}){
     setSaving(true);
     try{
       const casesToProcess=manualEntry?[{id:"MANUAL",caseRef:"MANUAL",lastName:manualLastName,firstName:manualFirstName,funeralHomeName:selFH,dob:manualDOB,dod:manualDOD}]:selCases;
+      const saved=[];
       for(const sc of casesToProcess){
       const record={
         id:genId(),
@@ -4865,7 +4886,21 @@ function AshesRegister({user,cases,onBack}){
       console.log("Ashes save status:",res.status,resText);
       if(!res.ok){alert("Save error: "+resText);return;}
       setAshesRecords(prev=>[record,...prev]);
+      saved.push(sc);
       }
+      // Email each funeral director that their ashes have arrived and are ready to collect
+      const byFH={};
+      saved.forEach(sc=>{const fh=FUNERAL_HOMES.find(f=>(sc.funeralHomeId&&f.id===sc.funeralHomeId)||f.name===(sc.funeralHomeName||selFH));const k=fh?.id||"none";(byFH[k]=byFH[k]||{fh,recs:[]}).recs.push(sc);});
+      const notSent=[];
+      for(const {fh,recs} of Object.values(byFH)){
+        const contacts=fh&&fh.id!=="OTHER"?fh.contacts||[]:[];
+        if(!contacts.length){notSent.push(...recs.map(r=>`${r.firstName} ${r.lastName}`));continue;}
+        const m=buildAshesEmail(fh.name,recs,ashLoc,checkInDate);
+        if(await sendAppEmail([MORTUARY_EMAIL,...contacts].join(","),m.subject,m.text))logActivity(user,"ASHES EMAIL SENT",`${m.subject} → ${fh.name}`,recs.map(r=>r.caseRef).join(", "),"");
+        else notSent.push(...recs.map(r=>`${r.firstName} ${r.lastName}`));
+      }
+      if(notSent.length)alert(`Ashes checked in, but the funeral director couldn't be emailed for: ${notSent.join(", ")}. Please let them know.`);
+      else if(saved.length)alert("✓ Ashes checked in — the funeral director has been emailed to collect them.");
       resetForm();
       setView("list");
     }catch(err){alert("Error: "+err.message);}
