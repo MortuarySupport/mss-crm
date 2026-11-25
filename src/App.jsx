@@ -3686,11 +3686,36 @@ function NsnaLabelsView({user,cases,onUpdateCase,onBack}){
       try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){}}
   }
   const when=iso=>new Date(iso).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+  const blank={firstName:"",lastName:"",dob:"",dod:"",funeralHomeName:"",caseRef:""};
+  const [man,setMan]=useState(null);
+  const fhNames=[...new Set(cases.map(c=>c.funeralHomeName).filter(Boolean))].sort();
+  const setM=(k,v)=>setMan(m=>({...m,[k]:v}));
+  const inp="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-base focus:border-gray-900 outline-none";
+  const canPrint=man&&(man.firstName.trim()||man.lastName.trim());
   return(
     <div className="max-w-3xl mx-auto px-4 py-4">
       <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK</button>
       <h2 className="text-xl font-black text-gray-900 mb-1">🏷️ NSNA Labels</h2>
       <p className="text-sm text-gray-500 mb-4">MSS NSNA deceased in our care. Print the 6×4 name label (name, dates, funeral director) on the label printer.</p>
+      {!man&&<button type="button" onClick={()=>setMan(blank)} className="w-full mb-4 py-3.5 rounded-2xl border-2 border-gray-900 text-gray-900 hover:bg-gray-100 font-black uppercase tracking-wide">✏️ Enter manually</button>}
+      {man&&<div className="bg-white border-2 border-gray-900 rounded-2xl p-4 mb-4 space-y-3">
+        <div className="flex items-center justify-between"><div className="font-black text-gray-900">✏️ Enter label manually</div><button type="button" onClick={()=>setMan(null)} className="text-sm font-bold text-gray-500 hover:text-gray-900">✕ Close</button></div>
+        <div><label className="text-xs font-black text-gray-500 uppercase">Fill from a deceased in care (optional)</label>
+          <select className={inp} value="" onChange={e=>{const c=inCare.find(x=>x.id===e.target.value);if(c)setMan({firstName:c.firstName||"",lastName:c.lastName||"",dob:(c.dob||"").slice(0,10),dod:(c.dod||"").slice(0,10),funeralHomeName:c.funeralHomeName||"",caseRef:c.caseRef||""});}}>
+            <option value="">— Choose —</option>{inCare.map(c=><option key={c.id} value={c.id}>{(c.lastName||"").toUpperCase()}, {c.firstName} · {c.caseRef}</option>)}</select></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label className="text-xs font-black text-gray-500 uppercase">First name(s)</label><input className={inp} value={man.firstName} onChange={e=>setM("firstName",e.target.value)}/></div>
+          <div><label className="text-xs font-black text-gray-500 uppercase">Surname</label><input className={inp} value={man.lastName} onChange={e=>setM("lastName",e.target.value)}/></div>
+          <div><label className="text-xs font-black text-gray-500 uppercase">Date of birth</label><input type="date" className={inp} value={man.dob} onChange={e=>setM("dob",e.target.value)}/></div>
+          <div><label className="text-xs font-black text-gray-500 uppercase">Date of death</label><input type="date" className={inp} value={man.dod} onChange={e=>setM("dod",e.target.value)}/></div>
+          <div className="sm:col-span-2"><label className="text-xs font-black text-gray-500 uppercase">Funeral director</label><input className={inp} list="nsna-fh" value={man.funeralHomeName} onChange={e=>setM("funeralHomeName",e.target.value)}/><datalist id="nsna-fh">{fhNames.map(n=><option key={n} value={n}/>)}</datalist></div>
+          <div className="sm:col-span-2"><label className="text-xs font-black text-gray-500 uppercase">Ref (optional)</label><input className={inp} value={man.caseRef} onChange={e=>setM("caseRef",e.target.value)}/></div>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" disabled={!canPrint} onClick={()=>printNameLabel(man)} className="flex-1 py-3 rounded-xl bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white font-black uppercase">🏷️ Print label</button>
+          <button type="button" onClick={()=>setMan(blank)} className="px-4 py-3 rounded-xl border-2 border-gray-300 font-black uppercase text-sm text-gray-700">Clear</button>
+        </div>
+      </div>}
       {todo.length>1&&<button type="button" onClick={()=>print(todo)} className="w-full mb-4 py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-700 text-white font-black uppercase tracking-wide">🏷️ Print all {todo.length} not yet printed</button>}
       {!ids&&<p className="text-center text-sm text-gray-400 py-10">Loading…</p>}
       {ids&&list.length===0&&<p className="text-center text-sm text-gray-400 py-10">No MSS NSNA deceased in our care.</p>}
