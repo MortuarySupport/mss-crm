@@ -1575,6 +1575,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"],["drrefs","📄 DR REFS"],["lock",lockOpen?"🔒 LOCKED · NO TIME OUT":"🔓 LOCK",lockOpen?"bg-green-600 text-white border-green-600 hover:bg-green-700":""]])}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
+            {staffRow([["nsnalabels","🏷️ NSNA LABELS"]],"25%")}
             <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction} onUpdateCase={onUpdateCase}/></div>
           </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
@@ -1599,6 +1600,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         <button onClick={()=>onAction("nameplates")} className={s.btnLg}>🪧 NAME PLATES</button>
         <button onClick={()=>onAction("prices")} className={s.btnLg}>💲 PRICE LIST</button>
         <button onClick={()=>onAction("drrefs")} className={s.btnLg}>📄 DR REFS</button>
+        <button onClick={()=>onAction("nsnalabels")} className={s.btnLg}>🏷️ NSNA LABELS</button>
       </div>}
 
     </div>
