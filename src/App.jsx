@@ -1575,7 +1575,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
             {staffRow([["checkin","✅ CHECK IN"],["checkout","🚐 CHECK OUT"],["drrefs","📄 DR REFS"],["lock",lockOpen?"🔒 LOCKED · NO TIME OUT":"🔓 LOCK",lockOpen?"bg-green-600 text-white border-green-600 hover:bg-green-700":""]])}
             {staffRow([["mastercalendar","📅 MASTER CAL"],["vehicles","🚗 VEHICLE & STAFF"],["mycases","📋 MY CASES"],["reports","📈 REPORTS"]])}
             {staffRow([["approvals","✔️ APPROVALS"],["nameplates","🪧 NAME PLATES"],["ashes","🏺 ASHES REGISTER"],["vehiclelog","🚗 VEHICLE LOG"]])}
-            {staffRow([["nsnalabels","🏷️ NSNA LABELS"]],"25%")}
+            {staffRow([["nsnalabels","🏷️ NSNA LABELS"],["leuracerts","🔥 LEURA CERTS"]],"50%")}
             <div className="mt-6"><PrepBoard cases={cases.filter(x=>x.status!=="part")} onAction={onAction} onUpdateCase={onUpdateCase}/></div>
           </>;})()
         :!isTransfer&&<><div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
@@ -1601,6 +1601,7 @@ function HomeScreen({user,cases,onAction,lockOpen,onToggleLock,onUpdateCase}) {
         <button onClick={()=>onAction("prices")} className={s.btnLg}>💲 PRICE LIST</button>
         <button onClick={()=>onAction("drrefs")} className={s.btnLg}>📄 DR REFS</button>
         <button onClick={()=>onAction("nsnalabels")} className={s.btnLg}>🏷️ NSNA LABELS</button>
+        <button onClick={()=>onAction("leuracerts")} className={s.btnLg}>🔥 LEURA CERTS</button>
       </div>}
 
     </div>
@@ -3666,6 +3667,49 @@ async function sendAppEmail(to,subject,text,attachments){
     const r=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:list,subject,text,attachments:attachments||[]})});
     return r.ok;}catch(e){return false;}
 }
+// ─── LEURA CREMATION CERTIFICATES (MSS NSNA) ─────────────────────────────────
+function LeuraCertsView({user,cases,onBack}){
+  // MSS NSNA cremation certificates from Leura (signed online after check-out)
+  const[crem,setCrem]=useState([]);const[cremBusy,setCremBusy]=useState("");
+  const loadCrem=()=>fetch(SUPABASE_URL+"/rest/v1/second_notes?select=id,case_id,case_ref,deceased_name,funeral_home_name,answers&answers->>_nsna=eq.true&order=submitted_at.desc&limit=80",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}}).then(r=>r.json()).then(d=>setCrem(Array.isArray(d)?d:[])).catch(()=>{});
+  React.useEffect(()=>{loadCrem();},[]);
+  async function cremAction(n,action){
+    const signed=!!n.answers?._crem?.signedAt, label=action==="resend-signed"?`Email the signed certificate for ${n.deceased_name} to ${n.funeral_home_name} again?`:`${n.answers?._crem?.sentAt?"Resend":"Send"} the signing link for ${n.deceased_name} to Leura Memorial Gardens?`;
+    if(!window.confirm(label))return;
+    setCremBusy(n.id);
+    try{const r=await fetch("/api/crem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,noteId:n.id,resend:true,by:user?.name})});const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(j.error||"Couldn't send");
+      logActivity(user,action==="resend-signed"?"CREM CERT RESENT TO FD":"CREM CERT LINK SENT",`${n.deceased_name}${signed?" → "+n.funeral_home_name:" → Leura"}`,n.case_ref||"",n.case_id||"");
+      alert("✓ Sent");loadCrem();}catch(e){alert(e.message);}
+    setCremBusy("");
+  }
+
+  const [tab,setTab]=useState("open");
+  const all=crem;
+  const isDone=n=>!!n.answers?._crem?.signedAt;
+  const shown=tab==="open"?all.filter(n=>!isDone(n)):all.filter(isDone);
+  const tabBtn=(k,l,n)=><button type="button" onClick={()=>setTab(k)} className={"px-4 py-2.5 rounded-xl border-2 text-sm font-black "+(tab===k?"bg-gray-900 border-gray-900 text-white":"bg-white border-gray-200 text-gray-700 hover:border-gray-700")}>{l} · {n}</button>;
+  const crem2=shown;
+  return(
+    <div className="max-w-3xl mx-auto px-4 py-4">
+      <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK TO HOME</button>
+      <h2 className="text-xl font-black text-gray-900 mb-1">🔥 Leura Cremation Certificates</h2>
+      <p className="text-sm text-gray-500 mb-4">MSS NSNA cremations at Leura Memorial Gardens. Leura is emailed a link to sign the Certificate of Cremation when the deceased is checked out.</p>
+      <div className="flex gap-2 mb-4">{tabBtn("open","Waiting",all.filter(n=>!isDone(n)).length)}{tabBtn("done","Signed",all.filter(isDone).length)}</div>
+      {crem2.length===0&&<p className="text-center text-sm text-gray-400 py-10">{tab==="open"?"Nothing waiting.":"No signed certificates yet."}</p>}
+      <div className="space-y-2">{crem2.map(n=>{const d=n.answers?._crem||{},c=cases.find(x=>x.id===n.case_id),out=!!(c?.checkedOut||c?.checkout);
+          const pubU=p=>`${SUPABASE_URL}/storage/v1/object/public/Case-documents/${String(p).split("/").map(encodeURIComponent).join("/")}`;
+          const st=d.signedAt?["✓ Signed","bg-green-100 text-green-800"]:d.sentAt?["⏳ Waiting for Leura","bg-amber-100 text-amber-800"]:out?["Not sent","bg-red-100 text-red-700"]:["In care","bg-gray-100 text-gray-600"];
+          return <div key={n.id} className="bg-white border-2 border-gray-200 rounded-xl p-3 flex flex-wrap items-center gap-2 justify-between">
+            <div><div className="text-sm font-black">{n.deceased_name}</div><div className="text-xs text-gray-400">{n.case_ref||"—"} · {n.funeral_home_name}{d.sentAt?` · sent ${new Date(d.sentAt).toLocaleDateString("en-AU")}`:""}{d.signedAt?` · signed ${new Date(d.signedAt).toLocaleDateString("en-AU")}${d.certNo?" · "+d.certNo:""}`:""}</div></div>
+            <div className="flex flex-wrap items-center gap-2"><span className={"text-xs font-black px-2 py-1 rounded-lg "+st[1]}>{st[0]}</span>
+              {d.signedAt&&<><a href={pubU(d.certPath)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-300">📄 Certificate</a>
+                <button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"resend-signed")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":"✉ Resend to FD"}</button></>}
+              {!d.signedAt&&(out||d.sentAt)&&<button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"request")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":d.sentAt?"✉ Resend to Leura":"✉ Send to Leura"}</button>}</div>
+          </div>;})}</div>
+    </div>);
+}
+
 // ─── NSNA LABELS (quick print from the Dashboard) ───────────────────────────
 async function loadNsnaIds(ids){
   if(!ids.length)return new Set();
@@ -4947,21 +4991,6 @@ function AshesRegister({user,cases,onBack}){
   function endDraw(){drawingRef.current=false;if(canvasRef.current){const data=canvasRef.current.toDataURL();savedImageRef.current=data;setSigData(data);setHasSig(true);}setDrawing(false);}
   function clearSig(){if(canvasRef.current){const ctx=canvasRef.current.getContext("2d");ctx.clearRect(0,0,canvasRef.current.width,canvasRef.current.height);}savedImageRef.current=null;setSigData(null);setHasSig(false);}
 
-  // MSS NSNA cremation certificates from Leura (signed online after check-out)
-  const[crem,setCrem]=useState([]);const[cremBusy,setCremBusy]=useState("");
-  const loadCrem=()=>fetch(SUPABASE_URL+"/rest/v1/second_notes?select=id,case_id,case_ref,deceased_name,funeral_home_name,answers&answers->>_nsna=eq.true&order=submitted_at.desc&limit=80",{headers:{"apikey":SUPABASE_KEY,"Authorization":"Bearer "+SUPABASE_KEY}}).then(r=>r.json()).then(d=>setCrem(Array.isArray(d)?d:[])).catch(()=>{});
-  React.useEffect(()=>{loadCrem();},[]);
-  async function cremAction(n,action){
-    const signed=!!n.answers?._crem?.signedAt, label=action==="resend-signed"?`Email the signed documents for ${n.deceased_name} to ${n.funeral_home_name} again?`:`${n.answers?._crem?.sentAt?"Resend":"Send"} the signing link for ${n.deceased_name} to Leura Memorial Gardens?`;
-    if(!window.confirm(label))return;
-    setCremBusy(n.id);
-    try{const r=await fetch("/api/crem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,noteId:n.id,resend:true,by:user?.name})});const j=await r.json().catch(()=>({}));
-      if(!r.ok)throw new Error(j.error||"Couldn't send");
-      logActivity(user,action==="resend-signed"?"CREM CERT RESENT TO FD":"CREM CERT LINK SENT",`${n.deceased_name}${signed?" → "+n.funeral_home_name:" → Leura"}`,n.case_ref||"",n.case_id||"");
-      alert("✓ Sent");loadCrem();}catch(e){alert(e.message);}
-    setCremBusy("");
-  }
-
   // Resend the "ashes ready for collection" email for ashes still in storage
   const[resending,setResending]=useState("");
   async function resendAshes(recs,key){
@@ -5225,21 +5254,6 @@ function AshesRegister({user,cases,onBack}){
           ));
         })()}
       </div>
-
-      {crem.length>0&&<div className="mb-6">
-        <h3 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-1">MSS NSNA · Leura Cremation Certificates</h3>
-        <p className="text-xs text-gray-400 mb-3">Leura is emailed a link to sign the Certificate of Cremation when the deceased is checked out.</p>
-        <div className="space-y-2">{crem.map(n=>{const d=n.answers?._crem||{},c=cases.find(x=>x.id===n.case_id),out=!!(c?.checkedOut||c?.checkout);
-          const pubU=p=>`${SUPABASE_URL}/storage/v1/object/public/Case-documents/${String(p).split("/").map(encodeURIComponent).join("/")}`;
-          const st=d.signedAt?["✓ Signed","bg-green-100 text-green-800"]:d.sentAt?["⏳ Waiting for Leura","bg-amber-100 text-amber-800"]:out?["Not sent","bg-red-100 text-red-700"]:["In care","bg-gray-100 text-gray-600"];
-          return <div key={n.id} className="bg-white border-2 border-gray-200 rounded-xl p-3 flex flex-wrap items-center gap-2 justify-between">
-            <div><div className="text-sm font-black">{n.deceased_name}</div><div className="text-xs text-gray-400">{n.case_ref||"—"} · {n.funeral_home_name}{d.sentAt?` · sent ${new Date(d.sentAt).toLocaleDateString("en-AU")}`:""}{d.signedAt?` · signed ${new Date(d.signedAt).toLocaleDateString("en-AU")}${d.certNo?" · "+d.certNo:""}`:""}</div></div>
-            <div className="flex flex-wrap items-center gap-2"><span className={"text-xs font-black px-2 py-1 rounded-lg "+st[1]}>{st[0]}</span>
-              {d.signedAt&&<><a href={pubU(d.certPath)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-300">📄 Certificate</a>
-                <button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"resend-signed")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":"✉ Resend to FD"}</button></>}
-              {!d.signedAt&&(out||d.sentAt)&&<button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"request")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":d.sentAt?"✉ Resend to Leura":"✉ Send to Leura"}</button>}</div>
-          </div>;})}</div>
-      </div>}
 
       {past.length>0&&<details className="mt-4">
         <summary className="text-sm font-black uppercase tracking-widest text-gray-400 cursor-pointer mb-3">Previously Checked Out ({past.length})</summary>
@@ -7393,6 +7407,7 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="newcheckins") return wrap(<NewCheckInsView cases={liveCases} onAction={a=>{setAction(a);}} user={user}/>);
   if(action==="nameplates"&&(isAdmin||isMSS)) return wrap(<NamePlatesView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="leuracerts"&&(isAdmin||isMSS)) return wrap(<LeuraCertsView user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="nsnalabels"&&(isAdmin||isMSS)) return wrap(<NsnaLabelsView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
