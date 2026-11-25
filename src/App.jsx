@@ -847,6 +847,34 @@ ${isInf(c)?'<div class="pace" style="background:#dc2626">☣ INFECTIOUS — TAKE
   fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(err){const w=window.open("","_blank");if(w){w.document.write(html);w.document.close();w.focus();w.print();}}setTimeout(()=>fr.remove(),60000);},250);};
   fr.srcdoc=html;
 }
+// Name label for MSS NSNA (instead of an engraved plate): same 6×4 label as the body bag tag
+function printNameLabel(c){
+  const e=s=>String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const d=v=>v?String(v).slice(0,10).split("-").reverse().join("/"):"—";
+  const first=String(c.firstName||""),sur=String(c.lastName||"").toUpperCase();
+  const longest=Math.max(1,...`${first} ${sur}`.split(/\s+/).map(w=>w.length)),total=`${first} ${sur}`.length;
+  const sz=Math.max(22,Math.min(54,Math.floor(Math.min(380/(longest*0.62),760/(total*0.6)))));
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${e(c.caseRef)} name label</title><style>
+@page{size:6in 4in;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html,body{margin:0}body{font-family:Helvetica,Arial,sans-serif;color:#000}
+.lab{width:6in;height:4in;overflow:hidden;padding:0.18in;display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #888;padding-bottom:3px;font-weight:700}
+.top .org{font-size:10pt;letter-spacing:2px;color:#777}.top .ref{font-size:13pt;letter-spacing:1px}
+.main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1.2px solid #888;margin-top:8px;padding:10px}
+.nm{font-size:${sz}pt;font-weight:900;line-height:1.05;overflow-wrap:anywhere}
+.dates{font-size:24pt;font-weight:700;margin-top:14px;letter-spacing:1px}
+.fd{margin-top:16px;font-size:15pt;font-weight:700}.fd b{display:block;font-size:8pt;letter-spacing:2px;color:#777}
+</style></head><body><div class="lab">
+<div class="top"><span class="org">NAME LABEL · MSS NSNA</span><span class="ref">${e(c.caseRef)}</span></div>
+<div class="main"><div class="nm">${e(first)} ${e(sur)}</div><div class="dates">${d(c.dob)} – ${d(c.dod)}</div>
+<div class="fd"><b>FUNERAL DIRECTOR</b>${e(c.funeralHomeName||"")}</div></div>
+</div></body></html>`;
+  const fr=document.createElement("iframe");
+  fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr);
+  fr.onload=()=>{setTimeout(()=>{try{fr.contentWindow.focus();fr.contentWindow.print();}catch(err){const w=window.open("","_blank");if(w){w.document.write(html);w.document.close();w.focus();w.print();}}setTimeout(()=>fr.remove(),60000);},250);};
+  fr.srcdoc=html;
+}
 // ─── DOCUMENT SECTION ─────────────────────────────────────────────────────────
 const DOC_LABELS = ["MCCD","VOD","BO","LE","CRA","DR REF","PHOTO","OTHER"];
 
@@ -3639,11 +3667,13 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
   const inCare=cases.filter(c=>c.status==="active").sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""));
   const [plates,setPlates]=useState({});const [open,setOpen]=useState(null);const [tab,setTab]=useState("todo");const [q,setQ]=useState("");
   const [pick,setPick]=useState(null); // "+ New Name Plate": choose the funeral director, then the deceased
+  const [nsna,setNsna]=useState({}); // MSS NSNA cases get a printed name label instead of an engraved plate
   const idKey=inCare.map(c=>c.id).join(",");
   useEffect(()=>{if(!idKey)return;let live=true;
-    sb(`second_notes?select=case_id,answers,submitted_at&case_id=in.(${inCare.map(c=>`"${c.id}"`).join(",")})&order=submitted_at.desc`).then(r=>{if(!live||!Array.isArray(r))return;const m={};r.forEach(n=>{if(!(n.case_id in m))m[n.case_id]=n.answers?._plate||null;});inCare.forEach(c=>{if(!(c.id in m))m[c.id]=null;});setPlates(m);}).catch(()=>{});
+    sb(`second_notes?select=case_id,answers,submitted_at&case_id=in.(${inCare.map(c=>`"${c.id}"`).join(",")})&order=submitted_at.desc`).then(r=>{if(!live||!Array.isArray(r))return;const m={};r.forEach(n=>{if(!(n.case_id in m))m[n.case_id]=n.answers?._plate||null;});inCare.forEach(c=>{if(!(c.id in m))m[c.id]=null;});setPlates(m);const ns={};r.forEach(n=>{if(!(n.case_id in ns))ns[n.case_id]=n.answers?._nsna===true;});setNsna(ns);}).catch(()=>{});
     return()=>{live=false;};},[idKey]);
   async function mark(c,plate,person){const np={...(c.prep||{}),namePlate:{at:new Date().toISOString(),by:user?.name||"",plate,person}};try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});setOpen(o=>o&&o.c.id===c.id?{...o,c:{...o.c,prep:np}}:o);}catch(e){alert("Couldn't record the download: "+e.message);}}
+  async function printLabel(c){printNameLabel(c);if(c.prep?.namePlate?.at)return;const np={...(c.prep||{}),namePlate:{at:new Date().toISOString(),by:user?.name||"",label:true}};try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){}}
   async function markNone(c,undo){
     const np={...(c.prep||{})};if(undo)delete np.namePlate;else np.namePlate={at:new Date().toISOString(),by:user?.name||"",none:true};
     try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){alert("Couldn't save: "+(e.message||e));}}
@@ -3691,11 +3721,12 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
           <button type="button" onClick={()=>setOpen({c,plate:rec(c).plate||p||null})} className={"w-full text-left bg-white border-2 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 transition hover:border-gray-900 "+(done(c)?"border-green-300":"border-gray-200")}>
             <div className="min-w-0 flex-1">
               <div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
-              <div className="text-sm text-gray-500">{c.caseRef} · {c.funeralHomeName}</div>
+              <div className="text-sm text-gray-500">{c.caseRef} · {c.funeralHomeName}{nsna[c.id]&&<span className="ml-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gray-900 text-white">MSS NSNA</span>}</div>
             </div>
             <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(p?"bg-gray-100 text-gray-700":"bg-amber-50 text-amber-800")}>{p===undefined?"…":p?"From 2nd Note":"No plate on 2nd Note"}</span>
-            <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(done(c)?"bg-green-100 text-green-800":"bg-red-50 text-red-700")}>{done(c)?`✓ ${none?"No plate needed":"Downloaded"} ${when(rec(c).at)}${rec(c).by?" · "+rec(c).by:""}`:"Not downloaded"}</span>
+            <span className={"text-xs font-black px-3 py-1.5 rounded-full "+(done(c)?"bg-green-100 text-green-800":"bg-red-50 text-red-700")}>{done(c)?`✓ ${none?"No plate needed":rec(c).label?"Label printed":"Downloaded"} ${when(rec(c).at)}${rec(c).by?" · "+rec(c).by:""}`:"Not downloaded"}</span>
           </button>
+          {nsna[c.id]&&<button type="button" onClick={()=>printLabel(c)} className="shrink-0 w-28 rounded-2xl bg-gray-900 hover:bg-gray-700 text-white text-xs font-black uppercase leading-tight px-2">🏷️ Print label<span className="block text-[10px] font-bold normal-case opacity-80">NSNA name label</span></button>}
           {!done(c)&&<button type="button" onClick={()=>markNone(c)} className="shrink-0 w-28 rounded-2xl bg-green-600 hover:bg-green-700 text-white text-xs font-black uppercase leading-tight px-2">✓ Completed<span className="block text-[10px] font-bold normal-case opacity-90">No plate needed</span></button>}
           {none&&<button type="button" onClick={()=>markNone(c,true)} className="shrink-0 w-28 rounded-2xl border-2 border-gray-300 bg-white hover:border-gray-900 text-gray-700 text-xs font-black uppercase">↩ Undo</button>}
           </div>);})}</div>
@@ -3710,7 +3741,7 @@ function NamePlatesView({user,cases,onUpdateCase,onBack}){
                 <div className="text-xs text-gray-500">{c.caseRef} · {c.funeralHomeName}</div></div>
               <span className={"shrink-0 text-[10px] font-black uppercase px-2 py-1 rounded-full "+(c.status==="active"?"bg-amber-50 text-amber-800":"bg-gray-100 text-gray-600")}>{c.status==="active"?"In care":"Checked out"}</span>
             </div>
-            {r.none?<p className="text-sm font-black text-gray-500 py-6 text-center bg-gray-50 rounded-xl">No name plate needed</p>:r.plate?<NamePlatePreview spec={{...r.plate,...person}}/>:<p className="text-xs text-gray-400 py-6 text-center">Downloaded before plate records were kept</p>}
+            {r.none?<p className="text-sm font-black text-gray-500 py-6 text-center bg-gray-50 rounded-xl">No name plate needed</p>:r.label?<p className="text-sm font-black text-gray-500 py-6 text-center bg-gray-50 rounded-xl">🏷️ NSNA name label printed</p>:r.plate?<NamePlatePreview spec={{...r.plate,...person}}/>:<p className="text-xs text-gray-400 py-6 text-center">Downloaded before plate records were kept</p>}
             <div className="text-xs font-black text-green-700 mt-2">✓ {r.none?"Completed – no plate":"Final version"} · {when(r.at)}{r.by?" · "+r.by:""}</div>
           </button>);})}</div>
       </>}
