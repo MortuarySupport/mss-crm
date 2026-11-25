@@ -848,27 +848,29 @@ ${isInf(c)?'<div class="pace" style="background:#dc2626">☣ INFECTIOUS — TAKE
   fr.srcdoc=html;
 }
 // Name label for MSS NSNA (instead of an engraved plate): same 6×4 label as the body bag tag
-function printNameLabel(c){
+function printNameLabel(cs){
+  const list=Array.isArray(cs)?cs:[cs]; if(!list.length)return;
   const e=s=>String(s??"").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
   const d=v=>v?String(v).slice(0,10).split("-").reverse().join("/"):"—";
-  const first=String(c.firstName||""),sur=String(c.lastName||"").toUpperCase();
-  const longest=Math.max(1,...`${first} ${sur}`.split(/\s+/).map(w=>w.length)),total=`${first} ${sur}`.length;
-  const sz=Math.max(22,Math.min(54,Math.floor(Math.min(380/(longest*0.62),760/(total*0.6)))));
-  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${e(c.caseRef)} name label</title><style>
+  const one=c=>{const first=String(c.firstName||""),sur=String(c.lastName||"").toUpperCase();
+    const longest=Math.max(1,...`${first} ${sur}`.split(/\s+/).map(w=>w.length)),total=`${first} ${sur}`.length;
+    const sz=Math.max(22,Math.min(54,Math.floor(Math.min(380/(longest*0.62),760/(total*0.6)))));
+    return `<div class="lab">
+<div class="top"><span class="org">NAME LABEL · MSS NSNA</span><span class="ref">${e(c.caseRef)}</span></div>
+<div class="main"><div class="nm" style="font-size:${sz}pt">${e(first)} ${e(sur)}</div><div class="dates">${d(c.dob)} – ${d(c.dod)}</div>
+<div class="fd"><b>FUNERAL DIRECTOR</b>${e(c.funeralHomeName||"")}</div></div>
+</div>`;};
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${list.length===1?e(list[0].caseRef)+" name label":list.length+" NSNA name labels"}</title><style>
 @page{size:6in 4in;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 html,body{margin:0}body{font-family:Helvetica,Arial,sans-serif;color:#000}
-.lab{width:6in;height:4in;overflow:hidden;padding:0.18in;display:flex;flex-direction:column}
+.lab{width:6in;height:4in;overflow:hidden;padding:0.18in;display:flex;flex-direction:column;break-after:page;page-break-after:always}.lab:last-child{break-after:auto;page-break-after:auto}
 .top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1.5px solid #888;padding-bottom:3px;font-weight:700}
 .top .org{font-size:10pt;letter-spacing:2px;color:#777}.top .ref{font-size:13pt;letter-spacing:1px}
 .main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1.2px solid #888;margin-top:8px;padding:10px}
-.nm{font-size:${sz}pt;font-weight:900;line-height:1.05;overflow-wrap:anywhere}
+.nm{font-weight:900;line-height:1.05;overflow-wrap:anywhere}
 .dates{font-size:24pt;font-weight:700;margin-top:14px;letter-spacing:1px}
 .fd{margin-top:16px;font-size:15pt;font-weight:700}.fd b{display:block;font-size:8pt;letter-spacing:2px;color:#777}
-</style></head><body><div class="lab">
-<div class="top"><span class="org">NAME LABEL · MSS NSNA</span><span class="ref">${e(c.caseRef)}</span></div>
-<div class="main"><div class="nm">${e(first)} ${e(sur)}</div><div class="dates">${d(c.dob)} – ${d(c.dod)}</div>
-<div class="fd"><b>FUNERAL DIRECTOR</b>${e(c.funeralHomeName||"")}</div></div>
-</div></body></html>`;
+</style></head><body>${list.map(one).join("")}</body></html>`;
   const fr=document.createElement("iframe");
   fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(fr);
@@ -3662,6 +3664,44 @@ async function sendAppEmail(to,subject,text,attachments){
     const r=await fetch("/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to:list,subject,text,attachments:attachments||[]})});
     return r.ok;}catch(e){return false;}
 }
+// ─── NSNA LABELS (quick print from the Dashboard) ───────────────────────────
+async function loadNsnaIds(ids){
+  if(!ids.length)return new Set();
+  const r=await sb(`second_notes?select=case_id&answers->>_nsna=eq.true&case_id=in.(${ids.map(id=>`"${id}"`).join(",")})`).catch(()=>[]);
+  return new Set((r||[]).map(n=>n.case_id));
+}
+function NsnaLabelsView({user,cases,onUpdateCase,onBack}){
+  const inCare=cases.filter(c=>c.status==="active").sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""));
+  const [ids,setIds]=useState(null);
+  const key=inCare.map(c=>c.id).join(",");
+  useEffect(()=>{let live=true;loadNsnaIds(inCare.map(c=>c.id)).then(x=>{if(live)setIds(x);});return()=>{live=false;};},[key]);
+  const list=ids?inCare.filter(c=>ids.has(c.id)):[];
+  const printed=c=>!!c.prep?.namePlate?.label;
+  const todo=list.filter(c=>!printed(c));
+  async function print(cs){
+    printNameLabel(cs);
+    for(const c of cs){if(c.prep?.namePlate?.at)continue;const np={...(c.prep||{}),namePlate:{at:new Date().toISOString(),by:user?.name||"",label:true}};
+      try{await updateCase(c.id,{prep:np});onUpdateCase(c.id,{prep:np});}catch(e){}}
+  }
+  const when=iso=>new Date(iso).toLocaleString("en-AU",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+  return(
+    <div className="max-w-3xl mx-auto px-4 py-4">
+      <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK</button>
+      <h2 className="text-xl font-black text-gray-900 mb-1">🏷️ NSNA Labels</h2>
+      <p className="text-sm text-gray-500 mb-4">MSS NSNA deceased in our care. Print the 6×4 name label (name, dates, funeral director) on the label printer.</p>
+      {todo.length>1&&<button type="button" onClick={()=>print(todo)} className="w-full mb-4 py-3.5 rounded-2xl bg-gray-900 hover:bg-gray-700 text-white font-black uppercase tracking-wide">🏷️ Print all {todo.length} not yet printed</button>}
+      {!ids&&<p className="text-center text-sm text-gray-400 py-10">Loading…</p>}
+      {ids&&list.length===0&&<p className="text-center text-sm text-gray-400 py-10">No MSS NSNA deceased in our care.</p>}
+      <div className="space-y-2">{list.map(c=>(
+        <div key={c.id} className={"bg-white border-2 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3 "+(printed(c)?"border-green-300":"border-gray-200")}>
+          <div className="flex-1 min-w-0"><div className="text-lg font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName}</div>
+            <div className="text-sm text-gray-500">{c.caseRef} · {c.funeralHomeName}</div>
+            {printed(c)&&<div className="text-xs font-black text-green-700 mt-1">✓ Printed {when(c.prep.namePlate.at)}{c.prep.namePlate.by?" · "+c.prep.namePlate.by:""}</div>}</div>
+          <button type="button" onClick={()=>print([c])} className={"px-5 py-3 rounded-xl font-black uppercase text-sm "+(printed(c)?"border-2 border-gray-300 text-gray-700 hover:border-gray-900":"bg-gray-900 hover:bg-gray-700 text-white")}>{printed(c)?"↻ Reprint":"🏷️ Print"}</button>
+        </div>))}</div>
+    </div>);
+}
+
 // ─── NAME PLATES (all cases in care) ─────────────────────────────────────────
 function NamePlatesView({user,cases,onUpdateCase,onBack}){
   const inCare=cases.filter(c=>c.status==="active").sort((a,b)=>(a.lastName||"").localeCompare(b.lastName||""));
@@ -5474,6 +5514,10 @@ function NewCheckInsView({cases,user,onAction}){
 
 // ─── ADMIN DASHBOARD ──────────────────────────────────────────────────────────
 function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=true,user}){
+  // MSS NSNA deceased in care whose name label hasn't been printed yet
+  const [nsnaToPrint,setNsnaToPrint]=useState(null);
+  const nsnaKey=cases.filter(c=>c.status==="active").map(c=>c.id).join(",");
+  useEffect(()=>{let live=true;const act=cases.filter(c=>c.status==="active");loadNsnaIds(act.map(c=>c.id)).then(x=>{if(live)setNsnaToPrint(act.filter(c=>x.has(c.id)&&!c.prep?.namePlate?.label).length);});return()=>{live=false;};},[nsnaKey]);
   const now=new Date();
   // 2nd Notes waiting for MSS: new ones and ones the FD has updated
   const [newNotes,setNewNotes]=useState([]);
@@ -5600,8 +5644,9 @@ function AdminDashboard({cases,calendarBookings,onAction,onUpdateCase,isAdmin=tr
       {/* Workflow */}
       <div className="mb-6">
         <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">Workflow</p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard value={toApprove} label="To Approve" color={toApprove>0?"amber":"gray"} onClick={()=>onAction("approvals")}/>
+          <StatCard value={nsnaToPrint===null?"…":nsnaToPrint} label="NSNA Labels" color={nsnaToPrint>0?"amber":"gray"} onClick={()=>onAction("nsnalabels")}/>
           {isAdmin&&<StatCard value={toLock} label="To Lock" color={toLock>0?"amber":"gray"} onClick={()=>onAction("lockview")}/>}
           {isAdmin&&<StatCard value={toInvoice} label="To Invoice" color={toInvoice>0?"red":"gray"} onClick={()=>onAction("invoicing")}/>}
         </div>
@@ -7289,6 +7334,7 @@ export default function App() {
   if(action==="checkin") return wrap(<CheckInFlow user={user} cases={cases} onComplete={handleComplete} onBack={()=>setAction(null)}/>);
   if(action==="newcheckins") return wrap(<NewCheckInsView cases={liveCases} onAction={a=>{setAction(a);}} user={user}/>);
   if(action==="nameplates"&&(isAdmin||isMSS)) return wrap(<NamePlatesView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
+  if(action==="nsnalabels"&&(isAdmin||isMSS)) return wrap(<NsnaLabelsView user={user} cases={liveCases} onUpdateCase={handleUpdateCase} onBack={()=>setAction(null)}/>);
   if(action==="ashes"&&(isAdmin||isMSS)) return wrap(<AshesRegister user={user} cases={liveCases} onBack={()=>setAction(null)}/>);
   if(action==="vehiclelog"&&(isAdmin||isMSS)) return wrap(<VehicleLog user={user} onBack={()=>setAction(null)}/>);
   if(action==="mastercalendar"&&(isAdmin||isMSS)) return wrap(<MasterCalendar cases={liveCases} calendarBookings={calendarBookings} vehicleBookings={vehicleBookings}/>);
