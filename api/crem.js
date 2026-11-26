@@ -58,6 +58,8 @@ export default async function handler(req, res) {
       const n = b.noteId ? await one(`id=eq.${encodeURIComponent(b.noteId)}`) : await one(`case_id=eq.${encodeURIComponent(b.caseId || "")}&answers->>_nsna=eq.true&order=submitted_at.desc`);
       if (!n || !isNSNA(n)) return res.status(200).json({ ok: true, skipped: "Not an MSS NSNA" });
       const a = n.answers || {}; let d = a._crem || {};
+      if (d.hidden && !b.noteId) return res.status(200).json({ ok: true, skipped: "Deleted from Leura Certs" });
+      if (d.hidden) d = { ...d, hidden: false };
       if (d.signedAt) return res.status(200).json({ ok: true, already: "signed" });
       if (d.sentAt && !b.resend) return res.status(200).json({ ok: true, already: "sent" });
       if (!d.token) d = { ...d, token: crypto.randomBytes(24).toString("hex"), requestedAt: new Date().toISOString() };

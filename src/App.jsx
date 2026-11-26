@@ -3683,9 +3683,22 @@ function LeuraCertsView({user,cases,onBack}){
       alert("✓ Sent");loadCrem();}catch(e){alert(e.message);}
     setCremBusy("");
   }
+  async function cremDelete(n){
+    const d=n.answers?._crem||{};
+    if(!window.confirm(`Delete ${n.deceased_name} from Leura Certificates?${d.signedAt?"\n\nThe signed certificate stays saved on the case.":d.sentAt?"\n\nThe link already sent to Leura will stop working.":""}`))return;
+    setCremBusy(n.id);
+    try{const cur=(await sb(`second_notes?select=answers&id=eq.${n.id}`))?.[0]?.answers||{};
+      if(cur._drOnly&&!cur._drref)await sb(`second_notes?id=eq.${n.id}`,{method:"DELETE"});
+      else{const c2={...(cur._crem||{}),hidden:true,hiddenBy:user?.name||"",hiddenAt:new Date().toISOString()};delete c2.token;
+        await sb(`second_notes?id=eq.${n.id}`,{method:"PATCH",body:JSON.stringify({answers:{...cur,_crem:c2}})});}
+      logActivity(user,"CREM CERT DELETED",n.deceased_name,n.case_ref||"",n.case_id||"");
+      setCrem(v=>v.filter(x=>x.id!==n.id));
+    }catch(e){alert("Couldn't delete: "+(e.message||e));}
+    setCremBusy("");
+  }
 
   const [tab,setTab]=useState("open");
-  const all=crem;
+  const all=crem.filter(n=>!n.answers?._crem?.hidden);
   const isDone=n=>!!n.answers?._crem?.signedAt;
   const shown=tab==="open"?all.filter(n=>!isDone(n)):all.filter(isDone);
   const tabBtn=(k,l,n)=><button type="button" onClick={()=>setTab(k)} className={"px-4 py-2.5 rounded-xl border-2 text-sm font-black "+(tab===k?"bg-gray-900 border-gray-900 text-white":"bg-white border-gray-200 text-gray-700 hover:border-gray-700")}>{l} · {n}</button>;
@@ -3711,7 +3724,7 @@ function LeuraCertsView({user,cases,onBack}){
       if(c){const ex=(await sb(`second_notes?select=id,answers&case_id=eq.${c.id}&order=submitted_at.desc`))||[];
         const n=ex.find(x=>!x.answers?._drOnly)||ex[0];
         if(n){if(n.answers?._crem?.signedAt)throw new Error("Leura has already signed the certificate for "+name+".");
-          noteId=n.id;await sb(`second_notes?id=eq.${n.id}`,{method:"PATCH",body:JSON.stringify({answers:{...(n.answers||{}),_nsna:true,_crem:{...(n.answers?._crem||{}),manual:true}}})});}}
+          noteId=n.id;await sb(`second_notes?id=eq.${n.id}`,{method:"PATCH",body:JSON.stringify({answers:{...(n.answers||{}),_nsna:true,_crem:{...(n.answers?._crem||{}),manual:true,hidden:false}}})});}}
       if(!noteId){noteId=crypto.randomUUID();
         await sb("second_notes",{method:"POST",body:JSON.stringify({id:noteId,funeral_home_id:man.fhId,funeral_home_name:fh.name||"",case_id:c?.id||null,case_ref:c?.caseRef||null,
           deceased_name:name,pdf_path:null,
@@ -3759,7 +3772,8 @@ function LeuraCertsView({user,cases,onBack}){
             <div className="flex flex-wrap items-center gap-2"><span className={"text-xs font-black px-2 py-1 rounded-lg "+st[1]}>{st[0]}</span>
               {d.signedAt&&<><a href={pubU(d.certPath)} target="_blank" rel="noreferrer" className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-300">📄 Certificate</a>
                 <button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"resend-signed")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":"✉ Resend to FD"}</button></>}
-              {!d.signedAt&&(out||d.sentAt)&&<button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"request")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":d.sentAt?"✉ Resend to Leura":"✉ Send to Leura"}</button>}</div>
+              {!d.signedAt&&(out||d.sentAt)&&<button type="button" disabled={!!cremBusy} onClick={()=>cremAction(n,"request")} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-gray-900 disabled:opacity-50">{cremBusy===n.id?"Sending…":d.sentAt?"✉ Resend to Leura":"✉ Send to Leura"}</button>}
+              <button type="button" disabled={!!cremBusy} onClick={()=>cremDelete(n)} className="text-xs font-black uppercase px-3 py-1.5 rounded-lg border-2 border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50">🗑 Delete</button></div>
           </div>;})}</div>
     </div>);
 }
