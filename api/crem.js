@@ -12,6 +12,8 @@ const BUCKET = "Case-documents";
 const CREM_TO = process.env.CREM_TO || "info@leuramemorialgardens.com.au";
 const CREM_NAME = "Leura Memorial Gardens";
 const INFO = "info@mortuarysupport.com.au";
+// Copied in on the first few Leura certificates so he can see how it works (the request email + the signed email)
+const WATCH_CC = "jwalker@walkerfuneralgroup.com.au", WATCH_FIRST = 5;
 const TZ = "Australia/Sydney";
 const H = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" };
 const sb = async (p, o = {}) => { const r = await fetch(`${SUPABASE_URL}/rest/v1/${p}`, { ...o, headers: { ...H, ...(o.prefer ? { Prefer: o.prefer } : {}) } }); if (!r.ok) throw new Error(await r.text()); const t = await r.text(); return t ? JSON.parse(t) : null; };
@@ -59,6 +61,7 @@ export default async function handler(req, res) {
       if (d.signedAt) return res.status(200).json({ ok: true, already: "signed" });
       if (d.sentAt && !b.resend) return res.status(200).json({ ok: true, already: "sent" });
       if (!d.token) d = { ...d, token: crypto.randomBytes(24).toString("hex"), requestedAt: new Date().toISOString() };
+      if (d.watch === undefined) { const sent = await sb(`second_notes?select=id&answers->_crem->>sentAt=not.is.null`).catch(() => []); d = { ...d, watch: (sent || []).length < WATCH_FIRST }; }
       const link = `${base}/?crem=${d.token}`, again = !!(b.resend && d.sentAt);
       const html = `<div style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#111827"><p>Hi ${CREM_NAME} Team,</p>
 <p>${again ? "<b>Reminder:</b> the" : "The"} cremation certificate is ready for you to sign for:</p>
@@ -67,7 +70,7 @@ export default async function handler(req, res) {
 <p style="margin:22px 0"><a href="${link}" style="background:#111827;color:#fff;text-decoration:none;font-weight:800;padding:14px 22px;border-radius:10px;display:inline-block">✍ REVIEW &amp; SIGN</a></p>
 <p style="font-size:12px;color:#6b7280">This link is only for this deceased; please don't forward it. Questions: reply to this email or call MSS on 02 8814 5500.<br>${link}</p><p>The Team at Mortuary Support | Lumière</p></div>`;
       const text = `Hi ${CREM_NAME} Team,\n\n${again ? "Reminder: the" : "The"} cremation certificate is ready to sign for ${nameOf(a)} (died ${longDate(a.dod)}), MSS case ${n.case_ref || "—"}, funeral director ${n.funeral_home_name}.\n\nReview & sign: ${link}${FOOT}`;
-      await send({ to: [CREM_TO], cc: [INFO], subject: `${again ? "Reminder: " : ""}Cremation certificate to sign – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, html, text });
+      await send({ to: [CREM_TO], cc: [INFO, ...(d.watch ? [WATCH_CC] : [])], subject: `${again ? "Reminder: " : ""}Cremation certificate to sign – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, html, text });
       const now = new Date().toISOString();
       d = { ...d, sentAt: d.sentAt || now, sentTo: CREM_TO, ...(again ? { resent: [...(d.resent || []), { at: now, by: String(b.by || "").slice(0, 80) }] } : {}) };
       await sb(`second_notes?id=eq.${n.id}`, { method: "PATCH", body: JSON.stringify({ answers: { ...a, _crem: d } }) });
@@ -95,8 +98,8 @@ export default async function handler(req, res) {
       const to = [...new Set([INFO, ...(fh.contacts || [])])];
       const text = `Hi ${n.funeral_home_name || ""} Team,\n\nThe Certificate of Cremation for ${nameOf(a)} has been signed by ${CREM_NAME}.\n\nCREMATION\nName: ${nameOf(a)}\nCase Reference: ${n.case_ref || "—"}\nCertificate: ${nd.certNo}\nCremated: ${longDate(nd.cremDate)}\nSigned: ${when(now)}\n\nThe certificate is attached and saved to the case.${FOOT}`;
       const files = [{ filename: `Certificate of Cremation – ${a.lastName || "deceased"}.pdf`, path: pub(p.cert) }];
-      await send({ to, cc: [CREM_TO], subject: `Cremation certificate signed – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: files });
-      return res.status(200).json({ ok: true, name: nameOf(a), at: when(now), docs: [{ label: "Certificate of Cremation", url: pub(p.cert) }, { label: "Statutory Declaration", url: pub(p.stat) }] });
+      await send({ to, cc: [CREM_TO, ...(d.watch ? [WATCH_CC] : [])], subject: `Cremation certificate signed – ${title(a)}${n.case_ref ? " – " + n.case_ref : ""}`, text, attachments: files });
+      return res.status(200).json({ ok: true, name: nameOf(a), at: when(now), docs: [{ label: "Certificate of Cremation", url: pub(p.cert) }] });
     }
 
     // Signed already: send the signed documents to the FD again
