@@ -1,5 +1,5 @@
 // Leura Memorial Gardens: Certificate of Cremation, filled in and signed online (MSS NSNA cases).
-// Recreated from Leura's own documents, with their permission. JP stamp on the certificate.
+// Recreated from Leura's own documents, with their permission.
 const PDFLIB = "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js";
 export const LEURA = {
   company: "Leura Memorial Gardens Holdings Pty Ltd",
@@ -18,8 +18,8 @@ let assets = null;
 async function loadAssets() {
   if (assets) return assets;
   const get = p => fetch(p).then(r => { if (!r.ok) throw new Error("Missing " + p); return r.arrayBuffer(); });
-  const [logo, banner, stamp] = await Promise.all([get("/forms/leura/logo.png"), get("/forms/leura/banner.jpg"), get("/forms/leura/jp-stamp.png")]);
-  return (assets = { logo, banner, stamp });
+  const [logo, banner] = await Promise.all([get("/forms/leura/logo.png"), get("/forms/leura/banner.jpg")]);
+  return (assets = { logo, banner });
 }
 const dataBytes = u => { const b = atob(String(u).split(",")[1] || ""); const a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; };
 
@@ -37,11 +37,10 @@ export async function makeCremDocs(v) {
     const pdf = await PDFDocument.create(); const page = pdf.addPage([W, Hh]);
     const F = { tr: await pdf.embedFont(StandardFonts.TimesRoman), tb: await pdf.embedFont(StandardFonts.TimesRomanBold), ti: await pdf.embedFont(StandardFonts.TimesRomanItalic), tbi: await pdf.embedFont(StandardFonts.TimesRomanBoldItalic),
       h: await pdf.embedFont(StandardFonts.Helvetica), hb: await pdf.embedFont(StandardFonts.HelveticaBold), hi: await pdf.embedFont(StandardFonts.HelveticaOblique) };
-    const logo = await pdf.embedPng(A.logo), banner = await pdf.embedJpg(A.banner), stamp = await pdf.embedPng(A.stamp);
+    const logo = await pdf.embedPng(A.logo), banner = await pdf.embedJpg(A.banner);
     const lw = 300, lh = lw * logo.height / logo.width; page.drawImage(logo, { x: (W - lw) / 2, y: Hh - 70 - lh, width: lw, height: lh });
     const bw = 442, bh = bw * banner.height / banner.width; page.drawImage(banner, { x: (W - bw) / 2, y: Hh - 680 - bh, width: bw, height: bh });
     const sig = async (u, x, yTop, w, h) => { if (!u) return; const img = await pdf.embedPng(dataBytes(u)); const s = Math.min(w / img.width, h / img.height); page.drawImage(img, { x: x + (w - img.width * s) / 2, y: Hh - yTop - h + (h - img.height * s) / 2, width: img.width * s, height: img.height * s }); };
-    const drawStamp = (cx, cyTop, d) => page.drawImage(stamp, { x: cx - d / 2, y: Hh - cyTop - d / 2, width: d, height: d * stamp.height / stamp.width, opacity: 0.92 });
     // text helpers (y = baseline measured from the top of the page)
     const tw = (t, f, s) => f.widthOfTextAtSize(t, s);
     const center = (t, f, s, y) => page.drawText(t, { x: (W - tw(t, f, s)) / 2, y: Hh - y, size: s, font: f, color: K });
@@ -51,11 +50,11 @@ export async function makeCremDocs(v) {
       page.drawText(a, { x: cx, y: Hh - y, size: s, font: f, color: K }); cx += tw(a, f, s);
       page.drawText(b, { x: cx, y: Hh - y + s * 0.38, size: s * 0.62, font: f, color: K }); cx += tw(b, f, s * 0.62);
       page.drawText(c, { x: cx, y: Hh - y, size: s, font: f, color: K }); return w; };
-    return { pdf, page, F, sig, drawStamp, tw, center, ordinal };
+    return { pdf, page, F, sig, tw, center, ordinal };
   }
 
   // ── Certificate of Cremation ──
-  const C = await base(); { const { page, F, center, ordinal, sig, drawStamp, tw } = C;
+  const C = await base(); { const { page, F, center, ordinal, sig, tw } = C;
     center(v.certNo || "", F.ti, 14, 198);
     center("Certificate of Cremation", F.tb, 22, 233);
     center("This is to certify that the Late", F.tr, 13.5, 266);
@@ -71,7 +70,6 @@ export async function makeCremDocs(v) {
     await sig(v.gmSig, 225, 574, 170, 48);
     page.drawLine({ start: { x: 205, y: 841.92 - 624 }, end: { x: 390, y: 841.92 - 624 }, thickness: 0.6, color: K });
     center(`${v.gm || LEURA.gm} - ${v.gmTitle || LEURA.gmTitle}`, F.tr, 8, 636);
-    drawStamp(452, 606, 78);
   }
 
   return { cert: await C.pdf.save() };

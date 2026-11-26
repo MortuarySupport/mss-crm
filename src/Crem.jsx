@@ -84,8 +84,7 @@ export default function CremPage({ token }) {
     <div className={card + " mb-4 space-y-4"}><p className="font-black uppercase text-sm">2. Sign</p>
       <div className="grid sm:grid-cols-2 gap-3"><label><span className={lbl}>General Manager *</span><input className={inp} value={f.gm} onChange={e => set("gm", e.target.value)} /></label>
         <label><span className={lbl}>Title</span><input className={inp} value={f.gmTitle} onChange={e => set("gmTitle", e.target.value)} /></label></div>
-      <SigPad label="General Manager's signature *" value={gmSig} onChange={v => { setGmSig(v); setPreview(null); }} />
-      <p className="text-xs text-gray-500">The JP stamp ({LEURA.jp} JP · Reg. No. {LEURA.jpReg}) is added to the certificate.</p></div>
+      <SigPad label="General Manager's signature *" value={gmSig} onChange={v => { setGmSig(v); setPreview(null); }} /></div>
 
     <div className={card + " mb-4"}><p className="font-black uppercase text-sm mb-2">3. Check &amp; send</p>
       <button type="button" disabled={busy} onClick={showPreview} className="w-full py-3 rounded-xl border-2 border-gray-900 font-black uppercase text-sm disabled:opacity-50">👁 Preview certificate</button>
