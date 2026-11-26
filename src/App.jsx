@@ -3690,14 +3690,68 @@ function LeuraCertsView({user,cases,onBack}){
   const shown=tab==="open"?all.filter(n=>!isDone(n)):all.filter(isDone);
   const tabBtn=(k,l,n)=><button type="button" onClick={()=>setTab(k)} className={"px-4 py-2.5 rounded-xl border-2 text-sm font-black "+(tab===k?"bg-gray-900 border-gray-900 text-white":"bg-white border-gray-200 text-gray-700 hover:border-gray-700")}>{l} · {n}</button>;
   const crem2=shown;
+  // Manually add a past (or any) MSS NSNA cremation
+  const blankM={q:"",caseId:"",firstName:"",lastName:"",dob:"",dod:"",fhId:"",send:true};
+  const [man,setMan]=useState(null),[manBusy,setManBusy]=useState(false),[manErr,setManErr]=useState("");
+  const setM=(k,v)=>setMan(m=>({...m,[k]:v}));
+  const mInp="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-base focus:border-gray-900 outline-none";
+  const mLbl="text-xs font-black text-gray-500 uppercase";
+  const fhList=[...FUNERAL_HOMES].sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+  const hits=man&&man.q.trim().length>=2&&!man.caseId?cases.filter(c=>`${c.firstName||""} ${c.lastName||""} ${c.caseRef||""}`.toLowerCase().includes(man.q.trim().toLowerCase())).slice(0,8):[];
+  const pickCase=c=>setMan(m=>({...m,q:"",caseId:c.id,firstName:c.firstName||"",lastName:c.lastName||"",dob:String(c.dob||"").slice(0,10),dod:String(c.dod||"").slice(0,10),fhId:c.funeralHomeId||""}));
+  async function saveManual(){
+    setManErr("");
+    const miss=[!man.firstName.trim()&&"first name",!man.lastName.trim()&&"surname",!man.dod&&"date of death",!man.fhId&&"funeral director"].filter(Boolean);
+    if(miss.length)return setManErr("Still needed: "+miss.join(", "));
+    const c=cases.find(x=>x.id===man.caseId), fh=FUNERAL_HOMES.find(f=>f.id===man.fhId)||{};
+    const name=`${man.firstName.trim()} ${man.lastName.trim()}`;
+    setManBusy(true);
+    try{
+      let noteId=null;
+      if(c){const ex=(await sb(`second_notes?select=id,answers&case_id=eq.${c.id}&order=submitted_at.desc`))||[];
+        const n=ex.find(x=>!x.answers?._drOnly)||ex[0];
+        if(n){if(n.answers?._crem?.signedAt)throw new Error("Leura has already signed the certificate for "+name+".");
+          noteId=n.id;await sb(`second_notes?id=eq.${n.id}`,{method:"PATCH",body:JSON.stringify({answers:{...(n.answers||{}),_nsna:true,_crem:{...(n.answers?._crem||{}),manual:true}}})});}}
+      if(!noteId){noteId=crypto.randomUUID();
+        await sb("second_notes",{method:"POST",body:JSON.stringify({id:noteId,funeral_home_id:man.fhId,funeral_home_name:fh.name||"",case_id:c?.id||null,case_ref:c?.caseRef||null,
+          deceased_name:name,pdf_path:null,
+          answers:{firstName:man.firstName.trim(),lastName:man.lastName.trim(),dob:man.dob,dod:man.dod,disposition:"Cremation",_drOnly:true,_nsna:true,_crem:{manual:true,addedBy:user?.name||""}},
+          submitted_by:user?.name||"",submitted_role:user?.role||"",status:c?"linked":"awaiting",accepted_at:new Date().toISOString(),accepted_by:"Leura cert (manual)"})});}
+      logActivity(user,"CREM CERT ADDED",`${name} (manual) → Leura`,c?.caseRef||"",c?.id||"");
+      if(man.send){const r=await fetch("/api/crem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"request",noteId,by:user?.name})});const j=await r.json().catch(()=>({}));
+        if(!r.ok)throw new Error("Added, but couldn't email Leura: "+(j.error||"error")+". Use ✉ Send to Leura on the list.");
+        logActivity(user,"CREM CERT LINK SENT",`${name} → Leura`,c?.caseRef||"",c?.id||"");}
+      alert(man.send?"✓ Added and sent to Leura":"✓ Added");setMan(null);setTab("open");loadCrem();
+    }catch(e){setManErr(e.message||String(e));loadCrem();}
+    setManBusy(false);
+  }
   return(
     <div className="max-w-3xl mx-auto px-4 py-4">
       <button onClick={onBack} className={`${s.btnGhost} w-full mb-4 py-2`}>← BACK TO HOME</button>
       <h2 className="text-xl font-black text-gray-900 mb-1">🔥 Leura Cremation Certificates</h2>
       <p className="text-sm text-gray-500 mb-4">MSS NSNA cremations at Leura Memorial Gardens. Leura is emailed a link to sign the Certificate of Cremation when the deceased is checked out.</p>
+      {!man&&<button type="button" onClick={()=>{setMan(blankM);setManErr("");}} className="w-full mb-4 py-3.5 rounded-2xl border-2 border-gray-900 text-gray-900 hover:bg-gray-100 font-black uppercase tracking-wide">✏️ Add a case manually (incl. past cases)</button>}
+      {man&&<div className="bg-white border-2 border-gray-900 rounded-2xl p-4 mb-4 space-y-3">
+        <div className="flex items-center justify-between"><div className="font-black text-gray-900">✏️ Add a Leura cremation certificate</div><button type="button" onClick={()=>setMan(null)} className="text-sm font-bold text-gray-500 hover:text-gray-900">✕ Close</button></div>
+        {!man.caseId?<div><label className={mLbl}>Find the case (name or MSL number) — optional</label>
+          <input className={mInp} value={man.q} placeholder="e.g. Smith or MSL_00045" onChange={e=>setM("q",e.target.value)}/>
+          {hits.length>0&&<div className="border-2 border-gray-200 rounded-xl mt-1 divide-y">{hits.map(c=><button type="button" key={c.id} onClick={()=>pickCase(c)} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm"><b>{(c.lastName||"").toUpperCase()}, {c.firstName}</b> <span className="text-gray-400">· {c.caseRef} · {c.funeralHomeName}{c.checkedOut||c.checkout?" · checked out":""}</span></button>)}</div>}
+          {man.q.trim().length>=2&&hits.length===0&&<p className="text-xs text-gray-400 mt-1">No case found. Just type the details below.</p>}</div>
+        :<div className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 text-sm"><span>Linked to case <b>{cases.find(x=>x.id===man.caseId)?.caseRef}</b></span><button type="button" onClick={()=>setM("caseId","")} className="text-xs font-bold text-gray-500">Unlink</button></div>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label className={mLbl}>First name(s) *</label><input className={mInp} value={man.firstName} onChange={e=>setM("firstName",e.target.value)}/></div>
+          <div><label className={mLbl}>Surname *</label><input className={mInp} value={man.lastName} onChange={e=>setM("lastName",e.target.value)}/></div>
+          <div><label className={mLbl}>Date of birth</label><input type="date" className={mInp} value={man.dob} onChange={e=>setM("dob",e.target.value)}/></div>
+          <div><label className={mLbl}>Date of death *</label><input type="date" className={mInp} value={man.dod} onChange={e=>setM("dod",e.target.value)}/></div>
+          <div className="sm:col-span-2"><label className={mLbl}>Funeral director *</label><select className={mInp} value={man.fhId} onChange={e=>setM("fhId",e.target.value)}><option value="">— Choose —</option>{fhList.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}</select></div>
+        </div>
+        <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={man.send} onChange={e=>setM("send",e.target.checked)} className="w-5 h-5"/> Email the signing link to Leura now</label>
+        {manErr&&<div className="text-sm font-bold text-red-700 bg-red-50 rounded-xl px-3 py-2">{manErr}</div>}
+        <button type="button" disabled={manBusy} onClick={saveManual} className="w-full py-3 rounded-xl bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white font-black uppercase">{manBusy?"Saving…":man.send?"Add & send to Leura":"Add"}</button>
+      </div>}
       <div className="flex gap-2 mb-4">{tabBtn("open","Waiting",all.filter(n=>!isDone(n)).length)}{tabBtn("done","Signed",all.filter(isDone).length)}</div>
       {crem2.length===0&&<p className="text-center text-sm text-gray-400 py-10">{tab==="open"?"Nothing waiting.":"No signed certificates yet."}</p>}
-      <div className="space-y-2">{crem2.map(n=>{const d=n.answers?._crem||{},c=cases.find(x=>x.id===n.case_id),out=!!(c?.checkedOut||c?.checkout);
+      <div className="space-y-2">{crem2.map(n=>{const d=n.answers?._crem||{},c=cases.find(x=>x.id===n.case_id),out=!!(c?.checkedOut||c?.checkout||d.manual);
           const pubU=p=>`${SUPABASE_URL}/storage/v1/object/public/Case-documents/${String(p).split("/").map(encodeURIComponent).join("/")}`;
           const st=d.signedAt?["✓ Signed","bg-green-100 text-green-800"]:d.sentAt?["⏳ Waiting for Leura","bg-amber-100 text-amber-800"]:out?["Not sent","bg-red-100 text-red-700"]:["In care","bg-gray-100 text-gray-600"];
           return <div key={n.id} className="bg-white border-2 border-gray-200 rounded-xl p-3 flex flex-wrap items-center gap-2 justify-between">
