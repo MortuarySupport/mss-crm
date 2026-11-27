@@ -4028,6 +4028,9 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
   const [checkoutTime,setCheckoutTime]=useState(new Date());
   const [coTimeEdited,setCoTimeEdited]=useState(false);const [coTimeOpen,setCoTimeOpen]=useState(false);
   const coAdmin=user?.role==="admin";
+  // Admin only: bulk check out several cases from one funeral director
+  const [bulkSel,setBulkSel]=useState([]);const [bulk,setBulk]=useState(null);const [bulkErr,setBulkErr]=useState("");const [bulkRes,setBulkRes]=useState(null);
+  const setB=(k,v)=>setBulk(b=>({...b,[k]:v}));
   const toLocalInput=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,16);};
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[step,selCase?.id,done]);
 
@@ -4126,7 +4129,7 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4" style={{WebkitOverflowScrolling:"touch"}}>
-      <BackBtn onClick={()=>{if(selCase)setSelCase(null);else if(step===3){setStep(2);setSelFH(null);}else if(step===2&&!isFD)setStep(1);else onBack();window.scrollTo({top:0,behavior:"smooth"});}}
+      <BackBtn onClick={()=>{if(selCase)setSelCase(null);else if(step===3){setStep(2);setSelFH(null);setBulkSel([]);setBulk(null);}else if(step===2&&!isFD)setStep(1);else onBack();window.scrollTo({top:0,behavior:"smooth"});}}
         label={selCase?"Back to Cases":step===3?"Back to Funeral Directors":step===2&&!isFD?"Back":"Back to Home"}/>
       <h2 className="text-2xl font-black text-gray-900 mb-3">Check Out</h2>
 
@@ -4148,7 +4151,66 @@ function CheckOutFlow({user,cases,onUpdateCase,onBack}) {
       {step===3&&selFH&&!selCase&&(
         <div>
           <p className={s.section}>{selFH.name}</p>
-          <div className="space-y-3">{displayCases.sort((a,b)=>a.lastName.localeCompare(b.lastName)).map(c=><button key={c.id} onClick={()=>setSelCase(c)} className="w-full bg-white border-2 border-gray-200 hover:border-gray-900 rounded-2xl p-5 text-left transition"><div className="text-xl font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName} — <span className="text-base font-bold text-gray-500">{sexShort(c.sex)}</span></div><div className="text-sm text-gray-500 mt-1">{c.caseRef} · DOD: {fmt(c.dod)}</div></button>)}{displayCases.length===0&&<p className="text-gray-400 text-center py-8">No cases.</p>}</div>
+          {coAdmin&&!showPast&&!bulkRes&&displayCases.length>1&&<div className="flex flex-wrap items-center gap-2 mb-3">
+            <button type="button" onClick={()=>setBulkSel(bulkSel.length===displayCases.length?[]:displayCases.map(c=>c.id))} className="px-4 py-2 rounded-xl border-2 border-gray-300 text-xs font-black uppercase">{bulkSel.length===displayCases.length?"Clear all":"Select all"}</button>
+            <span className="text-xs font-bold text-gray-500 uppercase">Admin · tick cases to bulk check out</span></div>}
+          {bulkRes&&<div className="bg-green-50 border-2 border-green-300 rounded-2xl p-4 mb-4"><p className="font-black text-green-800 mb-2">✓ Bulk check out done</p>
+            {bulkRes.map(x=><p key={x.id} className={"text-sm font-bold "+(x.ok?"text-gray-800":"text-red-700")}>{x.ok?"✓":"✗"} {x.name}{x.ok?(x.quiet?" · checked out (no emails)":x.mail?" · emailed":" · email not sent"):" · "+x.err}</p>)}
+            <button type="button" onClick={()=>{setBulkRes(null);onBack();}} className={`${s.btnGhost} w-full mt-3`}>← Back to Home</button></div>}
+          <div className="space-y-3">{displayCases.sort((a,b)=>a.lastName.localeCompare(b.lastName)).map(c=>{const on=bulkSel.includes(c.id);return <div key={c.id} className="flex items-stretch gap-2">
+            {coAdmin&&!showPast&&<button type="button" onClick={()=>setBulkSel(v=>on?v.filter(x=>x!==c.id):[...v,c.id])} className={"w-14 shrink-0 rounded-2xl border-2 flex items-center justify-center text-2xl font-black "+(on?"bg-gray-900 border-gray-900 text-white":"bg-white border-gray-300 text-transparent")}>✓</button>}
+            <button onClick={()=>setSelCase(c)} className="flex-1 bg-white border-2 border-gray-200 hover:border-gray-900 rounded-2xl p-5 text-left transition"><div className="text-xl font-black text-gray-900">{(c.lastName||"").toUpperCase()}, {c.firstName} — <span className="text-base font-bold text-gray-500">{sexShort(c.sex)}</span></div><div className="text-sm text-gray-500 mt-1">{c.caseRef} · DOD: {fmt(c.dod)}{c.prep?.disposition?" · "+c.prep.disposition:""}{c.prep?.pacemakerRemoved==="NO"?" · ⚠️ PACEMAKER NOT REMOVED":""}</div></button></div>;})}{displayCases.length===0&&<p className="text-gray-400 text-center py-8">No cases.</p>}</div>
+          {coAdmin&&!showPast&&bulkSel.length>0&&!bulk&&<button type="button" onClick={()=>{setBulkErr("");setBulk({dest:"",other:"",val:"",disp:"",name:"",pad:null,time:new Date(),timeEdited:false});setTimeout(()=>document.getElementById("bulk-co")?.scrollIntoView({behavior:"smooth"}),50);}} className={`${s.btnDark} w-full text-lg py-4 mt-4`}>🚐 Bulk check out {bulkSel.length} case{bulkSel.length>1?"s":""}</button>}
+          {coAdmin&&bulk&&(()=>{const sel=displayCases.filter(c=>bulkSel.includes(c.id));
+            const hasVal=c=>(c.valuables&&c.valuables!=="Nil"&&c.valuables!=="")||(c.prep?.mortuaryValuables==="Yes"&&c.prep?.mortuaryValuablesText);
+            const anyVal=sel.some(hasVal), noDisp=sel.filter(c=>!c.prep?.disposition), pm=sel.filter(c=>c.prep?.pacemakerRemoved==="NO");
+            async function go(quiet){
+              const e=quiet?[bulk.dest==="Other"&&!bulk.other.trim()&&"destination name"].filter(Boolean):[!bulk.dest&&"destination",bulk.dest==="Other"&&!bulk.other.trim()&&"destination name",noDisp.length&&!bulk.disp&&"disposition",anyVal&&!bulk.val&&"valuables status",!bulk.name.trim()&&"full name",!bulk.pad&&"signature"].filter(Boolean);
+              if(e.length)return setBulkErr("Still needed: "+e.join(", ")+(quiet?"":" (or use Check out only)"));
+              if(pm.length&&!window.confirm(`⚠️ Pacemaker NOT removed for: ${pm.map(c=>c.firstName+" "+c.lastName).join(", ")}.\n\nCheck out anyway?`))return;
+              if(!window.confirm(quiet?`Check out ${sel.length} cases for ${selFH.name} ONLY?\n\nNo emails to the FD and nothing sent to Leura.`:`Check out ${sel.length} cases for ${selFH.name} and email the FD?`))return;
+              setB("busy",true);setBulkErr("");const out=[];
+              const all={};CHECKOUT_ITEMS.forEach(i=>all[i]=true);
+              const at=(bulk.timeEdited?bulk.time:new Date()).toISOString();
+              for(const c of sel){
+                const coData={checklist:all,disposition:c.prep?.disposition||bulk.disp||"",destination:bulk.dest==="Other"?bulk.other.trim():bulk.dest,valuablesStatus:hasVal(c)?bulk.val:"",signedName:bulk.name.trim(),signatureImage:bulk.pad||null,...(quiet?{quiet:true}:{}),checkedOutAt:at,checkedOutBy:user.name,...(bulk.timeEdited?{checkedOutAtSetBy:user.name}:{}),checkedOutRole:checkoutRole,bulk:true};
+                try{
+                  await updateCase(c.id,{checked_out:true,checkout_data:coData,status:"pending-lock"});
+                  onUpdateCase(c.id,{checkedOut:true,checkout:coData,status:"pending-lock"});
+                  if(!quiet) fetch("/api/crem",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"request",caseId:c.id,by:user?.name})}).then(r=>r.json()).then(j=>{if(j?.to)logActivity(user,"CREM CERT REQUESTED",`Leura signing link sent for ${c.firstName} ${c.lastName}`,c.caseRef,c.id);}).catch(()=>{});
+                  logActivity(user,"🚐 CHECK OUT",(quiet?"Bulk checked out (no emails) ":"Bulk checked out ")+c.firstName+" "+c.lastName,c.caseRef,c.id);
+                  if(quiet){out.push({id:c.id,name:`${c.firstName} ${c.lastName}`,ok:true,quiet:true});continue;}
+                  const to=[MORTUARY_EMAIL,...(c.funeralHomeId==="OTHER"?[]:getFHContacts(c.funeralHomeId))].join(",");
+                  const mail=await sendAppEmail(to,`T/L ${c.firstName} ${c.lastName} has departed MSS`,buildCheckOutEmail(c,coData)).catch(()=>false);
+                  out.push({id:c.id,name:`${c.firstName} ${c.lastName}`,ok:true,mail:!!mail});
+                }catch(err){out.push({id:c.id,name:`${c.firstName} ${c.lastName}`,ok:false,err:err.message||String(err)});}
+              }
+              setBulk(null);setBulkSel([]);setBulkRes(out);window.scrollTo({top:0,behavior:"smooth"});
+            }
+            return <div id="bulk-co" className="bg-white border-2 border-gray-900 rounded-2xl p-4 mt-4 space-y-4">
+              <div className="flex items-center justify-between"><p className="font-black text-gray-900">🚐 Bulk check out · {sel.length} case{sel.length>1?"s":""}</p><button type="button" onClick={()=>setBulk(null)} className="text-sm font-bold text-gray-500">✕ Cancel</button></div>
+              <p className="text-xs text-gray-500">{sel.map(c=>`${(c.lastName||"").toUpperCase()}, ${c.firstName}`).join(" · ")}</p>
+              <p className="text-xs font-bold text-gray-600">All departure checklist items will be marked done: {CHECKOUT_ITEMS.join(", ")}.</p>
+              {pm.length>0&&<p className="text-sm font-black text-red-700 bg-red-50 rounded-xl px-3 py-2">⚠️ Pacemaker NOT removed: {pm.map(c=>c.firstName+" "+c.lastName).join(", ")} — do not cremate</p>}
+              <div><p className={s.section}>Date & time</p>
+                <input type="datetime-local" className={s.inp} value={toLocalInput(bulk.time)} max={toLocalInput(new Date())} onChange={e=>{const d=new Date(e.target.value);if(!isNaN(d)){setB("time",d);setB("timeEdited",true);}}}/>
+                <p className="text-xs text-gray-400 mt-1">{bulk.timeEdited?"Changed by Admin":"Now (change it if they left earlier)"}</p></div>
+              {noDisp.length>0&&<div><p className={s.section}>Disposition for {noDisp.length===sel.length?"all":noDisp.map(c=>c.firstName+" "+c.lastName).join(", ")}</p>
+                <div className="flex gap-2">{DISPOSITION_OPTIONS.map(d=><button type="button" key={d} onClick={()=>setB("disp",d)} className={`flex-1 py-3 rounded-xl border-2 font-black text-sm uppercase ${bulk.disp===d?"bg-gray-900 text-white border-gray-900":"border-gray-300 text-gray-600"}`}>{d}</button>)}</div>
+                {noDisp.length<sel.length&&<p className="text-xs text-gray-400 mt-1">The others keep the disposition already on their case.</p>}</div>}
+              <div><p className={s.section}>Destination (all)</p>
+                <select className={s.sel} value={bulk.dest} onChange={e=>setB("dest",e.target.value)}><option value="">— Select —</option>{DESTINATIONS.map(d=><option key={d}>{d}</option>)}<option value="Other">Other</option></select>
+                {bulk.dest==="Other"&&<input className={`${s.inp} mt-2`} placeholder="Please specify destination…" value={bulk.other} onChange={e=>setB("other",e.target.value)}/>}</div>
+              {anyVal&&<div><p className={s.section}>Valuables ({sel.filter(hasVal).map(c=>c.firstName+" "+c.lastName).join(", ")})</p>
+                <div className="flex flex-col gap-2">{[["YES_DRIVER","✓ Yes — Collected by Driver","bg-green-600"],["YES_FD","✓ Yes — Collected by Funeral Director","bg-blue-600"],["NO_MSS","✗ No — Remaining at MSS","bg-red-500"]].map(([v,l,col])=><button type="button" key={v} onClick={()=>setB("val",v)} className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase text-left ${bulk.val===v?col+" text-white":"bg-white border-2 border-gray-200 text-gray-600"}`}>{l}</button>)}</div></div>}
+              <div><p className={s.section}>Sign off</p>
+                <input className={`${s.inp} text-lg font-bold uppercase mb-2`} placeholder="Full name of person collecting…" value={bulk.name} onChange={e=>setB("name",e.target.value)}/>
+                <SignaturePad onSave={sig=>setB("pad",sig)}/></div>
+              {bulkErr&&<p className="text-sm font-bold text-red-700 bg-red-50 rounded-xl px-3 py-2">{bulkErr}</p>}
+              <button type="button" disabled={!!bulk.busy} onClick={()=>go(false)} className={`${s.btnDark} w-full text-lg py-4 disabled:opacity-40`}>{bulk.busy?"Checking out…":`✓ Check out ${sel.length} case${sel.length>1?"s":""} & email FD`}</button>
+              <button type="button" disabled={!!bulk.busy} onClick={()=>go(true)} className="w-full py-3.5 rounded-2xl border-2 border-gray-900 text-gray-900 hover:bg-gray-100 font-black uppercase disabled:opacity-40">Check out only — no emails, no Leura</button>
+              <p className="text-xs text-gray-400 text-center -mt-2">"Check out only" just marks them as checked out. Nothing is required except the cases.</p>
+            </div>;})()}
         </div>
       )}
 
