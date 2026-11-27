@@ -2728,11 +2728,12 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
       }catch(pdfErr){console.error("PDF error:",pdfErr);}
 
       // Email
-      const to="info@mortuarysupport.com.au";
+      const fdTo=caseData.funeralHomeId==="OTHER"?[]:getFHContacts(caseData.funeralHomeId);
+      const to=["info@mortuarysupport.com.au",...fdTo].join(",");
       const subj=encodeURIComponent("Pacemaker Removal Certificate — "+caseData.firstName+" "+caseData.lastName);
-      const body=encodeURIComponent("Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
+      const body=encodeURIComponent((caseData.funeralHomeName?"Hi "+caseData.funeralHomeName+" Team,\n\n":"")+"Pacemaker removed for "+caseData.firstName+" "+caseData.lastName+".\nCase: "+caseData.caseRef+"\nDate: "+fmt(certDate)+"\nBy: "+displayName+"\n\nCertificate saved to case record.\n\nThe Team at Mortuary Support | Lumière\nPh: 02 8814 5500");
       const pmText=decodeURIComponent(body)+"\n\nThe certificate PDF is attached.";
-      if(await sendAppEmail(to,decodeURIComponent(subj),pmText,window.__pmAtt?[window.__pmAtt]:[]))alert("✓ Certificate saved and emailed to info@");
+      if(await sendAppEmail(to,decodeURIComponent(subj),pmText,window.__pmAtt?[window.__pmAtt]:[]))alert(fdTo.length?"✓ Certificate saved and emailed to the FD and info@":"✓ Certificate saved and emailed to info@");
       else{alert("Certificate saved. The email couldn't be sent automatically — your mail app will open. Press Send.");window.location.href="mailto:"+to+"?subject="+subj+"&body="+body;}
       window.__pmAtt=null;
       onSaved&&onSaved();
