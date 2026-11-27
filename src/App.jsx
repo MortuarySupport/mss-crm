@@ -2630,6 +2630,13 @@ async function saveAndEmail(){
 }
 
 
+// Crop a signature PNG (data URL) to the drawn ink
+function trimSigPng(url){return new Promise(res=>{const im=new Image();im.onload=()=>{try{const c=document.createElement("canvas");c.width=im.width;c.height=im.height;const x=c.getContext("2d");x.drawImage(im,0,0);
+  const d=x.getImageData(0,0,c.width,c.height).data;let x0=c.width,y0=c.height,x1=-1,y1=-1;
+  for(let y=0;y<c.height;y++)for(let xx=0;xx<c.width;xx++){const o=(y*c.width+xx)*4;if(d[o+3]>40&&(d[o]+d[o+1]+d[o+2])<600){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y;}}
+  if(x1<0)return res({url,w:im.width,h:im.height});const p=4;x0=Math.max(0,x0-p);y0=Math.max(0,y0-p);x1=Math.min(c.width-1,x1+p);y1=Math.min(c.height-1,y1+p);
+  const o=document.createElement("canvas");o.width=x1-x0+1;o.height=y1-y0+1;o.getContext("2d").drawImage(c,x0,y0,o.width,o.height,0,0,o.width,o.height);
+  res({url:o.toDataURL("image/png"),w:o.width,h:o.height});}catch(e){res({url,w:im.width,h:im.height});}};im.onerror=()=>res({url,w:200,h:36});im.src=url;});}
 function PacemakerCertificate({caseData, onClose, onSaved}){
   const [embName, setEmbName] = useState("Steve Lambert");
   const [showOther, setShowOther] = useState(false);
@@ -2712,10 +2719,13 @@ function PacemakerCertificate({caseData, onClose, onSaved}){
         page.drawText(caseData.firstName+" "+caseData.lastName,{x:200,y:height-130,size:16,font,color:rgb(0,0,0)});
         page.drawText(caseData.funeralHomeName||"",{x:200,y:height-173,size:16,font,color:rgb(0,0,0)});
         page.drawText(fmt(certDate),{x:95,y:height-325,size:16,font,color:rgb(0,0,0)});
-        const sigData=sig.split(",")[1]||sig;
+        // Trim the signature to its ink and sit it on the signature line
+        const tr=await trimSigPng(sig);
+        const sigData=tr.url.split(",")[1]||tr.url;
         const sigBytes=Uint8Array.from(atob(sigData),ch=>ch.charCodeAt(0));
         const sigImg=await pdfDoc.embedPng(sigBytes);
-        page.drawImage(sigImg,{x:100,y:height-310,width:200,height:36});
+        const sk=Math.min(200/tr.w,24/tr.h);
+        page.drawImage(sigImg,{x:128,y:height-287,width:tr.w*sk,height:tr.h*sk});
         const filledBytes=await pdfDoc.save();
         const dd=new Date();
         const ddStr=String(dd.getDate()).padStart(2,"0")+String(dd.getMonth()+1).padStart(2,"0")+dd.getFullYear();
